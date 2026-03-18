@@ -1,16 +1,74 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { useFinanceStore } from "@/lib/finance-store";
+import { VelocityBar } from "@/components/VelocityBar";
+import { BalanceHeader } from "@/components/BalanceHeader";
+import { AccountCards } from "@/components/AccountCards";
+import { TransactionList } from "@/components/TransactionList";
+import { SpendingBreakdown } from "@/components/SpendingBreakdown";
+import { QuickAddSheet } from "@/components/QuickAddSheet";
+import { BottomNav } from "@/components/BottomNav";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const store = useFinanceStore();
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background max-w-md mx-auto relative">
+      <VelocityBar spent={store.todaySpent} budget={store.dailyBudget} />
+
+      {activeTab === "dashboard" && (
+        <>
+          <BalanceHeader
+            totalBalance={store.totalBalance}
+            monthlyIncome={store.monthlyIncome}
+            monthlyExpenses={store.monthlyExpenses}
+          />
+          <div className="my-4">
+            <AccountCards accounts={store.accounts} />
+          </div>
+          <SpendingBreakdown transactions={store.transactions} />
+          <div className="mt-2">
+            <TransactionList transactions={store.transactions.slice(0, 5)} />
+          </div>
+        </>
+      )}
+
+      {activeTab === "transactions" && (
+        <div className="pt-4">
+          <div className="px-4 pb-3">
+            <h1 className="text-[20px] font-display font-semibold text-foreground">Transaction History</h1>
+          </div>
+          <TransactionList transactions={store.transactions} />
+        </div>
+      )}
+
+      {activeTab === "accounts" && (
+        <div className="pt-4">
+          <div className="px-4 pb-3">
+            <h1 className="text-[20px] font-display font-semibold text-foreground">Accounts</h1>
+          </div>
+          <AccountCards accounts={store.accounts} />
+          <div className="mt-6">
+            <SpendingBreakdown transactions={store.transactions} />
+          </div>
+        </div>
+      )}
+
+      <QuickAddSheet
+        open={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        onSubmit={store.addTransaction}
+        accounts={store.accounts}
+      />
+
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onQuickAdd={() => setQuickAddOpen(true)}
+      />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
