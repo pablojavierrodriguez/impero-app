@@ -31,6 +31,19 @@ export function useFinanceStore() {
     );
   }, []);
 
+  const importTransactions = useCallback((txs: Transaction[]) => {
+    setTransactions(prev => [...txs, ...prev]);
+    // Update account balances based on imported transactions
+    setAccounts(prev =>
+      prev.map(acc => {
+        const delta = txs
+          .filter(t => t.accountId === acc.id)
+          .reduce((sum, t) => sum + (t.type === "income" ? t.amount : -t.amount), 0);
+        return delta !== 0 ? { ...acc, balance: acc.balance + delta } : acc;
+      })
+    );
+  }, []);
+
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
   
   const monthlyExpenses = transactions
