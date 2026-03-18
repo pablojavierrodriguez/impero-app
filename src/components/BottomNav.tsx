@@ -1,0 +1,52 @@
+import { motion } from "framer-motion";
+import { LayoutDashboard, ArrowLeftRight, CreditCard, Plus } from "lucide-react";
+
+interface BottomNavProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  onQuickAdd: () => void;
+}
+
+const tabs = [
+  { id: "dashboard", icon: LayoutDashboard, label: "Home" },
+  { id: "transactions", icon: ArrowLeftRight, label: "History" },
+  { id: "accounts", icon: CreditCard, label: "Accounts" },
+];
+
+export function BottomNav({ activeTab, onTabChange, onQuickAdd }: BottomNavProps) {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-40">
+      <div className="bg-card/95 backdrop-blur-lg border-t border-border/50">
+        <div className="flex items-center justify-around px-2 h-16 max-w-md mx-auto">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              className="flex flex-col items-center justify-center w-16 h-12 relative"
+            >
+              <tab.icon className={`w-5 h-5 transition-colors ${activeTab === tab.id ? "text-primary" : "text-muted-foreground"}`} />
+              <span className={`text-[10px] mt-0.5 transition-colors ${activeTab === tab.id ? "text-primary" : "text-muted-foreground"}`}>
+                {tab.label}
+              </span>
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="nav-indicator"
+                  className="absolute -top-px left-3 right-3 h-0.5 rounded-full bg-primary"
+                  transition={{ type: "spring", stiffness: 400, damping: 40 }}
+                />
+              )}
+            </button>
+          ))}
+          {/* FAB */}
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={onQuickAdd}
+            className="h-14 w-14 rounded-full bg-primary flex items-center justify-center fab-glow -mt-4"
+          >
+            <Plus className="w-6 h-6 text-primary-foreground" />
+          </motion.button>
+        </div>
+      </div>
+    </div>
+  );
+}
