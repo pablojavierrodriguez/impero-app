@@ -63,6 +63,7 @@ export function useFinanceStore() {
     transactions,
     accounts,
     addTransaction,
+    importTransactions,
     totalBalance,
     monthlyExpenses,
     monthlyIncome,

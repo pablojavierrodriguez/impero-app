@@ -6,12 +6,14 @@ import { AccountCards } from "@/components/AccountCards";
 import { TransactionList } from "@/components/TransactionList";
 import { SpendingBreakdown } from "@/components/SpendingBreakdown";
 import { QuickAddSheet } from "@/components/QuickAddSheet";
+import { CsvImportSheet } from "@/components/CsvImportSheet";
 import { BottomNav } from "@/components/BottomNav";
 
 const Index = () => {
   const store = useFinanceStore();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto relative">
@@ -36,8 +38,14 @@ const Index = () => {
 
       {activeTab === "transactions" && (
         <div className="pt-4">
-          <div className="px-4 pb-3">
+          <div className="px-4 pb-3 flex items-center justify-between">
             <h1 className="text-[20px] font-display font-semibold text-foreground">Transaction History</h1>
+            <button
+              onClick={() => setCsvImportOpen(true)}
+              className="px-3 py-1.5 rounded-full bg-secondary text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Importar CSV
+            </button>
           </div>
           <TransactionList transactions={store.transactions} />
         </div>
@@ -59,6 +67,13 @@ const Index = () => {
         open={quickAddOpen}
         onClose={() => setQuickAddOpen(false)}
         onSubmit={store.addTransaction}
+        accounts={store.accounts}
+      />
+
+      <CsvImportSheet
+        open={csvImportOpen}
+        onClose={() => setCsvImportOpen(false)}
+        onImport={store.importTransactions}
         accounts={store.accounts}
       />
 
