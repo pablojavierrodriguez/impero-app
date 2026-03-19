@@ -5,6 +5,10 @@ export type Category = {
   name: string;
   color: string;
   type: TransactionType;
+  icon?: string; // lucide icon name
+  parentId?: string | null; // null = root category
+  archived?: boolean;
+  order?: number;
 };
 
 export type Transaction = {
@@ -26,18 +30,18 @@ export type Account = {
 };
 
 export const CATEGORIES: Category[] = [
-  { id: "groceries", name: "Groceries", color: "bg-emerald-500", type: "expense" },
-  { id: "transport", name: "Transport", color: "bg-sky-500", type: "expense" },
-  { id: "dining", name: "Dining", color: "bg-orange-500", type: "expense" },
-  { id: "bills", name: "Bills", color: "bg-red-400", type: "expense" },
-  { id: "health", name: "Health", color: "bg-pink-500", type: "expense" },
-  { id: "shopping", name: "Shopping", color: "bg-violet-500", type: "expense" },
-  { id: "entertainment", name: "Entertainment", color: "bg-amber-500", type: "expense" },
-  { id: "other-expense", name: "Other", color: "bg-zinc-500", type: "expense" },
-  { id: "salary", name: "Salary", color: "bg-emerald-400", type: "income" },
-  { id: "freelance", name: "Freelance", color: "bg-teal-400", type: "income" },
-  { id: "investments", name: "Investments", color: "bg-cyan-400", type: "income" },
-  { id: "other-income", name: "Other", color: "bg-zinc-400", type: "income" },
+  { id: "groceries", name: "Groceries", color: "bg-emerald-500", type: "expense", icon: "shopping-cart", parentId: null },
+  { id: "transport", name: "Transport", color: "bg-sky-500", type: "expense", icon: "car", parentId: null },
+  { id: "dining", name: "Dining", color: "bg-orange-500", type: "expense", icon: "utensils", parentId: null },
+  { id: "bills", name: "Bills", color: "bg-red-400", type: "expense", icon: "file-text", parentId: null },
+  { id: "health", name: "Health", color: "bg-pink-500", type: "expense", icon: "heart-pulse", parentId: null },
+  { id: "shopping", name: "Shopping", color: "bg-violet-500", type: "expense", icon: "shopping-bag", parentId: null },
+  { id: "entertainment", name: "Entertainment", color: "bg-amber-500", type: "expense", icon: "tv", parentId: null },
+  { id: "other-expense", name: "Other", color: "bg-zinc-500", type: "expense", icon: "circle-dot", parentId: null },
+  { id: "salary", name: "Salary", color: "bg-emerald-400", type: "income", icon: "banknote", parentId: null },
+  { id: "freelance", name: "Freelance", color: "bg-teal-400", type: "income", icon: "laptop", parentId: null },
+  { id: "investments", name: "Investments", color: "bg-cyan-400", type: "income", icon: "trending-up", parentId: null },
+  { id: "other-income", name: "Other", color: "bg-zinc-400", type: "income", icon: "circle-dot", parentId: null },
 ];
 
 export const DEFAULT_ACCOUNTS: Account[] = [
@@ -58,4 +62,20 @@ export const SAMPLE_TRANSACTIONS: Transaction[] = [
   { id: "8", amount: 62.40, description: "Amazon", category: CATEGORIES[5], date: new Date(2026, 2, 13, 11, 30), type: "expense", accountId: "credit" },
   { id: "9", amount: 28.00, description: "Netflix + Spotify", category: CATEGORIES[6], date: new Date(2026, 2, 12, 0, 0), type: "expense", accountId: "credit" },
   { id: "10", amount: 15.00, description: "Coffee & Snacks", category: CATEGORIES[2], date: new Date(2026, 2, 18, 8, 0), type: "expense", accountId: "cash" },
+];
+
+export const CATEGORY_COLORS = [
+  "bg-emerald-500", "bg-sky-500", "bg-orange-500", "bg-red-400",
+  "bg-pink-500", "bg-violet-500", "bg-amber-500", "bg-zinc-500",
+  "bg-emerald-400", "bg-teal-400", "bg-cyan-400", "bg-rose-500",
+  "bg-indigo-500", "bg-lime-500", "bg-fuchsia-500", "bg-yellow-500",
+];
+
+export const CATEGORY_ICONS = [
+  "shopping-cart", "car", "utensils", "file-text", "heart-pulse",
+  "shopping-bag", "tv", "circle-dot", "banknote", "laptop",
+  "trending-up", "home", "plane", "gift", "book", "music",
+  "coffee", "dumbbell", "baby", "dog", "scissors", "wrench",
+  "graduation-cap", "briefcase", "palette", "gamepad-2", "shirt",
+  "fuel", "pill", "stethoscope",
 ];
