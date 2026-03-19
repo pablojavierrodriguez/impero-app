@@ -50,7 +50,13 @@ const Index = () => {
               Import CSV
             </button>
           </div>
-          <TransactionList transactions={store.transactions} />
+          <TransactionFilters
+            filters={txFilters}
+            onChange={setTxFilters}
+            categories={store.getAllActiveCategories()}
+            accounts={store.accounts}
+          />
+          <TransactionList transactions={applyFilters(store.transactions, txFilters)} />
         </div>
       )}
 
