@@ -9,12 +9,14 @@ import { QuickAddSheet } from "@/components/QuickAddSheet";
 import { CsvImportSheet } from "@/components/CsvImportSheet";
 import { BottomNav } from "@/components/BottomNav";
 import { CategoryManager } from "@/components/CategoryManager";
+import { TransactionFilters, applyFilters, EMPTY_FILTERS, TransactionFilterValues } from "@/components/TransactionFilters";
 
 const Index = () => {
   const store = useFinanceStore();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [txFilters, setTxFilters] = useState<TransactionFilterValues>(EMPTY_FILTERS);
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto relative">
@@ -48,7 +50,13 @@ const Index = () => {
               Import CSV
             </button>
           </div>
-          <TransactionList transactions={store.transactions} />
+          <TransactionFilters
+            filters={txFilters}
+            onChange={setTxFilters}
+            categories={store.getAllActiveCategories()}
+            accounts={store.accounts}
+          />
+          <TransactionList transactions={applyFilters(store.transactions, txFilters)} />
         </div>
       )}
 
