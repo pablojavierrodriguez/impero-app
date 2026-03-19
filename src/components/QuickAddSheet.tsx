@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowDownLeft, ArrowUpRight, Delete } from "lucide-react";
-import { CATEGORIES, Category, Account } from "@/lib/types";
+import { Category, Account } from "@/lib/types";
+import { CategoryIcon } from "./CategoryIcon";
 
 interface QuickAddSheetProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (amount: number, description: string, category: Category, type: "income" | "expense", accountId: string) => void;
   accounts: Account[];
+  categories: Category[];
 }
 
-export function QuickAddSheet({ open, onClose, onSubmit, accounts }: QuickAddSheetProps) {
+export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories }: QuickAddSheetProps) {
   const [amount, setAmount] = useState("0");
   const [type, setType] = useState<"income" | "expense">("expense");
   const [step, setStep] = useState<"amount" | "details">("amount");
@@ -18,7 +20,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts }: QuickAddShe
   const [selectedAccount, setSelectedAccount] = useState(accounts[0]?.id ?? "");
   const [description, setDescription] = useState("");
 
-  const categories = CATEGORIES.filter(c => c.type === type);
+  const filteredCats = categories.filter(c => c.type === type && !c.archived);
 
   const handleKey = (key: string) => {
     if (key === "del") {
@@ -93,27 +95,15 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts }: QuickAddShe
 
             <AnimatePresence mode="wait">
               {step === "amount" ? (
-                <motion.div
-                  key="amount"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                >
-                  {/* Amount Display */}
+                <motion.div key="amount" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                   <div className="px-5 py-6 text-center">
                     <div className="flex items-center justify-center gap-1">
-                      {type === "expense" ? (
-                        <ArrowUpRight className="w-5 h-5 text-destructive" />
-                      ) : (
-                        <ArrowDownLeft className="w-5 h-5 text-primary" />
-                      )}
+                      {type === "expense" ? <ArrowUpRight className="w-5 h-5 text-destructive" /> : <ArrowDownLeft className="w-5 h-5 text-primary" />}
                       <span className={`font-mono-data text-[40px] tracking-tight ${type === "income" ? "text-primary" : "text-foreground"}`}>
                         ${amount}
                       </span>
                     </div>
                   </div>
-
-                  {/* Numpad */}
                   <div className="grid grid-cols-3 gap-1 px-4 pb-3">
                     {keys.map(key => (
                       <button
@@ -126,8 +116,6 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts }: QuickAddShe
                       </button>
                     ))}
                   </div>
-
-                  {/* Next button */}
                   <div className="px-4 pb-6">
                     <button
                       onClick={handleNext}
@@ -139,21 +127,12 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts }: QuickAddShe
                   </div>
                 </motion.div>
               ) : (
-                <motion.div
-                  key="details"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="px-4 pb-6"
-                >
-                  {/* Amount summary */}
+                <motion.div key="details" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="px-4 pb-6">
                   <div className="text-center py-3">
                     <span className={`font-mono-data text-[28px] ${type === "income" ? "text-primary" : "text-foreground"}`}>
                       {type === "expense" ? "-" : "+"}${amount}
                     </span>
                   </div>
-
-                  {/* Description */}
                   <input
                     type="text"
                     placeholder="Description (optional)"
@@ -161,11 +140,9 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts }: QuickAddShe
                     onChange={e => setDescription(e.target.value)}
                     className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
                   />
-
-                  {/* Category */}
                   <span className="text-[12px] text-muted-foreground font-medium mb-2 block">Category</span>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {categories.map(cat => (
+                    {filteredCats.map(cat => (
                       <button
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat)}
@@ -175,13 +152,13 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts }: QuickAddShe
                             : "bg-secondary/50 text-muted-foreground"
                         }`}
                       >
-                        <div className={`category-dot ${cat.color}`} />
+                        <div className={`w-5 h-5 rounded-[6px] ${cat.color} flex items-center justify-center`}>
+                          <CategoryIcon name={cat.icon || "circle-dot"} className="w-3 h-3 text-white" />
+                        </div>
                         {cat.name}
                       </button>
                     ))}
                   </div>
-
-                  {/* Account */}
                   <span className="text-[12px] text-muted-foreground font-medium mb-2 block">Account</span>
                   <div className="flex flex-wrap gap-2 mb-6">
                     {accounts.map(acc => (
@@ -199,13 +176,8 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts }: QuickAddShe
                       </button>
                     ))}
                   </div>
-
-                  {/* Actions */}
                   <div className="flex gap-3">
-                    <button
-                      onClick={() => setStep("amount")}
-                      className="flex-1 h-12 rounded-[12px] bg-secondary text-foreground font-medium text-[15px] active:scale-[0.98] transition-transform"
-                    >
+                    <button onClick={() => setStep("amount")} className="flex-1 h-12 rounded-[12px] bg-secondary text-foreground font-medium text-[15px] active:scale-[0.98] transition-transform">
                       Back
                     </button>
                     <button

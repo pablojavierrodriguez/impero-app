@@ -1,6 +1,7 @@
 import { Transaction } from "@/lib/types";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
+import { CategoryIcon } from "./CategoryIcon";
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -30,7 +31,9 @@ export function TransactionList({ transactions }: TransactionListProps) {
                 className="transaction-row"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`category-dot ${tx.category.color}`} />
+                  <div className={`w-8 h-8 rounded-[10px] ${tx.category.color} flex items-center justify-center flex-shrink-0`}>
+                    <CategoryIcon name={tx.category.icon || "circle-dot"} className="w-4 h-4 text-white" />
+                  </div>
                   <div className="flex flex-col">
                     <span className="text-[14px] text-foreground font-medium">{tx.description}</span>
                     <span className="text-[11px] text-muted-foreground">

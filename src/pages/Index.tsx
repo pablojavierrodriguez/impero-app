@@ -8,6 +8,7 @@ import { SpendingBreakdown } from "@/components/SpendingBreakdown";
 import { QuickAddSheet } from "@/components/QuickAddSheet";
 import { CsvImportSheet } from "@/components/CsvImportSheet";
 import { BottomNav } from "@/components/BottomNav";
+import { CategoryManager } from "@/components/CategoryManager";
 
 const Index = () => {
   const store = useFinanceStore();
@@ -44,11 +45,28 @@ const Index = () => {
               onClick={() => setCsvImportOpen(true)}
               className="px-3 py-1.5 rounded-full bg-secondary text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              Importar CSV
+              Import CSV
             </button>
           </div>
           <TransactionList transactions={store.transactions} />
         </div>
+      )}
+
+      {activeTab === "categories" && (
+        <CategoryManager
+          categories={store.categories}
+          getRootCategories={store.getRootCategories}
+          getSubcategories={store.getSubcategories}
+          getArchivedCategories={store.getArchivedCategories}
+          getTransactionCountByCategory={store.getTransactionCountByCategory}
+          getAllActiveCategories={store.getAllActiveCategories}
+          onAdd={store.addCategory}
+          onUpdate={store.updateCategory}
+          onArchive={store.archiveCategory}
+          onUnarchive={store.unarchiveCategory}
+          onDelete={store.deleteCategory}
+          onReassign={store.reassignTransactions}
+        />
       )}
 
       {activeTab === "accounts" && (
@@ -68,6 +86,7 @@ const Index = () => {
         onClose={() => setQuickAddOpen(false)}
         onSubmit={store.addTransaction}
         accounts={store.accounts}
+        categories={store.getAllActiveCategories()}
       />
 
       <CsvImportSheet
