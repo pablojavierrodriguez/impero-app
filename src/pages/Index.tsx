@@ -9,6 +9,7 @@ import { QuickAddSheet } from "@/components/QuickAddSheet";
 import { CsvImportSheet } from "@/components/CsvImportSheet";
 import { BottomNav } from "@/components/BottomNav";
 import { CategoryManager } from "@/components/CategoryManager";
+import { TransactionFilters, applyFilters, EMPTY_FILTERS, TransactionFilterValues } from "@/components/TransactionFilters";
 
 const Index = () => {
   const store = useFinanceStore();
