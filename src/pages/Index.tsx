@@ -16,6 +16,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [txFilters, setTxFilters] = useState<TransactionFilterValues>(EMPTY_FILTERS);
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto relative">
