@@ -203,9 +203,9 @@ export function TransactionFilters({ filters, onChange, categories, accounts }: 
 }
 
 export function applyFilters(
-  transactions: { id: string; amount: number; description: string; category: Category; date: Date; type: string; accountId: string }[],
+  transactions: Transaction[],
   filters: TransactionFilterValues
-) {
+): Transaction[] {
   return transactions.filter(tx => {
     if (filters.search && !tx.description.toLowerCase().includes(filters.search.toLowerCase())) return false;
     if (filters.type !== "all" && tx.type !== filters.type) return false;
