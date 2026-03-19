@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Category, Account } from "@/lib/types";
+import { Category, Account, Transaction } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Search, Filter, X, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
