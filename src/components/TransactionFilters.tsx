@@ -203,7 +203,7 @@ export function TransactionFilters({ filters, onChange, categories, accounts }: 
 }
 
 export function applyFilters(
-  transactions: { amount: number; description: string; category: Category; date: Date; type: string; accountId: string }[],
+  transactions: { id: string; amount: number; description: string; category: Category; date: Date; type: string; accountId: string }[],
   filters: TransactionFilterValues
 ) {
   return transactions.filter(tx => {
