@@ -1,5 +1,6 @@
 import { Account } from "@/lib/types";
 import { motion } from "framer-motion";
+import { CategoryIcon } from "./CategoryIcon";
 
 interface AccountCardsProps {
   accounts: Account[];
@@ -19,7 +20,9 @@ export function AccountCards({ accounts }: AccountCardsProps) {
           >
             <div className="card-inner">
               <div className="flex items-center gap-2 mb-3">
-                <div className={`category-dot ${account.color}`} />
+                <div className={`w-6 h-6 rounded-[8px] ${account.color} flex items-center justify-center`}>
+                  <CategoryIcon name={account.icon || "wallet"} className="w-3.5 h-3.5 text-white" />
+                </div>
                 <span className="text-[12px] text-muted-foreground font-medium">{account.name}</span>
               </div>
               <span className={`font-mono-data text-[18px] ${account.balance < 0 ? "text-destructive" : "text-foreground"}`}>
