@@ -5,9 +5,10 @@ import { CategoryIcon } from "./CategoryIcon";
 
 interface TransactionListProps {
   transactions: Transaction[];
+  onSelect?: (tx: Transaction) => void;
 }
 
-export function TransactionList({ transactions }: TransactionListProps) {
+export function TransactionList({ transactions, onSelect }: TransactionListProps) {
   const grouped = transactions.reduce<Record<string, Transaction[]>>((acc, tx) => {
     const key = format(tx.date, "MMM d, yyyy");
     if (!acc[key]) acc[key] = [];
@@ -28,7 +29,8 @@ export function TransactionList({ transactions }: TransactionListProps) {
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.03, type: "spring", stiffness: 400, damping: 40 }}
-                className="transaction-row"
+                className={`transaction-row ${onSelect ? "cursor-pointer active:bg-secondary/50" : ""}`}
+                onClick={() => onSelect?.(tx)}
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-[10px] ${tx.category.color} flex items-center justify-center flex-shrink-0`}>

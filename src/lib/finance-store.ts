@@ -32,6 +32,39 @@ export function useFinanceStore() {
     );
   }, []);
 
+  const updateTransaction = useCallback((id: string, updates: Partial<Omit<Transaction, "id">>) => {
+    setTransactions(prev => {
+      const old = prev.find(t => t.id === id);
+      if (!old) return prev;
+      const updated = { ...old, ...updates };
+      // Adjust account balances if amount, type, or account changed
+      const oldDelta = old.type === "income" ? old.amount : -old.amount;
+      const newDelta = updated.type === "income" ? updated.amount : -updated.amount;
+      if (oldDelta !== newDelta || old.accountId !== updated.accountId) {
+        setAccounts(accs => accs.map(acc => {
+          let balance = acc.balance;
+          if (acc.id === old.accountId) balance -= oldDelta;
+          if (acc.id === updated.accountId) balance += newDelta;
+          return balance !== acc.balance ? { ...acc, balance } : acc;
+        }));
+      }
+      return prev.map(t => t.id === id ? updated : t);
+    });
+  }, []);
+
+  const deleteTransaction = useCallback((id: string) => {
+    setTransactions(prev => {
+      const tx = prev.find(t => t.id === id);
+      if (tx) {
+        const delta = tx.type === "income" ? tx.amount : -tx.amount;
+        setAccounts(accs => accs.map(acc =>
+          acc.id === tx.accountId ? { ...acc, balance: acc.balance - delta } : acc
+        ));
+      }
+      return prev.filter(t => t.id !== id);
+    });
+  }, []);
+
   const importTransactions = useCallback((txs: Transaction[]) => {
     setTransactions(prev => [...txs, ...prev]);
     setAccounts(prev =>
@@ -121,6 +154,8 @@ export function useFinanceStore() {
     accounts,
     categories,
     addTransaction,
+    updateTransaction,
+    deleteTransaction,
     importTransactions,
     addCategory,
     updateCategory,
