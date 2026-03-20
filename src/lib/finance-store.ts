@@ -154,6 +154,8 @@ export function useFinanceStore() {
     accounts,
     categories,
     addTransaction,
+    updateTransaction,
+    deleteTransaction,
     importTransactions,
     addCategory,
     updateCategory,

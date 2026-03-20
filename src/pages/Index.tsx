@@ -7,9 +7,11 @@ import { TransactionList } from "@/components/TransactionList";
 import { SpendingBreakdown } from "@/components/SpendingBreakdown";
 import { QuickAddSheet } from "@/components/QuickAddSheet";
 import { CsvImportSheet } from "@/components/CsvImportSheet";
+import { TransactionEditSheet } from "@/components/TransactionEditSheet";
 import { BottomNav } from "@/components/BottomNav";
 import { CategoryManager } from "@/components/CategoryManager";
 import { TransactionFilters, applyFilters, EMPTY_FILTERS, TransactionFilterValues } from "@/components/TransactionFilters";
+import { Transaction } from "@/lib/types";
 
 const Index = () => {
   const store = useFinanceStore();
@@ -17,6 +19,7 @@ const Index = () => {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [txFilters, setTxFilters] = useState<TransactionFilterValues>(EMPTY_FILTERS);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto relative">
@@ -34,7 +37,10 @@ const Index = () => {
           </div>
           <SpendingBreakdown transactions={store.transactions} />
           <div className="mt-2">
-            <TransactionList transactions={store.transactions.slice(0, 5)} />
+            <TransactionList
+              transactions={store.transactions.slice(0, 5)}
+              onSelect={setEditingTx}
+            />
           </div>
         </>
       )}
@@ -56,7 +62,10 @@ const Index = () => {
             categories={store.getAllActiveCategories()}
             accounts={store.accounts}
           />
-          <TransactionList transactions={applyFilters(store.transactions, txFilters)} />
+          <TransactionList
+            transactions={applyFilters(store.transactions, txFilters)}
+            onSelect={setEditingTx}
+          />
         </div>
       )}
 
@@ -102,6 +111,16 @@ const Index = () => {
         onClose={() => setCsvImportOpen(false)}
         onImport={store.importTransactions}
         accounts={store.accounts}
+      />
+
+      <TransactionEditSheet
+        transaction={editingTx}
+        open={!!editingTx}
+        onClose={() => setEditingTx(null)}
+        onUpdate={store.updateTransaction}
+        onDelete={store.deleteTransaction}
+        accounts={store.accounts}
+        categories={store.getAllActiveCategories()}
       />
 
       <BottomNav
