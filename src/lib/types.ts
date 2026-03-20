@@ -21,13 +21,30 @@ export type Transaction = {
   accountId: string;
 };
 
+export type AccountType = "checking" | "savings" | "credit" | "cash";
+
 export type Account = {
   id: string;
   name: string;
   balance: number;
-  type: "checking" | "savings" | "credit" | "cash";
+  type: AccountType;
   color: string;
+  icon?: string;
+  archived?: boolean;
 };
+
+export const ACCOUNT_ICONS = [
+  "wallet", "credit-card", "piggy-bank", "banknote", "landmark",
+  "building-2", "coins", "hand-coins", "receipt", "briefcase",
+  "safe", "circle-dollar-sign", "bitcoin", "gem",
+];
+
+export const ACCOUNT_TYPES: { value: AccountType; label: string }[] = [
+  { value: "checking", label: "Checking" },
+  { value: "savings", label: "Savings" },
+  { value: "credit", label: "Credit Card" },
+  { value: "cash", label: "Cash" },
+];
 
 export const CATEGORIES: Category[] = [
   { id: "groceries", name: "Groceries", color: "bg-emerald-500", type: "expense", icon: "shopping-cart", parentId: null },

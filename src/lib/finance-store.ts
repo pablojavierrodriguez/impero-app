@@ -37,7 +37,6 @@ export function useFinanceStore() {
       const old = prev.find(t => t.id === id);
       if (!old) return prev;
       const updated = { ...old, ...updates };
-      // Adjust account balances if amount, type, or account changed
       const oldDelta = old.type === "income" ? old.amount : -old.amount;
       const newDelta = updated.type === "income" ? updated.amount : -updated.amount;
       if (oldDelta !== newDelta || old.accountId !== updated.accountId) {
@@ -84,7 +83,6 @@ export function useFinanceStore() {
 
   const updateCategory = useCallback((id: string, updates: Partial<Category>) => {
     setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-    // Update category reference in transactions
     setTransactions(prev => prev.map(t =>
       t.category.id === id ? { ...t, category: { ...t.category, ...updates } } : t
     ));
@@ -134,7 +132,63 @@ export function useFinanceStore() {
     return categories.filter(c => !c.archived && (type ? c.type === type : true));
   }, [categories]);
 
-  const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+  // Account CRUD
+  const addAccount = useCallback((account: Account) => {
+    setAccounts(prev => [...prev, account]);
+  }, []);
+
+  const updateAccount = useCallback((id: string, updates: Partial<Account>) => {
+    setAccounts(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+  }, []);
+
+  const archiveAccount = useCallback((id: string) => {
+    setAccounts(prev => prev.map(a => a.id === id ? { ...a, archived: true } : a));
+  }, []);
+
+  const unarchiveAccount = useCallback((id: string) => {
+    setAccounts(prev => prev.map(a => a.id === id ? { ...a, archived: false } : a));
+  }, []);
+
+  const adjustAccountBalance = useCallback((accountId: string, newBalance: number) => {
+    setAccounts(prev => {
+      const account = prev.find(a => a.id === accountId);
+      if (!account) return prev;
+      const diff = newBalance - account.balance;
+      if (diff === 0) return prev;
+
+      // Create adjustment transaction
+      const adjustmentCategory: Category = diff > 0
+        ? { id: "adjustment-income", name: "Balance Adjustment", color: "bg-emerald-400", type: "income", icon: "arrow-up-down" }
+        : { id: "adjustment-expense", name: "Balance Adjustment", color: "bg-zinc-500", type: "expense", icon: "arrow-up-down" };
+
+      const adjustmentTx: Transaction = {
+        id: `adj-${Date.now()}`,
+        amount: Math.abs(diff),
+        description: `Balance adjustment: ${account.name}`,
+        category: adjustmentCategory,
+        date: new Date(),
+        type: diff > 0 ? "income" : "expense",
+        accountId,
+      };
+
+      setTransactions(txPrev => [adjustmentTx, ...txPrev]);
+      return prev.map(a => a.id === accountId ? { ...a, balance: newBalance } : a);
+    });
+  }, []);
+
+  const getActiveAccounts = useCallback(() => {
+    return accounts.filter(a => !a.archived);
+  }, [accounts]);
+
+  const getArchivedAccounts = useCallback(() => {
+    return accounts.filter(a => a.archived);
+  }, [accounts]);
+
+  const getTransactionsByAccount = useCallback((accountId: string) => {
+    return transactions.filter(t => t.accountId === accountId);
+  }, [transactions]);
+
+  const totalBalance = accounts.filter(a => !a.archived).reduce((sum, acc) => sum + acc.balance, 0);
 
   const monthlyExpenses = transactions
     .filter(t => t.type === "expense" && t.date.getMonth() === new Date().getMonth())
@@ -168,6 +222,14 @@ export function useFinanceStore() {
     getSubcategories,
     getArchivedCategories,
     getAllActiveCategories,
+    addAccount,
+    updateAccount,
+    archiveAccount,
+    unarchiveAccount,
+    adjustAccountBalance,
+    getActiveAccounts,
+    getArchivedAccounts,
+    getTransactionsByAccount,
     totalBalance,
     monthlyExpenses,
     monthlyIncome,
