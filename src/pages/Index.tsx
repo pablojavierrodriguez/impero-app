@@ -10,6 +10,7 @@ import { CsvImportSheet } from "@/components/CsvImportSheet";
 import { TransactionEditSheet } from "@/components/TransactionEditSheet";
 import { BottomNav } from "@/components/BottomNav";
 import { CategoryManager } from "@/components/CategoryManager";
+import { AccountManager } from "@/components/AccountManager";
 import { TransactionFilters, applyFilters, EMPTY_FILTERS, TransactionFilterValues } from "@/components/TransactionFilters";
 import { Transaction } from "@/lib/types";
 
@@ -33,7 +34,7 @@ const Index = () => {
             monthlyExpenses={store.monthlyExpenses}
           />
           <div className="my-4">
-            <AccountCards accounts={store.accounts} />
+            <AccountCards accounts={store.getActiveAccounts()} />
           </div>
           <SpendingBreakdown transactions={store.transactions} />
           <div className="mt-2">
@@ -60,7 +61,7 @@ const Index = () => {
             filters={txFilters}
             onChange={setTxFilters}
             categories={store.getAllActiveCategories()}
-            accounts={store.accounts}
+            accounts={store.getActiveAccounts()}
           />
           <TransactionList
             transactions={applyFilters(store.transactions, txFilters)}
@@ -87,22 +88,25 @@ const Index = () => {
       )}
 
       {activeTab === "accounts" && (
-        <div className="pt-4">
-          <div className="px-4 pb-3">
-            <h1 className="text-[20px] font-display font-semibold text-foreground">Accounts</h1>
-          </div>
-          <AccountCards accounts={store.accounts} />
-          <div className="mt-6">
-            <SpendingBreakdown transactions={store.transactions} />
-          </div>
-        </div>
+        <AccountManager
+          accounts={store.accounts}
+          getActiveAccounts={store.getActiveAccounts}
+          getArchivedAccounts={store.getArchivedAccounts}
+          getTransactionsByAccount={store.getTransactionsByAccount}
+          onAdd={store.addAccount}
+          onUpdate={store.updateAccount}
+          onArchive={store.archiveAccount}
+          onUnarchive={store.unarchiveAccount}
+          onAdjustBalance={store.adjustAccountBalance}
+          onSelectTransaction={setEditingTx}
+        />
       )}
 
       <QuickAddSheet
         open={quickAddOpen}
         onClose={() => setQuickAddOpen(false)}
         onSubmit={store.addTransaction}
-        accounts={store.accounts}
+        accounts={store.getActiveAccounts()}
         categories={store.getAllActiveCategories()}
       />
 
@@ -110,7 +114,7 @@ const Index = () => {
         open={csvImportOpen}
         onClose={() => setCsvImportOpen(false)}
         onImport={store.importTransactions}
-        accounts={store.accounts}
+        accounts={store.getActiveAccounts()}
       />
 
       <TransactionEditSheet
@@ -119,7 +123,7 @@ const Index = () => {
         onClose={() => setEditingTx(null)}
         onUpdate={store.updateTransaction}
         onDelete={store.deleteTransaction}
-        accounts={store.accounts}
+        accounts={store.getActiveAccounts()}
         categories={store.getAllActiveCategories()}
       />
 
