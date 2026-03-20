@@ -62,10 +62,10 @@ export const CATEGORIES: Category[] = [
 ];
 
 export const DEFAULT_ACCOUNTS: Account[] = [
-  { id: "checking", name: "Checking", balance: 4280.50, type: "checking", color: "bg-sky-500" },
-  { id: "savings", name: "Savings", balance: 12750.00, type: "savings", color: "bg-emerald-500" },
-  { id: "credit", name: "Credit Card", balance: -1420.30, type: "credit", color: "bg-red-400" },
-  { id: "cash", name: "Cash", balance: 340.00, type: "cash", color: "bg-amber-500" },
+  { id: "checking", name: "Checking", balance: 4280.50, type: "checking", color: "bg-sky-500", icon: "landmark" },
+  { id: "savings", name: "Savings", balance: 12750.00, type: "savings", color: "bg-emerald-500", icon: "piggy-bank" },
+  { id: "credit", name: "Credit Card", balance: -1420.30, type: "credit", color: "bg-red-400", icon: "credit-card" },
+  { id: "cash", name: "Cash", balance: 340.00, type: "cash", color: "bg-amber-500", icon: "wallet" },
 ];
 
 export const SAMPLE_TRANSACTIONS: Transaction[] = [
