@@ -11,6 +11,7 @@ import { TransactionEditSheet } from "@/components/TransactionEditSheet";
 import { BottomNav } from "@/components/BottomNav";
 import { CategoryManager } from "@/components/CategoryManager";
 import { AccountManager } from "@/components/AccountManager";
+import { CreditCardManager } from "@/components/CreditCardManager";
 import { TransactionFilters, applyFilters, EMPTY_FILTERS, TransactionFilterValues } from "@/components/TransactionFilters";
 import { Transaction } from "@/lib/types";
 
@@ -68,6 +69,23 @@ const Index = () => {
             onSelect={setEditingTx}
           />
         </div>
+      )}
+
+      {activeTab === "cards" && (
+        <CreditCardManager
+          accounts={store.accounts}
+          getCreditCards={store.getCreditCards}
+          getArchivedAccounts={store.getArchivedAccounts}
+          getTransactionsByAccount={store.getTransactionsByAccount}
+          getStatementTransactions={store.getStatementTransactions}
+          getNonCardAccounts={store.getNonCardAccounts}
+          onAdd={store.addAccount}
+          onUpdate={store.updateAccount}
+          onArchive={store.archiveAccount}
+          onUnarchive={store.unarchiveAccount}
+          onPayCard={store.payCard}
+          onSelectTransaction={setEditingTx}
+        />
       )}
 
       {activeTab === "categories" && (

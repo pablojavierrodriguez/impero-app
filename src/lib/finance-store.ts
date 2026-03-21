@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Transaction, Account, DEFAULT_ACCOUNTS, SAMPLE_TRANSACTIONS, Category, CATEGORIES } from "./types";
+import { Transaction, Account, DEFAULT_ACCOUNTS, SAMPLE_TRANSACTIONS, Category, CATEGORIES, getStatementPeriod, getPreviousStatementPeriod } from "./types";
 
 export function useFinanceStore() {
   const [transactions, setTransactions] = useState<Transaction[]>(SAMPLE_TRANSACTIONS);
@@ -156,7 +156,6 @@ export function useFinanceStore() {
       const diff = newBalance - account.balance;
       if (diff === 0) return prev;
 
-      // Create adjustment transaction
       const adjustmentCategory: Category = diff > 0
         ? { id: "adjustment-income", name: "Balance Adjustment", color: "bg-emerald-400", type: "income", icon: "arrow-up-down" }
         : { id: "adjustment-expense", name: "Balance Adjustment", color: "bg-zinc-500", type: "expense", icon: "arrow-up-down" };
@@ -176,6 +175,65 @@ export function useFinanceStore() {
     });
   }, []);
 
+  // Credit card payment: transfer from source account to card
+  const payCard = useCallback((cardId: string, fromAccountId: string, amount: number) => {
+    setAccounts(prev => {
+      const card = prev.find(a => a.id === cardId);
+      const source = prev.find(a => a.id === fromAccountId);
+      if (!card || !source || amount <= 0) return prev;
+
+      // Create payment transaction on source account (expense)
+      const paymentTx: Transaction = {
+        id: `pay-${Date.now()}`,
+        amount,
+        description: `Card payment: ${card.name}`,
+        category: { id: "card-payment", name: "Card Payment", color: "bg-sky-500", type: "expense", icon: "credit-card" },
+        date: new Date(),
+        type: "expense",
+        accountId: fromAccountId,
+        isCardPayment: true,
+      };
+
+      // Create income transaction on card (reduces negative balance)
+      const cardTx: Transaction = {
+        id: `pay-recv-${Date.now()}`,
+        amount,
+        description: `Payment from ${source.name}`,
+        category: { id: "card-payment-recv", name: "Card Payment", color: "bg-sky-500", type: "income", icon: "credit-card" },
+        date: new Date(),
+        type: "income",
+        accountId: cardId,
+        isCardPayment: true,
+      };
+
+      setTransactions(txPrev => [paymentTx, cardTx, ...txPrev]);
+
+      return prev.map(a => {
+        if (a.id === fromAccountId) return { ...a, balance: a.balance - amount };
+        if (a.id === cardId) return { ...a, balance: a.balance + amount };
+        return a;
+      });
+    });
+  }, []);
+
+  // Get statement transactions for a credit card
+  const getStatementTransactions = useCallback((cardId: string, period: "current" | "previous" = "current") => {
+    const card = accounts.find(a => a.id === cardId);
+    if (!card || !card.closingDay) return [];
+
+    const { periodStart, periodEnd } = period === "current"
+      ? getStatementPeriod(card.closingDay)
+      : getPreviousStatementPeriod(card.closingDay);
+
+    return transactions.filter(t =>
+      t.accountId === cardId &&
+      t.type === "expense" &&
+      !t.isCardPayment &&
+      t.date >= periodStart &&
+      t.date <= periodEnd
+    );
+  }, [accounts, transactions]);
+
   const getActiveAccounts = useCallback(() => {
     return accounts.filter(a => !a.archived);
   }, [accounts]);
@@ -184,23 +242,31 @@ export function useFinanceStore() {
     return accounts.filter(a => a.archived);
   }, [accounts]);
 
+  const getCreditCards = useCallback(() => {
+    return accounts.filter(a => a.type === "credit" && !a.archived);
+  }, [accounts]);
+
   const getTransactionsByAccount = useCallback((accountId: string) => {
     return transactions.filter(t => t.accountId === accountId);
   }, [transactions]);
 
+  const getNonCardAccounts = useCallback(() => {
+    return accounts.filter(a => a.type !== "credit" && !a.archived);
+  }, [accounts]);
+
   const totalBalance = accounts.filter(a => !a.archived).reduce((sum, acc) => sum + acc.balance, 0);
 
   const monthlyExpenses = transactions
-    .filter(t => t.type === "expense" && t.date.getMonth() === new Date().getMonth())
+    .filter(t => t.type === "expense" && !t.isCardPayment && t.date.getMonth() === new Date().getMonth())
     .reduce((sum, t) => sum + t.amount, 0);
 
   const monthlyIncome = transactions
-    .filter(t => t.type === "income" && t.date.getMonth() === new Date().getMonth())
+    .filter(t => t.type === "income" && !t.isCardPayment && t.date.getMonth() === new Date().getMonth())
     .reduce((sum, t) => sum + t.amount, 0);
 
   const dailyBudget = 150;
   const todaySpent = transactions
-    .filter(t => t.type === "expense" && t.date.toDateString() === new Date().toDateString())
+    .filter(t => t.type === "expense" && !t.isCardPayment && t.date.toDateString() === new Date().toDateString())
     .reduce((sum, t) => sum + t.amount, 0);
 
   return {
@@ -227,8 +293,12 @@ export function useFinanceStore() {
     archiveAccount,
     unarchiveAccount,
     adjustAccountBalance,
+    payCard,
+    getStatementTransactions,
     getActiveAccounts,
     getArchivedAccounts,
+    getCreditCards,
+    getNonCardAccounts,
     getTransactionsByAccount,
     totalBalance,
     monthlyExpenses,

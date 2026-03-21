@@ -1,5 +1,15 @@
 export type TransactionType = "income" | "expense";
 
+export type CreditCardBrand = "visa" | "mastercard" | "amex" | "naranja-x" | "custom";
+
+export const CARD_BRANDS: { value: CreditCardBrand; label: string; icon: string }[] = [
+  { value: "visa", label: "Visa", icon: "credit-card" },
+  { value: "mastercard", label: "Mastercard", icon: "credit-card" },
+  { value: "amex", label: "American Express", icon: "credit-card" },
+  { value: "naranja-x", label: "Naranja X", icon: "credit-card" },
+  { value: "custom", label: "Other", icon: "credit-card" },
+];
+
 export type Category = {
   id: string;
   name: string;
@@ -19,6 +29,7 @@ export type Transaction = {
   date: Date;
   type: TransactionType;
   accountId: string;
+  isCardPayment?: boolean; // marks card payment transfers
 };
 
 export type AccountType = "checking" | "savings" | "credit" | "cash";
@@ -31,6 +42,12 @@ export type Account = {
   color: string;
   icon?: string;
   archived?: boolean;
+  // Credit card specific
+  creditLimit?: number;
+  closingDay?: number; // 1-28
+  paymentDay?: number; // 1-28
+  brand?: CreditCardBrand;
+  customBrandName?: string;
 };
 
 export const ACCOUNT_ICONS = [
@@ -64,7 +81,7 @@ export const CATEGORIES: Category[] = [
 export const DEFAULT_ACCOUNTS: Account[] = [
   { id: "checking", name: "Checking", balance: 4280.50, type: "checking", color: "bg-sky-500", icon: "landmark" },
   { id: "savings", name: "Savings", balance: 12750.00, type: "savings", color: "bg-emerald-500", icon: "piggy-bank" },
-  { id: "credit", name: "Credit Card", balance: -1420.30, type: "credit", color: "bg-red-400", icon: "credit-card" },
+  { id: "credit", name: "Visa Gold", balance: -1420.30, type: "credit", color: "bg-red-400", icon: "credit-card", creditLimit: 5000, closingDay: 15, paymentDay: 5, brand: "visa" },
   { id: "cash", name: "Cash", balance: 340.00, type: "cash", color: "bg-amber-500", icon: "wallet" },
 ];
 
@@ -96,3 +113,39 @@ export const CATEGORY_ICONS = [
   "graduation-cap", "briefcase", "palette", "gamepad-2", "shirt",
   "fuel", "pill", "stethoscope",
 ];
+
+// Statement period helpers
+export function getStatementPeriod(closingDay: number, referenceDate: Date = new Date()) {
+  const year = referenceDate.getFullYear();
+  const month = referenceDate.getMonth();
+  const day = referenceDate.getDate();
+
+  let periodStart: Date;
+  let periodEnd: Date;
+
+  if (day <= closingDay) {
+    // We're before/on closing day - active statement started last month
+    periodStart = new Date(year, month - 1, closingDay + 1);
+    periodEnd = new Date(year, month, closingDay);
+  } else {
+    // We're after closing day - active statement started this month
+    periodStart = new Date(year, month, closingDay + 1);
+    periodEnd = new Date(year, month + 1, closingDay);
+  }
+
+  return { periodStart, periodEnd };
+}
+
+export function getPreviousStatementPeriod(closingDay: number, referenceDate: Date = new Date()) {
+  const current = getStatementPeriod(closingDay, referenceDate);
+  const prevEnd = new Date(current.periodStart);
+  prevEnd.setDate(prevEnd.getDate() - 1);
+  return getStatementPeriod(closingDay, prevEnd);
+}
+
+export function getPaymentDueDate(closingDay: number, paymentDay: number, referenceDate: Date = new Date()) {
+  const { periodEnd } = getStatementPeriod(closingDay, referenceDate);
+  // Payment is due on paymentDay of the month after the statement closes
+  const dueDate = new Date(periodEnd.getFullYear(), periodEnd.getMonth() + 1, paymentDay);
+  return dueDate;
+}

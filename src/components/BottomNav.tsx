@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { LayoutDashboard, ArrowLeftRight, CreditCard, Plus, Tags } from "lucide-react";
+import { LayoutDashboard, ArrowLeftRight, CreditCard, Plus, Tags, Wallet } from "lucide-react";
 
 interface BottomNavProps {
   activeTab: string;
@@ -10,8 +10,9 @@ interface BottomNavProps {
 const tabs = [
   { id: "dashboard", icon: LayoutDashboard, label: "Home" },
   { id: "transactions", icon: ArrowLeftRight, label: "History" },
+  { id: "cards", icon: CreditCard, label: "Cards" },
   { id: "categories", icon: Tags, label: "Categories" },
-  { id: "accounts", icon: CreditCard, label: "Accounts" },
+  { id: "accounts", icon: Wallet, label: "Accounts" },
 ];
 
 export function BottomNav({ activeTab, onTabChange, onQuickAdd }: BottomNavProps) {
