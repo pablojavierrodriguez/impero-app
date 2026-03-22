@@ -137,6 +137,13 @@ const Index = () => {
         accounts={store.getActiveAccounts()}
       />
 
+      <TransferSheet
+        open={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        accounts={store.accounts}
+        onTransfer={store.transferBetweenAccounts}
+      />
+
       <TransactionEditSheet
         transaction={editingTx}
         open={!!editingTx}
@@ -151,6 +158,7 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onQuickAdd={() => setQuickAddOpen(true)}
+        onTransfer={() => setTransferOpen(true)}
       />
     </div>
   );
