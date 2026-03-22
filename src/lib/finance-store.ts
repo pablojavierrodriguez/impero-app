@@ -300,11 +300,11 @@ export function useFinanceStore() {
   const totalBalance = accounts.filter(a => !a.archived).reduce((sum, acc) => sum + acc.balance, 0);
 
   const monthlyExpenses = transactions
-    .filter(t => t.type === "expense" && !t.isCardPayment && t.date.getMonth() === new Date().getMonth())
+    .filter(t => t.type === "expense" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === new Date().getMonth())
     .reduce((sum, t) => sum + t.amount, 0);
 
   const monthlyIncome = transactions
-    .filter(t => t.type === "income" && !t.isCardPayment && t.date.getMonth() === new Date().getMonth())
+    .filter(t => t.type === "income" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === new Date().getMonth())
     .reduce((sum, t) => sum + t.amount, 0);
 
   const dailyBudget = 150;
