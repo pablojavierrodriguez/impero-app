@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import { LayoutDashboard, ArrowLeftRight, CreditCard, Plus, Tags, Wallet } from "lucide-react";
+import { LayoutDashboard, ArrowLeftRight, CreditCard, Plus, Tags, Wallet, Repeat } from "lucide-react";
 
 interface BottomNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onQuickAdd: () => void;
+  onTransfer: () => void;
 }
 
 const tabs = [
@@ -15,7 +16,7 @@ const tabs = [
   { id: "accounts", icon: Wallet, label: "Accounts" },
 ];
 
-export function BottomNav({ activeTab, onTabChange, onQuickAdd }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer }: BottomNavProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="bg-card/95 backdrop-blur-lg border-t border-border/50">
@@ -39,6 +40,14 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd }: BottomNavProps
               )}
             </button>
           ))}
+          {/* Transfer button */}
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={onTransfer}
+            className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center -mt-3"
+          >
+            <Repeat className="w-4 h-4 text-muted-foreground" />
+          </motion.button>
           {/* FAB */}
           <motion.button
             whileTap={{ scale: 0.92 }}
