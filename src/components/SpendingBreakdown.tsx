@@ -6,7 +6,7 @@ interface SpendingBreakdownProps {
 }
 
 export function SpendingBreakdown({ transactions }: SpendingBreakdownProps) {
-  const expenses = transactions.filter(t => t.type === "expense" && t.date.getMonth() === new Date().getMonth());
+  const expenses = transactions.filter(t => t.type === "expense" && !t.isCardPayment && t.date.getMonth() === new Date().getMonth());
   const total = expenses.reduce((s, t) => s + t.amount, 0);
 
   const byCategory = expenses.reduce<Record<string, { name: string; amount: number; color: string }>>((acc, t) => {
