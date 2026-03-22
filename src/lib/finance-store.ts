@@ -337,6 +337,7 @@ export function useFinanceStore() {
     unarchiveAccount,
     adjustAccountBalance,
     payCard,
+    transferBetweenAccounts,
     getStatementTransactions,
     getActiveAccounts,
     getArchivedAccounts,
