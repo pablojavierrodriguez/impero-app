@@ -26,7 +26,7 @@ const Index = () => {
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
 
   return (
-    <div className="min-h-screen bg-background max-w-md mx-auto relative">
+    <div className="min-h-screen bg-background max-w-md mx-auto relative" key="app-root">
       <VelocityBar spent={store.todaySpent} budget={store.dailyBudget} />
 
       {activeTab === "dashboard" && (
