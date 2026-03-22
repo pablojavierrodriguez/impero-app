@@ -8,6 +8,7 @@ import { SpendingBreakdown } from "@/components/SpendingBreakdown";
 import { QuickAddSheet } from "@/components/QuickAddSheet";
 import { CsvImportSheet } from "@/components/CsvImportSheet";
 import { TransactionEditSheet } from "@/components/TransactionEditSheet";
+import { TransferSheet } from "@/components/TransferSheet";
 import { BottomNav } from "@/components/BottomNav";
 import { CategoryManager } from "@/components/CategoryManager";
 import { AccountManager } from "@/components/AccountManager";
@@ -20,6 +21,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [txFilters, setTxFilters] = useState<TransactionFilterValues>(EMPTY_FILTERS);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
 
@@ -135,6 +137,13 @@ const Index = () => {
         accounts={store.getActiveAccounts()}
       />
 
+      <TransferSheet
+        open={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        accounts={store.accounts}
+        onTransfer={store.transferBetweenAccounts}
+      />
+
       <TransactionEditSheet
         transaction={editingTx}
         open={!!editingTx}
@@ -149,6 +158,7 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onQuickAdd={() => setQuickAddOpen(true)}
+        onTransfer={() => setTransferOpen(true)}
       />
     </div>
   );

@@ -29,7 +29,8 @@ export type Transaction = {
   date: Date;
   type: TransactionType;
   accountId: string;
-  isCardPayment?: boolean; // marks card payment transfers
+  isCardPayment?: boolean;
+  isTransfer?: boolean;
 };
 
 export type AccountType = "checking" | "savings" | "credit" | "cash";
