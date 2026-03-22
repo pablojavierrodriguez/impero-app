@@ -216,6 +216,49 @@ export function useFinanceStore() {
     });
   }, []);
 
+  // Transfer between own accounts
+  const transferBetweenAccounts = useCallback((fromAccountId: string, toAccountId: string, amount: number) => {
+    setAccounts(prev => {
+      const from = prev.find(a => a.id === fromAccountId);
+      const to = prev.find(a => a.id === toAccountId);
+      if (!from || !to || amount <= 0) return prev;
+
+      const transferCategory: Category = {
+        id: "transfer", name: "Transfer", color: "bg-sky-500", type: "expense", icon: "arrow-left-right"
+      };
+
+      const outTx: Transaction = {
+        id: `tf-out-${Date.now()}`,
+        amount,
+        description: `Transfer to ${to.name}`,
+        category: { ...transferCategory, type: "expense" },
+        date: new Date(),
+        type: "expense",
+        accountId: fromAccountId,
+        isTransfer: true,
+      };
+
+      const inTx: Transaction = {
+        id: `tf-in-${Date.now()}`,
+        amount,
+        description: `Transfer from ${from.name}`,
+        category: { ...transferCategory, type: "income" },
+        date: new Date(),
+        type: "income",
+        accountId: toAccountId,
+        isTransfer: true,
+      };
+
+      setTransactions(txPrev => [outTx, inTx, ...txPrev]);
+
+      return prev.map(a => {
+        if (a.id === fromAccountId) return { ...a, balance: a.balance - amount };
+        if (a.id === toAccountId) return { ...a, balance: a.balance + amount };
+        return a;
+      });
+    });
+  }, []);
+
   // Get statement transactions for a credit card
   const getStatementTransactions = useCallback((cardId: string, period: "current" | "previous" = "current") => {
     const card = accounts.find(a => a.id === cardId);
