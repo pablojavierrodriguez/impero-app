@@ -110,7 +110,7 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer }: Bo
               className="flex flex-col items-center justify-center w-14 h-12 relative"
             >
               <MoreHorizontal className={`w-5 h-5 transition-colors ${["cards", "categories", "settings"].includes(activeTab) ? "text-primary" : "text-muted-foreground"}`} />
-              <span className={`text-[9px] mt-0.5 transition-colors ${["cards", "categories"].includes(activeTab) ? "text-primary" : "text-muted-foreground"}`}>
+              <span className={`text-[9px] mt-0.5 transition-colors ${["cards", "categories", "settings"].includes(activeTab) ? "text-primary" : "text-muted-foreground"}`}>
                 Más
               </span>
               {["cards", "categories"].includes(activeTab) && (
