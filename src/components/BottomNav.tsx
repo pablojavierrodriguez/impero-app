@@ -26,6 +26,7 @@ const tabs = [
 const moreItems = [
   { id: "cards", icon: CreditCard, label: "Tarjetas", desc: "Gestioná tus tarjetas de crédito" },
   { id: "categories", icon: Tags, label: "Categorías", desc: "Organizá tus gastos por categoría" },
+  { id: "settings", icon: Settings, label: "Configuración", desc: "Moneda, idioma, gráficos y más" },
 ];
 
 export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer }: BottomNavProps) {
