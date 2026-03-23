@@ -113,7 +113,7 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer }: Bo
               <span className={`text-[9px] mt-0.5 transition-colors ${["cards", "categories", "settings"].includes(activeTab) ? "text-primary" : "text-muted-foreground"}`}>
                 Más
               </span>
-              {["cards", "categories"].includes(activeTab) && (
+              {["cards", "categories", "settings"].includes(activeTab) && (
                 <motion.div
                   layoutId="nav-indicator"
                   className="absolute -top-px left-2 right-2 h-0.5 rounded-full bg-primary"
