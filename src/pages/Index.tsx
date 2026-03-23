@@ -20,6 +20,7 @@ import { Transaction } from "@/lib/types";
 
 const Index = () => {
   const store = useFinanceStore();
+  const { settings, updateSettings, toggleHomeSection, resetSettings, currencySymbol } = useSettingsStore();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
