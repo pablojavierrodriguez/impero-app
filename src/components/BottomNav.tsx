@@ -8,7 +8,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { CreditCard, Tags, Repeat, Receipt } from "lucide-react";
+import { CreditCard, Tags, Repeat, Receipt, Settings } from "lucide-react";
 
 interface BottomNavProps {
   activeTab: string;
