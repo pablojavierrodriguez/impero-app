@@ -8,7 +8,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { CreditCard, Tags, Repeat, Receipt } from "lucide-react";
+import { CreditCard, Tags, Repeat, Receipt, Settings } from "lucide-react";
 
 interface BottomNavProps {
   activeTab: string;
@@ -26,6 +26,7 @@ const tabs = [
 const moreItems = [
   { id: "cards", icon: CreditCard, label: "Tarjetas", desc: "Gestioná tus tarjetas de crédito" },
   { id: "categories", icon: Tags, label: "Categorías", desc: "Organizá tus gastos por categoría" },
+  { id: "settings", icon: Settings, label: "Configuración", desc: "Moneda, idioma, gráficos y más" },
 ];
 
 export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer }: BottomNavProps) {
@@ -108,11 +109,11 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer }: Bo
               onClick={() => setMoreOpen(true)}
               className="flex flex-col items-center justify-center w-14 h-12 relative"
             >
-              <MoreHorizontal className={`w-5 h-5 transition-colors ${["cards", "categories"].includes(activeTab) ? "text-primary" : "text-muted-foreground"}`} />
-              <span className={`text-[9px] mt-0.5 transition-colors ${["cards", "categories"].includes(activeTab) ? "text-primary" : "text-muted-foreground"}`}>
+              <MoreHorizontal className={`w-5 h-5 transition-colors ${["cards", "categories", "settings"].includes(activeTab) ? "text-primary" : "text-muted-foreground"}`} />
+              <span className={`text-[9px] mt-0.5 transition-colors ${["cards", "categories", "settings"].includes(activeTab) ? "text-primary" : "text-muted-foreground"}`}>
                 Más
               </span>
-              {["cards", "categories"].includes(activeTab) && (
+              {["cards", "categories", "settings"].includes(activeTab) && (
                 <motion.div
                   layoutId="nav-indicator"
                   className="absolute -top-px left-2 right-2 h-0.5 rounded-full bg-primary"

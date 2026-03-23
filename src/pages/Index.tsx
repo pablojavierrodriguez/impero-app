@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useFinanceStore } from "@/lib/finance-store";
+import { useSettingsStore } from "@/lib/settings-store";
 import { VelocityBar } from "@/components/VelocityBar";
 import { BalanceHeader } from "@/components/BalanceHeader";
 import { AccountCards } from "@/components/AccountCards";
@@ -13,11 +14,13 @@ import { BottomNav } from "@/components/BottomNav";
 import { CategoryManager } from "@/components/CategoryManager";
 import { AccountManager } from "@/components/AccountManager";
 import { CreditCardManager } from "@/components/CreditCardManager";
+import { SettingsPage } from "@/components/SettingsPage";
 import { TransactionFilters, applyFilters, EMPTY_FILTERS, TransactionFilterValues } from "@/components/TransactionFilters";
 import { Transaction } from "@/lib/types";
 
 const Index = () => {
   const store = useFinanceStore();
+  const { settings, updateSettings, toggleHomeSection, resetSettings, currencySymbol } = useSettingsStore();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
@@ -27,25 +30,33 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto relative pb-20" key="app-root">
-      <VelocityBar spent={store.todaySpent} budget={store.dailyBudget} />
+      <VelocityBar spent={store.todaySpent} budget={settings.dailyBudget} />
 
       {activeTab === "dashboard" && (
         <>
-          <BalanceHeader
-            totalBalance={store.totalBalance}
-            monthlyIncome={store.monthlyIncome}
-            monthlyExpenses={store.monthlyExpenses}
-          />
-          <div className="my-4">
-            <AccountCards accounts={store.getActiveAccounts()} />
-          </div>
-          <SpendingBreakdown transactions={store.transactions} />
-          <div className="mt-2">
-            <TransactionList
-              transactions={store.transactions.slice(0, 5)}
-              onSelect={setEditingTx}
+          {settings.homeSections.find(s => s.id === "balance")?.enabled && (
+            <BalanceHeader
+              totalBalance={store.totalBalance}
+              monthlyIncome={store.monthlyIncome}
+              monthlyExpenses={store.monthlyExpenses}
             />
-          </div>
+          )}
+          {settings.homeSections.find(s => s.id === "accounts")?.enabled && (
+            <div className="my-4">
+              <AccountCards accounts={store.getActiveAccounts()} />
+            </div>
+          )}
+          {settings.homeSections.find(s => s.id === "breakdown")?.enabled && (
+            <SpendingBreakdown transactions={store.transactions} />
+          )}
+          {settings.homeSections.find(s => s.id === "recent")?.enabled && (
+            <div className="mt-2">
+              <TransactionList
+                transactions={store.transactions.slice(0, 5)}
+                onSelect={setEditingTx}
+              />
+            </div>
+          )}
         </>
       )}
 
@@ -119,6 +130,17 @@ const Index = () => {
           onUnarchive={store.unarchiveAccount}
           onAdjustBalance={store.adjustAccountBalance}
           onSelectTransaction={setEditingTx}
+        />
+      )}
+
+      {activeTab === "settings" && (
+        <SettingsPage
+          settings={settings}
+          currencySymbol={currencySymbol}
+          onUpdate={updateSettings}
+          onToggleHomeSection={toggleHomeSection}
+          onReset={resetSettings}
+          onImportCsv={() => setCsvImportOpen(true)}
         />
       )}
 
