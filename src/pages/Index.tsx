@@ -30,25 +30,33 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto relative pb-20" key="app-root">
-      <VelocityBar spent={store.todaySpent} budget={store.dailyBudget} />
+      <VelocityBar spent={store.todaySpent} budget={settings.dailyBudget} />
 
       {activeTab === "dashboard" && (
         <>
-          <BalanceHeader
-            totalBalance={store.totalBalance}
-            monthlyIncome={store.monthlyIncome}
-            monthlyExpenses={store.monthlyExpenses}
-          />
-          <div className="my-4">
-            <AccountCards accounts={store.getActiveAccounts()} />
-          </div>
-          <SpendingBreakdown transactions={store.transactions} />
-          <div className="mt-2">
-            <TransactionList
-              transactions={store.transactions.slice(0, 5)}
-              onSelect={setEditingTx}
+          {settings.homeSections.find(s => s.id === "balance")?.enabled && (
+            <BalanceHeader
+              totalBalance={store.totalBalance}
+              monthlyIncome={store.monthlyIncome}
+              monthlyExpenses={store.monthlyExpenses}
             />
-          </div>
+          )}
+          {settings.homeSections.find(s => s.id === "accounts")?.enabled && (
+            <div className="my-4">
+              <AccountCards accounts={store.getActiveAccounts()} />
+            </div>
+          )}
+          {settings.homeSections.find(s => s.id === "breakdown")?.enabled && (
+            <SpendingBreakdown transactions={store.transactions} />
+          )}
+          {settings.homeSections.find(s => s.id === "recent")?.enabled && (
+            <div className="mt-2">
+              <TransactionList
+                transactions={store.transactions.slice(0, 5)}
+                onSelect={setEditingTx}
+              />
+            </div>
+          )}
         </>
       )}
 
