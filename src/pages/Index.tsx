@@ -133,6 +133,17 @@ const Index = () => {
         />
       )}
 
+      {activeTab === "settings" && (
+        <SettingsPage
+          settings={settings}
+          currencySymbol={currencySymbol}
+          onUpdate={updateSettings}
+          onToggleHomeSection={toggleHomeSection}
+          onReset={resetSettings}
+          onImportCsv={() => setCsvImportOpen(true)}
+        />
+      )}
+
       <QuickAddSheet
         open={quickAddOpen}
         onClose={() => setQuickAddOpen(false)}
