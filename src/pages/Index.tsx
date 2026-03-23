@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useFinanceStore } from "@/lib/finance-store";
+import { useSettingsStore } from "@/lib/settings-store";
 import { VelocityBar } from "@/components/VelocityBar";
 import { BalanceHeader } from "@/components/BalanceHeader";
 import { AccountCards } from "@/components/AccountCards";
@@ -13,6 +14,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { CategoryManager } from "@/components/CategoryManager";
 import { AccountManager } from "@/components/AccountManager";
 import { CreditCardManager } from "@/components/CreditCardManager";
+import { SettingsPage } from "@/components/SettingsPage";
 import { TransactionFilters, applyFilters, EMPTY_FILTERS, TransactionFilterValues } from "@/components/TransactionFilters";
 import { Transaction } from "@/lib/types";
 
