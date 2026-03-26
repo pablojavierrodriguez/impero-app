@@ -4,6 +4,7 @@ import { Plus, X, Pencil, Archive, ArchiveRestore, CreditCard, ArrowUpDown, Doll
 import { Account, CATEGORY_COLORS, ACCOUNT_ICONS, CreditCardBrand, CARD_BRANDS, Transaction, getStatementPeriod, getPreviousStatementPeriod, getPaymentDueDate } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { format } from "date-fns";
+import { useSettings } from "@/lib/settings-store";
 
 interface CreditCardManagerProps {
   accounts: Account[];
