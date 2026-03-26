@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "postinstall": "npm install --save-dev --legacy-peer-deps vite@8.0.0 @vitejs/plugin-react@6.0.0"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
