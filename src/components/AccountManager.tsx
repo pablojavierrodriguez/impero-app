@@ -4,6 +4,7 @@ import { Plus, Archive, Pencil, Trash2, ArchiveRestore, X, ArrowLeftRight, Arrow
 import { Account, CATEGORY_COLORS, ACCOUNT_ICONS, ACCOUNT_TYPES, AccountType, Transaction } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { format } from "date-fns";
+import { useSettings } from "@/lib/settings-store";
 
 interface AccountManagerProps {
   accounts: Account[];
