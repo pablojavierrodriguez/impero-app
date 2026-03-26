@@ -9,6 +9,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { CreditCard, Tags, Repeat, Receipt, Settings } from "lucide-react";
+import { useSettings } from "@/lib/settings-store";
 
 interface BottomNavProps {
   activeTab: string;
@@ -17,21 +18,22 @@ interface BottomNavProps {
   onTransfer: () => void;
 }
 
-const tabs = [
-  { id: "dashboard", icon: LayoutDashboard, label: "Home" },
-  { id: "transactions", icon: ArrowLeftRight, label: "Historial" },
-  { id: "accounts", icon: Wallet, label: "Cuentas" },
-];
-
-const moreItems = [
-  { id: "cards", icon: CreditCard, label: "Tarjetas", desc: "Gestioná tus tarjetas de crédito" },
-  { id: "categories", icon: Tags, label: "Categorías", desc: "Organizá tus gastos por categoría" },
-  { id: "settings", icon: Settings, label: "Configuración", desc: "Moneda, idioma, gráficos y más" },
-];
-
 export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer }: BottomNavProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
+  const { t } = useSettings();
+
+  const tabs = [
+    { id: "dashboard", icon: LayoutDashboard, label: t("nav.home") },
+    { id: "transactions", icon: ArrowLeftRight, label: t("nav.history") },
+    { id: "accounts", icon: Wallet, label: t("nav.accounts") },
+  ];
+
+  const moreItems = [
+    { id: "cards", icon: CreditCard, label: t("nav.cards"), desc: t("nav.cardsDesc") },
+    { id: "categories", icon: Tags, label: t("nav.categories"), desc: t("nav.categoriesDesc") },
+    { id: "settings", icon: Settings, label: t("nav.settings"), desc: t("nav.settingsDesc") },
+  ];
 
   return (
     <>
@@ -55,7 +57,7 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer }: Bo
                 className="flex items-center gap-3"
               >
                 <span className="text-sm font-medium text-foreground bg-card px-3 py-1.5 rounded-full border border-border/50">
-                  Transferencia
+                  {t("nav.transfer")}
                 </span>
                 <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
                   <Repeat className="w-4 h-4 text-foreground" />
@@ -70,7 +72,7 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer }: Bo
                 className="flex items-center gap-3"
               >
                 <span className="text-sm font-medium text-foreground bg-card px-3 py-1.5 rounded-full border border-border/50">
-                  Nuevo gasto
+                  {t("nav.newExpense")}
                 </span>
                 <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
                   <Receipt className="w-4 h-4 text-foreground" />
@@ -111,7 +113,7 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer }: Bo
             >
               <MoreHorizontal className={`w-5 h-5 transition-colors ${["cards", "categories", "settings"].includes(activeTab) ? "text-primary" : "text-muted-foreground"}`} />
               <span className={`text-[9px] mt-0.5 transition-colors ${["cards", "categories", "settings"].includes(activeTab) ? "text-primary" : "text-muted-foreground"}`}>
-                Más
+                {t("nav.more")}
               </span>
               {["cards", "categories", "settings"].includes(activeTab) && (
                 <motion.div
@@ -140,9 +142,9 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer }: Bo
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="left" className="w-72 p-0">
           <SheetHeader className="px-5 pt-6 pb-4 border-b border-border/50">
-            <SheetTitle className="text-base font-display">Más opciones</SheetTitle>
+            <SheetTitle className="text-base font-display">{t("nav.moreOptions")}</SheetTitle>
             <SheetDescription className="text-xs text-muted-foreground">
-              Gestión avanzada
+              {t("nav.advancedMgmt")}
             </SheetDescription>
           </SheetHeader>
           <div className="py-2">
