@@ -1,33 +1,38 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
+import { createTranslator, type TranslationKey, type Language } from "./i18n";
+import React from "react";
 
+export type { Language };
 export type Currency = "ARS" | "USD" | "EUR";
-export type Language = "es" | "en";
 export type ChartType = "bar" | "area" | "none";
 
 export type HomeSection = {
   id: string;
-  label: string;
+  labelKey: TranslationKey;
   enabled: boolean;
 };
 
 export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
-  { id: "velocity", label: "Barra de gasto diario", enabled: true },
-  { id: "balance", label: "Balance general", enabled: true },
-  { id: "accounts", label: "Tarjetas de cuentas", enabled: true },
-  { id: "breakdown", label: "Desglose de gastos", enabled: true },
-  { id: "recent", label: "Últimas transacciones", enabled: true },
+  { id: "velocity", labelKey: "settings.sectionVelocity", enabled: true },
+  { id: "balance", labelKey: "settings.sectionBalance", enabled: true },
+  { id: "accounts", labelKey: "settings.sectionAccounts", enabled: true },
+  { id: "breakdown", labelKey: "settings.sectionBreakdown", enabled: true },
+  { id: "recent", labelKey: "settings.sectionRecent", enabled: true },
 ];
 
-export const CURRENCIES: { value: Currency; label: string; symbol: string }[] = [
-  { value: "ARS", label: "Peso argentino", symbol: "$" },
-  { value: "USD", label: "Dólar estadounidense", symbol: "US$" },
-  { value: "EUR", label: "Euro", symbol: "€" },
+export const CURRENCIES: { value: Currency; symbol: string }[] = [
+  { value: "ARS", symbol: "$" },
+  { value: "USD", symbol: "US$" },
+  { value: "EUR", symbol: "€" },
 ];
 
-export const LANGUAGES: { value: Language; label: string }[] = [
-  { value: "es", label: "Español" },
-  { value: "en", label: "English" },
-];
+// Exchange rates relative to ARS (base currency for stored amounts)
+// ARS → target. All internal amounts are stored in ARS.
+const EXCHANGE_RATES: Record<Currency, number> = {
+  ARS: 1,
+  USD: 1 / 1200, // 1 ARS = ~0.00083 USD
+  EUR: 1 / 1300, // 1 ARS = ~0.00077 EUR
+};
 
 export type AppSettings = {
   currency: Currency;
@@ -47,7 +52,25 @@ const DEFAULT_SETTINGS: AppSettings = {
   showDecimals: true,
 };
 
-export function useSettingsStore() {
+export type SettingsContextType = {
+  settings: AppSettings;
+  updateSettings: (updates: Partial<AppSettings>) => void;
+  toggleHomeSection: (sectionId: string) => void;
+  resetSettings: () => void;
+  currencySymbol: string;
+  /** Convert an amount from ARS (storage currency) to display currency */
+  convertAmount: (arsAmount: number) => number;
+  /** Format a number in the display currency with symbol */
+  formatAmount: (arsAmount: number, opts?: { sign?: string; abs?: boolean }) => string;
+  /** Translation function */
+  t: (key: TranslationKey) => string;
+  /** Is a home section enabled? */
+  isSectionEnabled: (id: string) => boolean;
+};
+
+const SettingsContext = createContext<SettingsContextType | null>(null);
+
+export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(() => {
     try {
       const saved = localStorage.getItem("app-settings");
@@ -82,7 +105,49 @@ export function useSettingsStore() {
     setSettings(DEFAULT_SETTINGS);
   }, []);
 
-  const currencySymbol = CURRENCIES.find(c => c.value === settings.currency)?.symbol ?? "$";
+  const value = useMemo<SettingsContextType>(() => {
+    const sym = CURRENCIES.find(c => c.value === settings.currency)?.symbol ?? "$";
+    const rate = EXCHANGE_RATES[settings.currency];
+    const t = createTranslator(settings.language);
 
-  return { settings, updateSettings, toggleHomeSection, resetSettings, currencySymbol };
+    const convertAmount = (ars: number) => ars * rate;
+
+    const formatAmount = (ars: number, opts?: { sign?: string; abs?: boolean }) => {
+      const converted = Math.abs(ars) * rate;
+      const formatted = converted.toLocaleString("en-US", {
+        minimumFractionDigits: settings.showDecimals ? 2 : 0,
+        maximumFractionDigits: settings.showDecimals ? 2 : 0,
+      });
+      const sign = opts?.sign ?? "";
+      return `${sign}${sym}${formatted}`;
+    };
+
+    const isSectionEnabled = (id: string) =>
+      settings.homeSections.find(s => s.id === id)?.enabled ?? true;
+
+    return {
+      settings,
+      updateSettings,
+      toggleHomeSection,
+      resetSettings,
+      currencySymbol: sym,
+      convertAmount,
+      formatAmount,
+      t,
+      isSectionEnabled,
+    };
+  }, [settings, updateSettings, toggleHomeSection, resetSettings]);
+
+  return React.createElement(SettingsContext.Provider, { value }, children);
+}
+
+export function useSettings(): SettingsContextType {
+  const ctx = useContext(SettingsContext);
+  if (!ctx) throw new Error("useSettings must be used within SettingsProvider");
+  return ctx;
+}
+
+// Keep backward compat export
+export function useSettingsStore() {
+  return useSettings();
 }

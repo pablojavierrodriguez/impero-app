@@ -4,6 +4,7 @@ import { Plus, X, Pencil, Archive, ArchiveRestore, CreditCard, ArrowUpDown, Doll
 import { Account, CATEGORY_COLORS, ACCOUNT_ICONS, CreditCardBrand, CARD_BRANDS, Transaction, getStatementPeriod, getPreviousStatementPeriod, getPaymentDueDate } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { format } from "date-fns";
+import { useSettings } from "@/lib/settings-store";
 
 interface CreditCardManagerProps {
   accounts: Account[];
@@ -51,10 +52,7 @@ export function CreditCardManager({
   const archivedCards = getArchivedAccounts().filter(a => a.type === "credit");
   const sourceAccounts = getNonCardAccounts();
 
-  const formatCurrency = (n: number) => {
-    const sign = n < 0 ? "-" : "";
-    return `${sign}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-  };
+  const { formatAmount: formatCurrency, t } = useSettings();
 
   const openCreate = () => {
     setFormName("");

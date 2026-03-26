@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
+import { useSettings } from "@/lib/settings-store";
 
 interface BalanceHeaderProps {
   totalBalance: number;
@@ -11,20 +12,21 @@ interface BalanceHeaderProps {
 const HIDDEN = "••••••";
 
 export function BalanceHeader({ totalBalance, monthlyIncome, monthlyExpenses }: BalanceHeaderProps) {
+  const { formatAmount, t } = useSettings();
   const [visible, setVisible] = useState(true);
   const delta = monthlyIncome - monthlyExpenses;
 
-  const fmt = (n: number, prefix = "") =>
-    visible ? `${prefix}$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}` : HIDDEN;
+  const fmt = (n: number, sign = "") =>
+    visible ? formatAmount(n, { sign }) : HIDDEN;
 
   return (
     <div className="px-4 pt-4 pb-2">
       <div className="flex items-center justify-between">
-        <span className="text-[12px] text-muted-foreground font-medium font-display">Current Liquidity</span>
+        <span className="text-[12px] text-muted-foreground font-medium font-display">{t("balance.title")}</span>
         <button
           onClick={() => setVisible(v => !v)}
           className="p-1.5 rounded-full text-muted-foreground hover:text-foreground transition-colors"
-          aria-label={visible ? "Hide balances" : "Show balances"}
+          aria-label={visible ? t("balance.hide") : t("balance.show")}
         >
           {visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
         </button>
@@ -41,15 +43,15 @@ export function BalanceHeader({ totalBalance, monthlyIncome, monthlyExpenses }: 
       </motion.div>
       <div className="flex items-center gap-4 mt-3">
         <div className="flex flex-col">
-          <span className="text-[11px] text-muted-foreground">Income</span>
+          <span className="text-[11px] text-muted-foreground">{t("balance.income")}</span>
           <span className="font-mono-data text-[14px] text-primary">{fmt(monthlyIncome, "+")}</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[11px] text-muted-foreground">Expenses</span>
+          <span className="text-[11px] text-muted-foreground">{t("balance.expenses")}</span>
           <span className="font-mono-data text-[14px] text-foreground">{fmt(monthlyExpenses, "-")}</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[11px] text-muted-foreground">Monthly Delta</span>
+          <span className="text-[11px] text-muted-foreground">{t("balance.delta")}</span>
           <span className={`font-mono-data text-[14px] ${delta >= 0 ? "text-primary" : "text-destructive"}`}>
             {fmt(Math.abs(delta), delta >= 0 ? "+" : "-")}
           </span>

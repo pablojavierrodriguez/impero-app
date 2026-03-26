@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useFinanceStore } from "@/lib/finance-store";
-import { useSettingsStore } from "@/lib/settings-store";
+import { useSettings } from "@/lib/settings-store";
 import { VelocityBar } from "@/components/VelocityBar";
 import { BalanceHeader } from "@/components/BalanceHeader";
 import { AccountCards } from "@/components/AccountCards";
@@ -20,7 +20,7 @@ import { Transaction } from "@/lib/types";
 
 const Index = () => {
   const store = useFinanceStore();
-  const { settings, updateSettings, toggleHomeSection, resetSettings, currencySymbol } = useSettingsStore();
+  const { settings, isSectionEnabled, t } = useSettings();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
@@ -30,26 +30,27 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto relative pb-20" key="app-root">
-      <VelocityBar spent={store.todaySpent} budget={settings.dailyBudget} />
-
       {activeTab === "dashboard" && (
         <>
-          {settings.homeSections.find(s => s.id === "balance")?.enabled && (
+          {isSectionEnabled("velocity") && (
+            <VelocityBar spent={store.todaySpent} budget={settings.dailyBudget} />
+          )}
+          {isSectionEnabled("balance") && (
             <BalanceHeader
               totalBalance={store.totalBalance}
               monthlyIncome={store.monthlyIncome}
               monthlyExpenses={store.monthlyExpenses}
             />
           )}
-          {settings.homeSections.find(s => s.id === "accounts")?.enabled && (
+          {isSectionEnabled("accounts") && (
             <div className="my-4">
               <AccountCards accounts={store.getActiveAccounts()} />
             </div>
           )}
-          {settings.homeSections.find(s => s.id === "breakdown")?.enabled && (
+          {isSectionEnabled("breakdown") && (
             <SpendingBreakdown transactions={store.transactions} />
           )}
-          {settings.homeSections.find(s => s.id === "recent")?.enabled && (
+          {isSectionEnabled("recent") && (
             <div className="mt-2">
               <TransactionList
                 transactions={store.transactions.slice(0, 5)}
@@ -63,12 +64,12 @@ const Index = () => {
       {activeTab === "transactions" && (
         <div className="pt-4">
           <div className="px-4 pb-3 flex items-center justify-between">
-            <h1 className="text-[20px] font-display font-semibold text-foreground">Transaction History</h1>
+            <h1 className="text-[20px] font-display font-semibold text-foreground">{t("tx.history")}</h1>
             <button
               onClick={() => setCsvImportOpen(true)}
               className="px-3 py-1.5 rounded-full bg-secondary text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              Import CSV
+              {t("tx.importCsv")}
             </button>
           </div>
           <TransactionFilters
@@ -135,11 +136,6 @@ const Index = () => {
 
       {activeTab === "settings" && (
         <SettingsPage
-          settings={settings}
-          currencySymbol={currencySymbol}
-          onUpdate={updateSettings}
-          onToggleHomeSection={toggleHomeSection}
-          onReset={resetSettings}
           onImportCsv={() => setCsvImportOpen(true)}
         />
       )}

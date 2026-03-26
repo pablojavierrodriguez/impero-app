@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowDownLeft, ArrowUpRight, Delete } from "lucide-react";
 import { Category, Account } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
+import { useSettings } from "@/lib/settings-store";
 
 interface QuickAddSheetProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface QuickAddSheetProps {
 }
 
 export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories }: QuickAddSheetProps) {
+  const { currencySymbol, t } = useSettings();
   const [amount, setAmount] = useState("0");
   const [type, setType] = useState<"income" | "expense">("expense");
   const [step, setStep] = useState<"amount" | "details">("amount");
@@ -81,13 +83,13 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories }:
                   onClick={() => setType("expense")}
                   className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${type === "expense" ? "bg-card text-foreground" : "text-muted-foreground"}`}
                 >
-                  Expense
+                  {t("quickadd.expense")}
                 </button>
                 <button
                   onClick={() => setType("income")}
                   className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${type === "income" ? "bg-card text-foreground" : "text-muted-foreground"}`}
                 >
-                  Income
+                  {t("quickadd.income")}
                 </button>
               </div>
               <div className="w-9" />
@@ -100,7 +102,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories }:
                     <div className="flex items-center justify-center gap-1">
                       {type === "expense" ? <ArrowUpRight className="w-5 h-5 text-destructive" /> : <ArrowDownLeft className="w-5 h-5 text-primary" />}
                       <span className={`font-mono-data text-[40px] tracking-tight ${type === "income" ? "text-primary" : "text-foreground"}`}>
-                        ${amount}
+                        {currencySymbol}{amount}
                       </span>
                     </div>
                   </div>
@@ -122,7 +124,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories }:
                       disabled={parseFloat(amount) <= 0}
                       className="w-full h-12 rounded-[12px] bg-primary text-primary-foreground font-medium text-[15px] disabled:opacity-40 transition-opacity active:scale-[0.98]"
                     >
-                      Next
+                      {t("quickadd.next")}
                     </button>
                   </div>
                 </motion.div>
@@ -130,17 +132,17 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories }:
                 <motion.div key="details" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="px-4 pb-6">
                   <div className="text-center py-3">
                     <span className={`font-mono-data text-[28px] ${type === "income" ? "text-primary" : "text-foreground"}`}>
-                      {type === "expense" ? "-" : "+"}${amount}
+                      {type === "expense" ? "-" : "+"}{currencySymbol}{amount}
                     </span>
                   </div>
                   <input
                     type="text"
-                    placeholder="Description (optional)"
+                    placeholder={t("quickadd.descPlaceholder")}
                     value={description}
                     onChange={e => setDescription(e.target.value)}
                     className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
                   />
-                  <span className="text-[12px] text-muted-foreground font-medium mb-2 block">Category</span>
+                  <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.category")}</span>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {filteredCats.map(cat => (
                       <button
@@ -159,7 +161,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories }:
                       </button>
                     ))}
                   </div>
-                  <span className="text-[12px] text-muted-foreground font-medium mb-2 block">Account</span>
+                  <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.account")}</span>
                   <div className="flex flex-wrap gap-2 mb-6">
                     {accounts.map(acc => (
                       <button
@@ -178,14 +180,14 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories }:
                   </div>
                   <div className="flex gap-3">
                     <button onClick={() => setStep("amount")} className="flex-1 h-12 rounded-[12px] bg-secondary text-foreground font-medium text-[15px] active:scale-[0.98] transition-transform">
-                      Back
+                      {t("quickadd.back")}
                     </button>
                     <button
                       onClick={handleSubmit}
                       disabled={!selectedCategory}
                       className="flex-[2] h-12 rounded-[12px] bg-primary text-primary-foreground font-medium text-[15px] disabled:opacity-40 active:scale-[0.98] transition-all"
                     >
-                      Save
+                      {t("quickadd.save")}
                     </button>
                   </div>
                 </motion.div>

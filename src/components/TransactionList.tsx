@@ -2,6 +2,7 @@ import { Transaction } from "@/lib/types";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { CategoryIcon } from "./CategoryIcon";
+import { useSettings } from "@/lib/settings-store";
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -9,6 +10,8 @@ interface TransactionListProps {
 }
 
 export function TransactionList({ transactions, onSelect }: TransactionListProps) {
+  const { formatAmount, t } = useSettings();
+
   const grouped = transactions.reduce<Record<string, Transaction[]>>((acc, tx) => {
     const key = format(tx.date, "MMM d, yyyy");
     if (!acc[key]) acc[key] = [];
@@ -18,7 +21,7 @@ export function TransactionList({ transactions, onSelect }: TransactionListProps
 
   return (
     <div className="px-4 pb-28">
-      <h2 className="text-[13px] text-muted-foreground font-medium mb-3 font-display">Transactions</h2>
+      <h2 className="text-[13px] text-muted-foreground font-medium mb-3 font-display">{t("tx.title")}</h2>
       {Object.entries(grouped).map(([date, txs]) => (
         <div key={date} className="mb-4">
           <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{date}</span>
@@ -44,7 +47,7 @@ export function TransactionList({ transactions, onSelect }: TransactionListProps
                   </div>
                 </div>
                 <span className={`font-mono-data text-[14px] tracking-tight ${tx.type === "income" ? "text-primary" : "text-foreground"}`}>
-                  {tx.type === "income" ? "+" : "-"}${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  {formatAmount(tx.amount, { sign: tx.type === "income" ? "+" : "-" })}
                 </span>
               </motion.div>
             ))}

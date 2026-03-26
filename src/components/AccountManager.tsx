@@ -4,6 +4,7 @@ import { Plus, Archive, Pencil, Trash2, ArchiveRestore, X, ArrowLeftRight, Arrow
 import { Account, CATEGORY_COLORS, ACCOUNT_ICONS, ACCOUNT_TYPES, AccountType, Transaction } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { format } from "date-fns";
+import { useSettings } from "@/lib/settings-store";
 
 interface AccountManagerProps {
   accounts: Account[];
@@ -104,10 +105,7 @@ export function AccountManager({
     setView("list");
   };
 
-  const formatCurrency = (n: number) => {
-    const sign = n < 0 ? "-" : "";
-    return `${sign}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-  };
+  const { formatAmount: formatCurrency, t } = useSettings();
 
   return (
     <div className="pt-4 pb-28">
