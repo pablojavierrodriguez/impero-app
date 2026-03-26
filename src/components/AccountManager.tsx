@@ -105,10 +105,7 @@ export function AccountManager({
     setView("list");
   };
 
-  const formatCurrency = (n: number) => {
-    const sign = n < 0 ? "-" : "";
-    return `${sign}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-  };
+  const { formatAmount: formatCurrency, t } = useSettings();
 
   return (
     <div className="pt-4 pb-28">
