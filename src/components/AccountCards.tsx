@@ -1,12 +1,15 @@
 import { Account } from "@/lib/types";
 import { motion } from "framer-motion";
 import { CategoryIcon } from "./CategoryIcon";
+import { useSettings } from "@/lib/settings-store";
 
 interface AccountCardsProps {
   accounts: Account[];
 }
 
 export function AccountCards({ accounts }: AccountCardsProps) {
+  const { formatAmount } = useSettings();
+
   return (
     <div className="px-4">
       <div className="grid grid-cols-2 gap-3">
@@ -26,7 +29,7 @@ export function AccountCards({ accounts }: AccountCardsProps) {
                 <span className="text-[12px] text-muted-foreground font-medium">{account.name}</span>
               </div>
               <span className={`font-mono-data text-[18px] ${account.balance < 0 ? "text-destructive" : "text-foreground"}`}>
-                {account.balance < 0 ? "-" : ""}${Math.abs(account.balance).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                {formatAmount(account.balance)}
               </span>
             </div>
           </motion.div>

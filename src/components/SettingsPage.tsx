@@ -1,22 +1,15 @@
 import { ChevronRight, RotateCcw, DollarSign, Languages, BarChart3, LayoutGrid, Hash, Eye } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  AppSettings,
-  CURRENCIES,
-  LANGUAGES,
-  Currency,
-  Language,
-  ChartType,
-  HomeSection,
-} from "@/lib/settings-store";
+import { useSettings, CURRENCIES, type Currency, type ChartType } from "@/lib/settings-store";
+import type { Language } from "@/lib/i18n";
+
+const LANGUAGES: { value: Language; label: string }[] = [
+  { value: "es", label: "Español" },
+  { value: "en", label: "English" },
+];
 
 interface SettingsPageProps {
-  settings: AppSettings;
-  currencySymbol: string;
-  onUpdate: (updates: Partial<AppSettings>) => void;
-  onToggleHomeSection: (id: string) => void;
-  onReset: () => void;
   onImportCsv: () => void;
 }
 
@@ -40,22 +33,24 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function SettingsPage({ settings, currencySymbol, onUpdate, onToggleHomeSection, onReset, onImportCsv }: SettingsPageProps) {
+export function SettingsPage({ onImportCsv }: SettingsPageProps) {
+  const { settings, updateSettings, toggleHomeSection, resetSettings, currencySymbol, t } = useSettings();
+
   return (
     <div className="pt-4 pb-4">
       <div className="px-4 pb-3">
-        <h1 className="text-[20px] font-display font-semibold text-foreground">Configuración</h1>
-        <p className="text-[12px] text-muted-foreground mt-0.5">Personalizá tu experiencia</p>
+        <h1 className="text-[20px] font-display font-semibold text-foreground">{t("settings.title")}</h1>
+        <p className="text-[12px] text-muted-foreground mt-0.5">{t("settings.subtitle")}</p>
       </div>
 
       <div className="card-surface mx-4">
         <div className="card-inner space-y-0 divide-y divide-border/50">
-          <SectionTitle>General</SectionTitle>
+          <SectionTitle>{t("settings.general")}</SectionTitle>
 
-          <SettingRow icon={DollarSign} label="Moneda">
+          <SettingRow icon={DollarSign} label={t("settings.currency")}>
             <Select
               value={settings.currency}
-              onValueChange={(v) => onUpdate({ currency: v as Currency })}
+              onValueChange={(v) => updateSettings({ currency: v as Currency })}
             >
               <SelectTrigger className="w-[140px] h-8 text-xs bg-background border-border/50">
                 <SelectValue />
@@ -63,17 +58,17 @@ export function SettingsPage({ settings, currencySymbol, onUpdate, onToggleHomeS
               <SelectContent>
                 {CURRENCIES.map(c => (
                   <SelectItem key={c.value} value={c.value} className="text-xs">
-                    {c.symbol} {c.label}
+                    {c.symbol} {t(`currency.${c.value}` as any)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </SettingRow>
 
-          <SettingRow icon={Languages} label="Idioma">
+          <SettingRow icon={Languages} label={t("settings.language")}>
             <Select
               value={settings.language}
-              onValueChange={(v) => onUpdate({ language: v as Language })}
+              onValueChange={(v) => updateSettings({ language: v as Language })}
             >
               <SelectTrigger className="w-[140px] h-8 text-xs bg-background border-border/50">
                 <SelectValue />
@@ -88,59 +83,59 @@ export function SettingsPage({ settings, currencySymbol, onUpdate, onToggleHomeS
             </Select>
           </SettingRow>
 
-          <SettingRow icon={Eye} label="Mostrar decimales">
+          <SettingRow icon={Eye} label={t("settings.showDecimals")}>
             <Switch
               checked={settings.showDecimals}
-              onCheckedChange={(v) => onUpdate({ showDecimals: v })}
+              onCheckedChange={(v) => updateSettings({ showDecimals: v })}
             />
           </SettingRow>
 
-          <SectionTitle>Visualización</SectionTitle>
+          <SectionTitle>{t("settings.display")}</SectionTitle>
 
-          <SettingRow icon={BarChart3} label="Tipo de gráfico">
+          <SettingRow icon={BarChart3} label={t("settings.chartType")}>
             <Select
               value={settings.chartType}
-              onValueChange={(v) => onUpdate({ chartType: v as ChartType })}
+              onValueChange={(v) => updateSettings({ chartType: v as ChartType })}
             >
               <SelectTrigger className="w-[140px] h-8 text-xs bg-background border-border/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="bar" className="text-xs">Barras</SelectItem>
-                <SelectItem value="area" className="text-xs">Área</SelectItem>
-                <SelectItem value="none" className="text-xs">Sin gráfico</SelectItem>
+                <SelectItem value="bar" className="text-xs">{t("settings.chartBar")}</SelectItem>
+                <SelectItem value="area" className="text-xs">{t("settings.chartArea")}</SelectItem>
+                <SelectItem value="none" className="text-xs">{t("settings.chartNone")}</SelectItem>
               </SelectContent>
             </Select>
           </SettingRow>
 
-          <SettingRow icon={Hash} label="Presupuesto diario">
+          <SettingRow icon={Hash} label={t("settings.dailyBudget")}>
             <div className="flex items-center gap-1">
               <span className="text-xs text-muted-foreground">{currencySymbol}</span>
               <input
                 type="number"
                 value={settings.dailyBudget}
-                onChange={(e) => onUpdate({ dailyBudget: Number(e.target.value) || 0 })}
+                onChange={(e) => updateSettings({ dailyBudget: Number(e.target.value) || 0 })}
                 className="w-20 h-8 text-xs text-right bg-background border border-border/50 rounded-md px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
           </SettingRow>
 
-          <SectionTitle>Secciones del Home</SectionTitle>
+          <SectionTitle>{t("settings.homeSections")}</SectionTitle>
 
           {settings.homeSections.map(section => (
             <div key={section.id} className="flex items-center justify-between py-3 px-4">
               <div className="flex items-center gap-3">
                 <LayoutGrid className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-foreground">{section.label}</span>
+                <span className="text-sm text-foreground">{t(section.labelKey)}</span>
               </div>
               <Switch
                 checked={section.enabled}
-                onCheckedChange={() => onToggleHomeSection(section.id)}
+                onCheckedChange={() => toggleHomeSection(section.id)}
               />
             </div>
           ))}
 
-          <SectionTitle>Datos</SectionTitle>
+          <SectionTitle>{t("settings.data")}</SectionTitle>
 
           <button
             onClick={onImportCsv}
@@ -148,18 +143,18 @@ export function SettingsPage({ settings, currencySymbol, onUpdate, onToggleHomeS
           >
             <div className="flex items-center gap-3">
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-foreground">Importar CSV</span>
+              <span className="text-sm text-foreground">{t("settings.importCsv")}</span>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
 
           <button
-            onClick={onReset}
+            onClick={resetSettings}
             className="flex items-center justify-between w-full py-3 px-4 hover:bg-destructive/10 transition-colors"
           >
             <div className="flex items-center gap-3">
               <RotateCcw className="w-4 h-4 text-destructive" />
-              <span className="text-sm text-destructive">Restablecer configuración</span>
+              <span className="text-sm text-destructive">{t("settings.reset")}</span>
             </div>
           </button>
         </div>
