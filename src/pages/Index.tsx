@@ -17,6 +17,7 @@ import { CreditCardManager } from "@/components/CreditCardManager";
 import { SettingsPage } from "@/components/SettingsPage";
 import { TransactionFilters, applyFilters, EMPTY_FILTERS, TransactionFilterValues } from "@/components/TransactionFilters";
 import { Transaction } from "@/lib/types";
+import { useCallback, useMemo } from "react";
 
 const Index = () => {
   const store = useFinanceStore();
@@ -27,6 +28,45 @@ const Index = () => {
   const [transferOpen, setTransferOpen] = useState(false);
   const [txFilters, setTxFilters] = useState<TransactionFilterValues>(EMPTY_FILTERS);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+
+  // Memoize callback functions to prevent unnecessary re-renders
+  const handleEditingTx = useCallback((tx: Transaction | null) => {
+    setEditingTx(tx);
+  }, []);
+
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+  }, []);
+
+  const handleQuickAdd = useCallback((amount: number, description: string, category: any, type: "income" | "expense", accountId: string) => {
+    store.addTransaction(amount, description, category, type, accountId);
+    setQuickAddOpen(false);
+  }, [store]);
+
+  const handleFilterChange = useCallback((filters: TransactionFilterValues) => {
+    setTxFilters(filters);
+  }, []);
+
+  // Memoize derived data to prevent unnecessary recalculations
+  const filteredTransactions = useMemo(
+    () => applyFilters(store.transactions, txFilters),
+    [store.transactions, txFilters]
+  );
+
+  const recentTransactions = useMemo(
+    () => store.transactions.slice(0, 5),
+    [store.transactions]
+  );
+
+  const activeAccounts = useMemo(
+    () => store.getActiveAccounts(),
+    [store]
+  );
+
+  const allCategories = useMemo(
+    () => store.getAllActiveCategories(),
+    [store]
+  );
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto relative pb-20" key="app-root">
@@ -53,8 +93,8 @@ const Index = () => {
           {isSectionEnabled("recent") && (
             <div className="mt-2">
               <TransactionList
-                transactions={store.transactions.slice(0, 5)}
-                onSelect={setEditingTx}
+                transactions={recentTransactions}
+                onSelect={handleEditingTx}
               />
             </div>
           )}
@@ -74,13 +114,13 @@ const Index = () => {
           </div>
           <TransactionFilters
             filters={txFilters}
-            onChange={setTxFilters}
-            categories={store.getAllActiveCategories()}
-            accounts={store.getActiveAccounts()}
+            onChange={handleFilterChange}
+            categories={allCategories}
+            accounts={activeAccounts}
           />
           <TransactionList
-            transactions={applyFilters(store.transactions, txFilters)}
-            onSelect={setEditingTx}
+            transactions={filteredTransactions}
+            onSelect={handleEditingTx}
           />
         </div>
       )}
@@ -143,9 +183,9 @@ const Index = () => {
       <QuickAddSheet
         open={quickAddOpen}
         onClose={() => setQuickAddOpen(false)}
-        onSubmit={store.addTransaction}
-        accounts={store.getActiveAccounts()}
-        categories={store.getAllActiveCategories()}
+        onSubmit={handleQuickAdd}
+        accounts={activeAccounts}
+        categories={allCategories}
       />
 
       <CsvImportSheet
@@ -165,16 +205,16 @@ const Index = () => {
       <TransactionEditSheet
         transaction={editingTx}
         open={!!editingTx}
-        onClose={() => setEditingTx(null)}
+        onClose={() => handleEditingTx(null)}
         onUpdate={store.updateTransaction}
         onDelete={store.deleteTransaction}
-        accounts={store.getActiveAccounts()}
-        categories={store.getAllActiveCategories()}
+        accounts={activeAccounts}
+        categories={allCategories}
       />
 
       <BottomNav
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onQuickAdd={() => setQuickAddOpen(true)}
         onTransfer={() => setTransferOpen(true)}
       />

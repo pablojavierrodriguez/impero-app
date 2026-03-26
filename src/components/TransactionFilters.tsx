@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Filter, X, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "@/lib/settings-store";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export interface TransactionFilterValues {
   search: string;
@@ -30,7 +31,14 @@ interface TransactionFiltersProps {
 
 export function TransactionFilters({ filters, onChange, categories, accounts }: TransactionFiltersProps) {
   const [expanded, setExpanded] = useState(false);
+  const [localSearch, setLocalSearch] = useState(filters.search);
+  const debouncedSearch = useDebounce(localSearch, 300);
   const { t } = useSettings();
+
+  // Update parent when debounced search changes
+  if (debouncedSearch !== filters.search) {
+    onChange({ ...filters, search: debouncedSearch });
+  }
 
   const activeCount = [
     filters.search, filters.type !== "all" ? filters.type : "",
@@ -46,10 +54,10 @@ export function TransactionFilters({ filters, onChange, categories, accounts }: 
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder={t("filters.search")} value={filters.search} onChange={e => update({ search: e.target.value })}
+          <Input placeholder={t("filters.search")} value={localSearch} onChange={e => setLocalSearch(e.target.value)}
             className="pl-9 h-9 bg-secondary border-0 text-[13px] rounded-xl" />
-          {filters.search && (
-            <button onClick={() => update({ search: "" })} className="absolute right-3 top-1/2 -translate-y-1/2">
+          {localSearch && (
+            <button onClick={() => setLocalSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
               <X className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           )}
