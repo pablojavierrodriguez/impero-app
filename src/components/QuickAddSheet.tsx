@@ -14,7 +14,7 @@ interface QuickAddSheetProps {
   tags?: Tag[];
 }
 
-export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories }: QuickAddSheetProps) {
+export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, tags = [] }: QuickAddSheetProps) {
   const { currencySymbol, t } = useSettings();
   const [amount, setAmount] = useState("0");
   const [type, setType] = useState<"income" | "expense">("expense");
