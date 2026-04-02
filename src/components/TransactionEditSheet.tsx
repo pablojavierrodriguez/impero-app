@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Save } from "lucide-react";
-import { Transaction, Category, Account } from "@/lib/types";
+import { X, Trash2, Save, Copy } from "lucide-react";
+import { Transaction, Category, Account, Tag } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { format } from "date-fns";
 import { useSettings } from "@/lib/settings-store";
@@ -12,12 +12,14 @@ interface TransactionEditSheetProps {
   onClose: () => void;
   onUpdate: (id: string, updates: Partial<Omit<Transaction, "id">>) => void;
   onDelete: (id: string) => void;
+  onDuplicate?: (id: string) => void;
   accounts: Account[];
   categories: Category[];
+  tags?: Tag[];
 }
 
 export function TransactionEditSheet({
-  transaction, open, onClose, onUpdate, onDelete, accounts, categories,
+  transaction, open, onClose, onUpdate, onDelete, onDuplicate, accounts, categories, tags = [],
 }: TransactionEditSheetProps) {
   const { t } = useSettings();
   const [amount, setAmount] = useState("");
@@ -80,12 +82,18 @@ export function TransactionEditSheet({
                 <X className="w-5 h-5" />
               </button>
               <span className="text-[15px] font-display font-semibold text-foreground">{t("txedit.title")}</span>
-              <button
-                onClick={handleDelete}
-                className={`p-2 -mr-2 transition-colors ${confirmDelete ? "text-destructive" : "text-muted-foreground"}`}
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
+              <div className="flex gap-1">
+                {onDuplicate && (
+                  <button onClick={() => { if (transaction) { onDuplicate(transaction.id); onClose(); }}}
+                    className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+                    <Copy className="w-5 h-5" />
+                  </button>
+                )}
+                <button onClick={handleDelete}
+                  className={`p-2 -mr-2 transition-colors ${confirmDelete ? "text-destructive" : "text-muted-foreground"}`}>
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {confirmDelete && (

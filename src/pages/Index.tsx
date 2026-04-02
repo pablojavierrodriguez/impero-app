@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFinanceStore } from "@/lib/finance-store";
 import { useSettings } from "@/lib/settings-store";
 import { VelocityBar } from "@/components/VelocityBar";
@@ -16,6 +16,12 @@ import { AccountManager } from "@/components/AccountManager";
 import { CreditCardManager } from "@/components/CreditCardManager";
 import { SettingsPage } from "@/components/SettingsPage";
 import { TransactionFilters, applyFilters, EMPTY_FILTERS, TransactionFilterValues } from "@/components/TransactionFilters";
+import { BudgetManager, BudgetSummaryWidget } from "@/components/BudgetManager";
+import { GoalsManager, GoalsSummaryWidget } from "@/components/GoalsManager";
+import { RecurringManager } from "@/components/RecurringManager";
+import { BillReminders, BillsSummaryWidget } from "@/components/BillReminders";
+import { ReportsPage } from "@/components/ReportsPage";
+import { TagManager } from "@/components/TagManager";
 import { Transaction } from "@/lib/types";
 
 const Index = () => {
@@ -27,6 +33,11 @@ const Index = () => {
   const [transferOpen, setTransferOpen] = useState(false);
   const [txFilters, setTxFilters] = useState<TransactionFilterValues>(EMPTY_FILTERS);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+
+  // Process recurring transactions on mount
+  useEffect(() => { store.processRecurring(); }, []);
+
+  const pendingBillsCount = store.getPendingBills().filter(b => b.status !== "paid").length;
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto relative pb-20" key="app-root">
@@ -50,6 +61,19 @@ const Index = () => {
           {isSectionEnabled("breakdown") && (
             <SpendingBreakdown transactions={store.transactions} />
           )}
+          {isSectionEnabled("budgets") && (
+            <BudgetSummaryWidget
+              budgets={store.budgets}
+              categories={store.categories}
+              getBudgetSpent={store.getBudgetSpent}
+            />
+          )}
+          {isSectionEnabled("goals") && (
+            <GoalsSummaryWidget goals={store.goals} />
+          )}
+          {isSectionEnabled("bills") && (
+            <BillsSummaryWidget bills={store.getPendingBills()} />
+          )}
           {isSectionEnabled("recent") && (
             <div className="mt-2">
               <TransactionList
@@ -65,119 +89,97 @@ const Index = () => {
         <div className="pt-4">
           <div className="px-4 pb-3 flex items-center justify-between">
             <h1 className="text-[20px] font-display font-semibold text-foreground">{t("tx.history")}</h1>
-            <button
-              onClick={() => setCsvImportOpen(true)}
-              className="px-3 py-1.5 rounded-full bg-secondary text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <button onClick={() => setCsvImportOpen(true)}
+              className="px-3 py-1.5 rounded-full bg-secondary text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors">
               {t("tx.importCsv")}
             </button>
           </div>
-          <TransactionFilters
-            filters={txFilters}
-            onChange={setTxFilters}
-            categories={store.getAllActiveCategories()}
-            accounts={store.getActiveAccounts()}
-          />
-          <TransactionList
-            transactions={applyFilters(store.transactions, txFilters)}
-            onSelect={setEditingTx}
-          />
+          <TransactionFilters filters={txFilters} onChange={setTxFilters}
+            categories={store.getAllActiveCategories()} accounts={store.getActiveAccounts()} />
+          <TransactionList transactions={applyFilters(store.transactions, txFilters)} onSelect={setEditingTx} />
         </div>
       )}
 
       {activeTab === "cards" && (
-        <CreditCardManager
-          accounts={store.accounts}
-          getCreditCards={store.getCreditCards}
-          getArchivedAccounts={store.getArchivedAccounts}
-          getTransactionsByAccount={store.getTransactionsByAccount}
-          getStatementTransactions={store.getStatementTransactions}
-          getNonCardAccounts={store.getNonCardAccounts}
-          onAdd={store.addAccount}
-          onUpdate={store.updateAccount}
-          onArchive={store.archiveAccount}
-          onUnarchive={store.unarchiveAccount}
-          onPayCard={store.payCard}
-          onSelectTransaction={setEditingTx}
-        />
+        <CreditCardManager accounts={store.accounts} getCreditCards={store.getCreditCards}
+          getArchivedAccounts={store.getArchivedAccounts} getTransactionsByAccount={store.getTransactionsByAccount}
+          getStatementTransactions={store.getStatementTransactions} getNonCardAccounts={store.getNonCardAccounts}
+          onAdd={store.addAccount} onUpdate={store.updateAccount} onArchive={store.archiveAccount}
+          onUnarchive={store.unarchiveAccount} onPayCard={store.payCard} onSelectTransaction={setEditingTx} />
       )}
 
       {activeTab === "categories" && (
-        <CategoryManager
-          categories={store.categories}
-          getRootCategories={store.getRootCategories}
-          getSubcategories={store.getSubcategories}
-          getArchivedCategories={store.getArchivedCategories}
-          getTransactionCountByCategory={store.getTransactionCountByCategory}
-          getAllActiveCategories={store.getAllActiveCategories}
-          onAdd={store.addCategory}
-          onUpdate={store.updateCategory}
-          onArchive={store.archiveCategory}
-          onUnarchive={store.unarchiveCategory}
-          onDelete={store.deleteCategory}
-          onReassign={store.reassignTransactions}
-        />
+        <CategoryManager categories={store.categories} getRootCategories={store.getRootCategories}
+          getSubcategories={store.getSubcategories} getArchivedCategories={store.getArchivedCategories}
+          getTransactionCountByCategory={store.getTransactionCountByCategory} getAllActiveCategories={store.getAllActiveCategories}
+          onAdd={store.addCategory} onUpdate={store.updateCategory} onArchive={store.archiveCategory}
+          onUnarchive={store.unarchiveCategory} onDelete={store.deleteCategory} onReassign={store.reassignTransactions} />
       )}
 
       {activeTab === "accounts" && (
-        <AccountManager
-          accounts={store.accounts}
-          getActiveAccounts={store.getActiveAccounts}
-          getArchivedAccounts={store.getArchivedAccounts}
-          getTransactionsByAccount={store.getTransactionsByAccount}
-          onAdd={store.addAccount}
-          onUpdate={store.updateAccount}
-          onArchive={store.archiveAccount}
-          onUnarchive={store.unarchiveAccount}
-          onAdjustBalance={store.adjustAccountBalance}
-          onSelectTransaction={setEditingTx}
-        />
+        <AccountManager accounts={store.accounts} getActiveAccounts={store.getActiveAccounts}
+          getArchivedAccounts={store.getArchivedAccounts} getTransactionsByAccount={store.getTransactionsByAccount}
+          onAdd={store.addAccount} onUpdate={store.updateAccount} onArchive={store.archiveAccount}
+          onUnarchive={store.unarchiveAccount} onAdjustBalance={store.adjustAccountBalance}
+          onSelectTransaction={setEditingTx} />
+      )}
+
+      {activeTab === "budgets" && (
+        <BudgetManager budgets={store.budgets} categories={store.categories}
+          getBudgetSpent={store.getBudgetSpent} getAllActiveCategories={store.getAllActiveCategories}
+          onAdd={store.addBudget} onUpdate={store.updateBudget} onDelete={store.deleteBudget} />
+      )}
+
+      {activeTab === "goals" && (
+        <GoalsManager goals={store.goals} onAdd={store.addGoal} onUpdate={store.updateGoal}
+          onDelete={store.deleteGoal} onContribute={store.contributeToGoal} onWithdraw={store.withdrawFromGoal} />
+      )}
+
+      {activeTab === "recurring" && (
+        <RecurringManager recurringTxs={store.recurringTxs} categories={store.getAllActiveCategories()}
+          accounts={store.getActiveAccounts()} onAdd={store.addRecurringTx} onUpdate={store.updateRecurringTx}
+          onDelete={store.deleteRecurringTx} onTogglePause={store.toggleRecurringPause} />
+      )}
+
+      {activeTab === "bills" && (
+        <BillReminders bills={store.bills} accounts={store.getActiveAccounts()} categories={store.getAllActiveCategories()}
+          onAdd={store.addBill} onUpdate={store.updateBill} onDelete={store.deleteBill}
+          onMarkPaid={store.markBillPaid} getPendingBills={store.getPendingBills} />
+      )}
+
+      {activeTab === "reports" && (
+        <ReportsPage transactions={store.transactions} monthlyExpenses={store.monthlyExpenses}
+          monthlyIncome={store.monthlyIncome} getMonthlyTrend={store.getMonthlyTrend}
+          getLastMonthExpenses={store.getLastMonthExpenses} />
+      )}
+
+      {activeTab === "tags" && (
+        <TagManager tags={store.tags} onAdd={store.addTag} onUpdate={store.updateTag}
+          onDelete={store.deleteTag} getTransactionCountByTag={store.getTransactionCountByTag} />
       )}
 
       {activeTab === "settings" && (
-        <SettingsPage
-          onImportCsv={() => setCsvImportOpen(true)}
-        />
+        <SettingsPage onImportCsv={() => setCsvImportOpen(true)} />
       )}
 
-      <QuickAddSheet
-        open={quickAddOpen}
-        onClose={() => setQuickAddOpen(false)}
-        onSubmit={store.addTransaction}
-        accounts={store.getActiveAccounts()}
-        categories={store.getAllActiveCategories()}
-      />
+      <QuickAddSheet open={quickAddOpen} onClose={() => setQuickAddOpen(false)}
+        onSubmit={store.addTransaction} accounts={store.getActiveAccounts()}
+        categories={store.getAllActiveCategories()} tags={store.tags} />
 
-      <CsvImportSheet
-        open={csvImportOpen}
-        onClose={() => setCsvImportOpen(false)}
-        onImport={store.importTransactions}
-        accounts={store.getActiveAccounts()}
-      />
+      <CsvImportSheet open={csvImportOpen} onClose={() => setCsvImportOpen(false)}
+        onImport={store.importTransactions} accounts={store.getActiveAccounts()} />
 
-      <TransferSheet
-        open={transferOpen}
-        onClose={() => setTransferOpen(false)}
-        accounts={store.accounts}
-        onTransfer={store.transferBetweenAccounts}
-      />
+      <TransferSheet open={transferOpen} onClose={() => setTransferOpen(false)}
+        accounts={store.accounts} onTransfer={store.transferBetweenAccounts} />
 
-      <TransactionEditSheet
-        transaction={editingTx}
-        open={!!editingTx}
-        onClose={() => setEditingTx(null)}
-        onUpdate={store.updateTransaction}
-        onDelete={store.deleteTransaction}
-        accounts={store.getActiveAccounts()}
-        categories={store.getAllActiveCategories()}
-      />
+      <TransactionEditSheet transaction={editingTx} open={!!editingTx}
+        onClose={() => setEditingTx(null)} onUpdate={store.updateTransaction}
+        onDelete={store.deleteTransaction} onDuplicate={store.duplicateTransaction}
+        accounts={store.getActiveAccounts()} categories={store.getAllActiveCategories()} tags={store.tags} />
 
-      <BottomNav
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onQuickAdd={() => setQuickAddOpen(true)}
-        onTransfer={() => setTransferOpen(true)}
-      />
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab}
+        onQuickAdd={() => setQuickAddOpen(true)} onTransfer={() => setTransferOpen(true)}
+        pendingBillsCount={pendingBillsCount} />
     </div>
   );
 };

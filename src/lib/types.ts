@@ -31,6 +31,65 @@ export type Transaction = {
   accountId: string;
   isCardPayment?: boolean;
   isTransfer?: boolean;
+  tags?: string[];
+  note?: string;
+  receiptUrl?: string;
+  recurringId?: string;
+  installmentInfo?: { current: number; total: number; groupId: string };
+};
+
+export type Budget = {
+  id: string;
+  categoryId: string;
+  amount: number; // monthly limit in ARS
+  month: number; // 0-11
+  year: number;
+};
+
+export type Goal = {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  deadline?: Date;
+  color: string;
+  icon: string;
+  completed: boolean;
+  createdAt: Date;
+};
+
+export type RecurrenceFrequency = "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
+
+export type RecurringTransaction = {
+  id: string;
+  amount: number;
+  description: string;
+  category: Category;
+  type: TransactionType;
+  accountId: string;
+  frequency: RecurrenceFrequency;
+  startDate: Date;
+  nextDate: Date;
+  paused: boolean;
+  tags?: string[];
+};
+
+export type BillReminder = {
+  id: string;
+  name: string;
+  amount: number;
+  dueDate: Date;
+  frequency: RecurrenceFrequency;
+  categoryId?: string;
+  accountId?: string;
+  status: "pending" | "paid" | "overdue";
+  autoPay: boolean;
+};
+
+export type Tag = {
+  id: string;
+  name: string;
+  color: string;
 };
 
 export type AccountType = "checking" | "savings" | "credit" | "cash";
