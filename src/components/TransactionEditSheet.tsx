@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Save } from "lucide-react";
-import { Transaction, Category, Account } from "@/lib/types";
+import { X, Trash2, Save, Copy } from "lucide-react";
+import { Transaction, Category, Account, Tag } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { format } from "date-fns";
 import { useSettings } from "@/lib/settings-store";
@@ -12,8 +12,10 @@ interface TransactionEditSheetProps {
   onClose: () => void;
   onUpdate: (id: string, updates: Partial<Omit<Transaction, "id">>) => void;
   onDelete: (id: string) => void;
+  onDuplicate?: (id: string) => void;
   accounts: Account[];
   categories: Category[];
+  tags?: Tag[];
 }
 
 export function TransactionEditSheet({
