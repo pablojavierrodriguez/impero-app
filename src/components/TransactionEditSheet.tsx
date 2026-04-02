@@ -19,7 +19,7 @@ interface TransactionEditSheetProps {
 }
 
 export function TransactionEditSheet({
-  transaction, open, onClose, onUpdate, onDelete, accounts, categories,
+  transaction, open, onClose, onUpdate, onDelete, onDuplicate, accounts, categories, tags = [],
 }: TransactionEditSheetProps) {
   const { t } = useSettings();
   const [amount, setAmount] = useState("");

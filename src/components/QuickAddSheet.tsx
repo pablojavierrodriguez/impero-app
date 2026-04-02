@@ -41,7 +41,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
 
   const handleSubmit = () => {
     if (!selectedCategory) return;
-    onSubmit(parseFloat(amount), description || selectedCategory.name, selectedCategory, type, selectedAccount);
+    onSubmit(parseFloat(amount), description || selectedCategory.name, selectedCategory, type, selectedAccount, {});
     resetAndClose();
   };
 
