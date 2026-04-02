@@ -17,6 +17,9 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
   { id: "balance", labelKey: "settings.sectionBalance", enabled: true },
   { id: "accounts", labelKey: "settings.sectionAccounts", enabled: true },
   { id: "breakdown", labelKey: "settings.sectionBreakdown", enabled: true },
+  { id: "budgets", labelKey: "settings.sectionBudgets", enabled: true },
+  { id: "goals", labelKey: "settings.sectionGoals", enabled: true },
+  { id: "bills", labelKey: "settings.sectionBills", enabled: true },
   { id: "recent", labelKey: "settings.sectionRecent", enabled: true },
 ];
 
@@ -26,12 +29,10 @@ export const CURRENCIES: { value: Currency; symbol: string }[] = [
   { value: "EUR", symbol: "€" },
 ];
 
-// Exchange rates relative to ARS (base currency for stored amounts)
-// ARS → target. All internal amounts are stored in ARS.
-const EXCHANGE_RATES: Record<Currency, number> = {
+const DEFAULT_EXCHANGE_RATES: Record<Currency, number> = {
   ARS: 1,
-  USD: 1 / 1200, // 1 ARS = ~0.00083 USD
-  EUR: 1 / 1300, // 1 ARS = ~0.00077 EUR
+  USD: 1 / 1200,
+  EUR: 1 / 1300,
 };
 
 export type AppSettings = {
@@ -41,6 +42,7 @@ export type AppSettings = {
   homeSections: HomeSection[];
   dailyBudget: number;
   showDecimals: boolean;
+  customExchangeRates?: Record<Currency, number>;
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -58,14 +60,12 @@ export type SettingsContextType = {
   toggleHomeSection: (sectionId: string) => void;
   resetSettings: () => void;
   currencySymbol: string;
-  /** Convert an amount from ARS (storage currency) to display currency */
   convertAmount: (arsAmount: number) => number;
-  /** Format a number in the display currency with symbol */
   formatAmount: (arsAmount: number, opts?: { sign?: string; abs?: boolean }) => string;
-  /** Translation function */
   t: (key: TranslationKey) => string;
-  /** Is a home section enabled? */
   isSectionEnabled: (id: string) => boolean;
+  exchangeRates: Record<Currency, number>;
+  updateExchangeRate: (currency: Currency, rate: number) => void;
 };
 
 const SettingsContext = createContext<SettingsContextType | null>(null);
@@ -74,7 +74,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(() => {
     try {
       const saved = localStorage.getItem("app-settings");
-      if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Merge with new default sections
+        const savedSections = parsed.homeSections || [];
+        const mergedSections = DEFAULT_HOME_SECTIONS.map(def => {
+          const existing = savedSections.find((s: HomeSection) => s.id === def.id);
+          return existing || def;
+        });
+        return { ...DEFAULT_SETTINGS, ...parsed, homeSections: mergedSections };
+      }
     } catch {}
     return DEFAULT_SETTINGS;
   });
@@ -105,9 +114,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings(DEFAULT_SETTINGS);
   }, []);
 
+  const updateExchangeRate = useCallback((currency: Currency, rate: number) => {
+    setSettings(prev => {
+      const rates = { ...(prev.customExchangeRates || DEFAULT_EXCHANGE_RATES), [currency]: rate };
+      const next = { ...prev, customExchangeRates: rates };
+      localStorage.setItem("app-settings", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const value = useMemo<SettingsContextType>(() => {
     const sym = CURRENCIES.find(c => c.value === settings.currency)?.symbol ?? "$";
-    const rate = EXCHANGE_RATES[settings.currency];
+    const rates = settings.customExchangeRates || DEFAULT_EXCHANGE_RATES;
+    const rate = rates[settings.currency] ?? 1;
     const t = createTranslator(settings.language);
 
     const convertAmount = (ars: number) => ars * rate;
@@ -126,17 +145,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       settings.homeSections.find(s => s.id === id)?.enabled ?? true;
 
     return {
-      settings,
-      updateSettings,
-      toggleHomeSection,
-      resetSettings,
-      currencySymbol: sym,
-      convertAmount,
-      formatAmount,
-      t,
-      isSectionEnabled,
+      settings, updateSettings, toggleHomeSection, resetSettings,
+      currencySymbol: sym, convertAmount, formatAmount, t, isSectionEnabled,
+      exchangeRates: rates, updateExchangeRate,
     };
-  }, [settings, updateSettings, toggleHomeSection, resetSettings]);
+  }, [settings, updateSettings, toggleHomeSection, resetSettings, updateExchangeRate]);
 
   return React.createElement(SettingsContext.Provider, { value }, children);
 }
@@ -147,7 +160,6 @@ export function useSettings(): SettingsContextType {
   return ctx;
 }
 
-// Keep backward compat export
 export function useSettingsStore() {
   return useSettings();
 }
