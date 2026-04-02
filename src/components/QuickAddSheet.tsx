@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowDownLeft, ArrowUpRight, Delete } from "lucide-react";
-import { Category, Account } from "@/lib/types";
+import { Category, Account, Tag } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { useSettings } from "@/lib/settings-store";
 
 interface QuickAddSheetProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (amount: number, description: string, category: Category, type: "income" | "expense", accountId: string) => void;
+  onSubmit: (amount: number, description: string, category: Category, type: "income" | "expense", accountId: string, extras?: { tags?: string[]; note?: string; installments?: number }) => void;
   accounts: Account[];
   categories: Category[];
+  tags?: Tag[];
 }
 
 export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories }: QuickAddSheetProps) {
