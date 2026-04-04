@@ -11,10 +11,10 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
-  plugins: [react() 
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    plugins: [react],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
 }));
