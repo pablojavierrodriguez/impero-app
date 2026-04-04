@@ -5,6 +5,7 @@ import React from "react";
 export type { Language };
 export type Currency = "ARS" | "USD" | "EUR";
 export type ChartType = "bar" | "area" | "none";
+export type ThemeMode = "dark" | "light" | "system";
 
 export type HomeSection = {
   id: string;
