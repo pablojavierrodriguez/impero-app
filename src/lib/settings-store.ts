@@ -54,6 +54,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   homeSections: DEFAULT_HOME_SECTIONS,
   dailyBudget: 150,
   showDecimals: true,
+  theme: "dark",
 };
 
 export type SettingsContextType = {
