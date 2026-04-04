@@ -22,11 +22,19 @@ import { RecurringManager } from "@/components/RecurringManager";
 import { BillReminders, BillsSummaryWidget } from "@/components/BillReminders";
 import { ReportsPage } from "@/components/ReportsPage";
 import { TagManager } from "@/components/TagManager";
+import { HealthScore } from "@/components/HealthScore";
 import { Transaction } from "@/lib/types";
+import { motion, AnimatePresence } from "framer-motion";
+
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+};
 
 const Index = () => {
   const store = useFinanceStore();
-  const { settings, isSectionEnabled, t } = useSettings();
+  const { settings, isSectionEnabled, t, formatAmount } = useSettings();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
@@ -34,133 +42,174 @@ const Index = () => {
   const [txFilters, setTxFilters] = useState<TransactionFilterValues>(EMPTY_FILTERS);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
 
-  // Process recurring transactions on mount
   useEffect(() => { store.processRecurring(); }, []);
 
   const pendingBillsCount = store.getPendingBills().filter(b => b.status !== "paid").length;
 
+  // Health score computations
+  const budgets = store.getCurrentMonthBudgets();
+  const avgBudgetUsage = budgets.length > 0
+    ? budgets.reduce((sum, b) => {
+        const spent = store.getBudgetSpent(b.categoryId, b.month, b.year);
+        return sum + (spent / b.amount) * 100;
+      }, 0) / budgets.length
+    : 50;
+  const goalsProgress = store.goals.length > 0
+    ? store.goals.reduce((sum, g) => sum + (g.currentAmount / g.targetAmount) * 100, 0) / store.goals.length
+    : 0;
+
+  // Week spending summary
+  const weekLabel = `${t("dash.weekSpent")}: ${formatAmount(store.weekSpent)}`;
+
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto relative pb-20" key="app-root">
-      {activeTab === "dashboard" && (
-        <>
-          {isSectionEnabled("velocity") && (
-            <VelocityBar spent={store.todaySpent} budget={settings.dailyBudget} />
+      <AnimatePresence mode="wait">
+        <motion.div key={activeTab} variants={pageVariants} initial="initial" animate="animate" exit="exit"
+          transition={{ duration: 0.2 }}>
+
+          {activeTab === "dashboard" && (
+            <>
+              {isSectionEnabled("velocity") && (
+                <VelocityBar spent={store.todaySpent} budget={settings.dailyBudget} />
+              )}
+              {isSectionEnabled("balance") && (
+                <BalanceHeader
+                  totalBalance={store.totalBalance}
+                  monthlyIncome={store.monthlyIncome}
+                  monthlyExpenses={store.monthlyExpenses}
+                />
+              )}
+
+              {/* Week spending chip */}
+              <div className="px-4 py-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 text-xs text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  {weekLabel}
+                </div>
+              </div>
+
+              {isSectionEnabled("accounts") && (
+                <div className="my-4">
+                  <AccountCards accounts={store.getActiveAccounts()} />
+                </div>
+              )}
+              {isSectionEnabled("breakdown") && (
+                <SpendingBreakdown transactions={store.transactions} />
+              )}
+              {isSectionEnabled("budgets") && (
+                <BudgetSummaryWidget budgets={store.budgets} categories={store.categories}
+                  getBudgetSpent={store.getBudgetSpent} />
+              )}
+              {isSectionEnabled("goals") && (
+                <GoalsSummaryWidget goals={store.goals} />
+              )}
+              {isSectionEnabled("bills") && (
+                <BillsSummaryWidget bills={store.getPendingBills()} />
+              )}
+
+              {/* Health Score */}
+              <HealthScore
+                monthlyIncome={store.monthlyIncome}
+                monthlyExpenses={store.monthlyExpenses}
+                budgetsUsedPct={avgBudgetUsage}
+                goalsProgress={goalsProgress}
+                pendingBills={pendingBillsCount}
+              />
+
+              {isSectionEnabled("recent") && (
+                <div className="mt-2">
+                  <TransactionList
+                    transactions={store.transactions.slice(0, 5)}
+                    onSelect={setEditingTx}
+                    onDelete={store.deleteTransaction}
+                  />
+                </div>
+              )}
+            </>
           )}
-          {isSectionEnabled("balance") && (
-            <BalanceHeader
-              totalBalance={store.totalBalance}
-              monthlyIncome={store.monthlyIncome}
-              monthlyExpenses={store.monthlyExpenses}
-            />
-          )}
-          {isSectionEnabled("accounts") && (
-            <div className="my-4">
-              <AccountCards accounts={store.getActiveAccounts()} />
-            </div>
-          )}
-          {isSectionEnabled("breakdown") && (
-            <SpendingBreakdown transactions={store.transactions} />
-          )}
-          {isSectionEnabled("budgets") && (
-            <BudgetSummaryWidget
-              budgets={store.budgets}
-              categories={store.categories}
-              getBudgetSpent={store.getBudgetSpent}
-            />
-          )}
-          {isSectionEnabled("goals") && (
-            <GoalsSummaryWidget goals={store.goals} />
-          )}
-          {isSectionEnabled("bills") && (
-            <BillsSummaryWidget bills={store.getPendingBills()} />
-          )}
-          {isSectionEnabled("recent") && (
-            <div className="mt-2">
+
+          {activeTab === "transactions" && (
+            <div className="pt-4">
+              <div className="px-4 pb-3 flex items-center justify-between">
+                <h1 className="text-[20px] font-display font-semibold text-foreground">{t("tx.history")}</h1>
+                <button onClick={() => setCsvImportOpen(true)}
+                  className="px-3 py-1.5 rounded-full bg-secondary text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  {t("tx.importCsv")}
+                </button>
+              </div>
+              <TransactionFilters filters={txFilters} onChange={setTxFilters}
+                categories={store.getAllActiveCategories()} accounts={store.getActiveAccounts()} />
               <TransactionList
-                transactions={store.transactions.slice(0, 5)}
+                transactions={applyFilters(store.transactions, txFilters)}
                 onSelect={setEditingTx}
+                onDelete={store.deleteTransaction}
               />
             </div>
           )}
-        </>
-      )}
 
-      {activeTab === "transactions" && (
-        <div className="pt-4">
-          <div className="px-4 pb-3 flex items-center justify-between">
-            <h1 className="text-[20px] font-display font-semibold text-foreground">{t("tx.history")}</h1>
-            <button onClick={() => setCsvImportOpen(true)}
-              className="px-3 py-1.5 rounded-full bg-secondary text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors">
-              {t("tx.importCsv")}
-            </button>
-          </div>
-          <TransactionFilters filters={txFilters} onChange={setTxFilters}
-            categories={store.getAllActiveCategories()} accounts={store.getActiveAccounts()} />
-          <TransactionList transactions={applyFilters(store.transactions, txFilters)} onSelect={setEditingTx} />
-        </div>
-      )}
+          {activeTab === "cards" && (
+            <CreditCardManager accounts={store.accounts} getCreditCards={store.getCreditCards}
+              getArchivedAccounts={store.getArchivedAccounts} getTransactionsByAccount={store.getTransactionsByAccount}
+              getStatementTransactions={store.getStatementTransactions} getNonCardAccounts={store.getNonCardAccounts}
+              onAdd={store.addAccount} onUpdate={store.updateAccount} onArchive={store.archiveAccount}
+              onUnarchive={store.unarchiveAccount} onPayCard={store.payCard} onSelectTransaction={setEditingTx} />
+          )}
 
-      {activeTab === "cards" && (
-        <CreditCardManager accounts={store.accounts} getCreditCards={store.getCreditCards}
-          getArchivedAccounts={store.getArchivedAccounts} getTransactionsByAccount={store.getTransactionsByAccount}
-          getStatementTransactions={store.getStatementTransactions} getNonCardAccounts={store.getNonCardAccounts}
-          onAdd={store.addAccount} onUpdate={store.updateAccount} onArchive={store.archiveAccount}
-          onUnarchive={store.unarchiveAccount} onPayCard={store.payCard} onSelectTransaction={setEditingTx} />
-      )}
+          {activeTab === "categories" && (
+            <CategoryManager categories={store.categories} getRootCategories={store.getRootCategories}
+              getSubcategories={store.getSubcategories} getArchivedCategories={store.getArchivedCategories}
+              getTransactionCountByCategory={store.getTransactionCountByCategory} getAllActiveCategories={store.getAllActiveCategories}
+              onAdd={store.addCategory} onUpdate={store.updateCategory} onArchive={store.archiveCategory}
+              onUnarchive={store.unarchiveCategory} onDelete={store.deleteCategory} onReassign={store.reassignTransactions} />
+          )}
 
-      {activeTab === "categories" && (
-        <CategoryManager categories={store.categories} getRootCategories={store.getRootCategories}
-          getSubcategories={store.getSubcategories} getArchivedCategories={store.getArchivedCategories}
-          getTransactionCountByCategory={store.getTransactionCountByCategory} getAllActiveCategories={store.getAllActiveCategories}
-          onAdd={store.addCategory} onUpdate={store.updateCategory} onArchive={store.archiveCategory}
-          onUnarchive={store.unarchiveCategory} onDelete={store.deleteCategory} onReassign={store.reassignTransactions} />
-      )}
+          {activeTab === "accounts" && (
+            <AccountManager accounts={store.accounts} getActiveAccounts={store.getActiveAccounts}
+              getArchivedAccounts={store.getArchivedAccounts} getTransactionsByAccount={store.getTransactionsByAccount}
+              onAdd={store.addAccount} onUpdate={store.updateAccount} onArchive={store.archiveAccount}
+              onUnarchive={store.unarchiveAccount} onAdjustBalance={store.adjustAccountBalance}
+              onSelectTransaction={setEditingTx} />
+          )}
 
-      {activeTab === "accounts" && (
-        <AccountManager accounts={store.accounts} getActiveAccounts={store.getActiveAccounts}
-          getArchivedAccounts={store.getArchivedAccounts} getTransactionsByAccount={store.getTransactionsByAccount}
-          onAdd={store.addAccount} onUpdate={store.updateAccount} onArchive={store.archiveAccount}
-          onUnarchive={store.unarchiveAccount} onAdjustBalance={store.adjustAccountBalance}
-          onSelectTransaction={setEditingTx} />
-      )}
+          {activeTab === "budgets" && (
+            <BudgetManager budgets={store.budgets} categories={store.categories}
+              getBudgetSpent={store.getBudgetSpent} getAllActiveCategories={store.getAllActiveCategories}
+              onAdd={store.addBudget} onUpdate={store.updateBudget} onDelete={store.deleteBudget} />
+          )}
 
-      {activeTab === "budgets" && (
-        <BudgetManager budgets={store.budgets} categories={store.categories}
-          getBudgetSpent={store.getBudgetSpent} getAllActiveCategories={store.getAllActiveCategories}
-          onAdd={store.addBudget} onUpdate={store.updateBudget} onDelete={store.deleteBudget} />
-      )}
+          {activeTab === "goals" && (
+            <GoalsManager goals={store.goals} onAdd={store.addGoal} onUpdate={store.updateGoal}
+              onDelete={store.deleteGoal} onContribute={store.contributeToGoal} onWithdraw={store.withdrawFromGoal} />
+          )}
 
-      {activeTab === "goals" && (
-        <GoalsManager goals={store.goals} onAdd={store.addGoal} onUpdate={store.updateGoal}
-          onDelete={store.deleteGoal} onContribute={store.contributeToGoal} onWithdraw={store.withdrawFromGoal} />
-      )}
+          {activeTab === "recurring" && (
+            <RecurringManager recurringTxs={store.recurringTxs} categories={store.getAllActiveCategories()}
+              accounts={store.getActiveAccounts()} onAdd={store.addRecurringTx} onUpdate={store.updateRecurringTx}
+              onDelete={store.deleteRecurringTx} onTogglePause={store.toggleRecurringPause} />
+          )}
 
-      {activeTab === "recurring" && (
-        <RecurringManager recurringTxs={store.recurringTxs} categories={store.getAllActiveCategories()}
-          accounts={store.getActiveAccounts()} onAdd={store.addRecurringTx} onUpdate={store.updateRecurringTx}
-          onDelete={store.deleteRecurringTx} onTogglePause={store.toggleRecurringPause} />
-      )}
+          {activeTab === "bills" && (
+            <BillReminders bills={store.bills} accounts={store.getActiveAccounts()} categories={store.getAllActiveCategories()}
+              onAdd={store.addBill} onUpdate={store.updateBill} onDelete={store.deleteBill}
+              onMarkPaid={store.markBillPaid} getPendingBills={store.getPendingBills} />
+          )}
 
-      {activeTab === "bills" && (
-        <BillReminders bills={store.bills} accounts={store.getActiveAccounts()} categories={store.getAllActiveCategories()}
-          onAdd={store.addBill} onUpdate={store.updateBill} onDelete={store.deleteBill}
-          onMarkPaid={store.markBillPaid} getPendingBills={store.getPendingBills} />
-      )}
+          {activeTab === "reports" && (
+            <ReportsPage transactions={store.transactions} monthlyExpenses={store.monthlyExpenses}
+              monthlyIncome={store.monthlyIncome} getMonthlyTrend={store.getMonthlyTrend}
+              getLastMonthExpenses={store.getLastMonthExpenses} />
+          )}
 
-      {activeTab === "reports" && (
-        <ReportsPage transactions={store.transactions} monthlyExpenses={store.monthlyExpenses}
-          monthlyIncome={store.monthlyIncome} getMonthlyTrend={store.getMonthlyTrend}
-          getLastMonthExpenses={store.getLastMonthExpenses} />
-      )}
+          {activeTab === "tags" && (
+            <TagManager tags={store.tags} onAdd={store.addTag} onUpdate={store.updateTag}
+              onDelete={store.deleteTag} getTransactionCountByTag={store.getTransactionCountByTag} />
+          )}
 
-      {activeTab === "tags" && (
-        <TagManager tags={store.tags} onAdd={store.addTag} onUpdate={store.updateTag}
-          onDelete={store.deleteTag} getTransactionCountByTag={store.getTransactionCountByTag} />
-      )}
-
-      {activeTab === "settings" && (
-        <SettingsPage onImportCsv={() => setCsvImportOpen(true)} />
-      )}
+          {activeTab === "settings" && (
+            <SettingsPage onImportCsv={() => setCsvImportOpen(true)} />
+          )}
+        </motion.div>
+      </AnimatePresence>
 
       <QuickAddSheet open={quickAddOpen} onClose={() => setQuickAddOpen(false)}
         onSubmit={store.addTransaction} accounts={store.getActiveAccounts()}

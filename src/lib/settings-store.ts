@@ -5,6 +5,7 @@ import React from "react";
 export type { Language };
 export type Currency = "ARS" | "USD" | "EUR";
 export type ChartType = "bar" | "area" | "none";
+export type ThemeMode = "dark" | "light" | "system";
 
 export type HomeSection = {
   id: string;
@@ -43,6 +44,7 @@ export type AppSettings = {
   dailyBudget: number;
   showDecimals: boolean;
   customExchangeRates?: Record<Currency, number>;
+  theme: ThemeMode;
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -52,6 +54,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   homeSections: DEFAULT_HOME_SECTIONS,
   dailyBudget: 150,
   showDecimals: true,
+  theme: "dark",
 };
 
 export type SettingsContextType = {

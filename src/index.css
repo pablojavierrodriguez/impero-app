@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -45,6 +45,53 @@
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 5% 17%;
     --sidebar-ring: 142 71% 45%;
+
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+    --info: 199 89% 48%;
+  }
+
+  .light {
+    --background: 0 0% 97%;
+    --foreground: 240 10% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+
+    --primary: 142 71% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 5% 92%;
+    --secondary-foreground: 240 10% 10%;
+
+    --muted: 240 5% 92%;
+    --muted-foreground: 240 5% 45%;
+
+    --accent: 240 5% 92%;
+    --accent-foreground: 240 10% 10%;
+
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 5% 88%;
+    --input: 240 5% 92%;
+    --ring: 142 71% 40%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 10% 10%;
+    --sidebar-primary: 142 71% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 5% 92%;
+    --sidebar-accent-foreground: 240 10% 10%;
+    --sidebar-border: 240 5% 88%;
+    --sidebar-ring: 142 71% 40%;
+
+    --success: 142 71% 40%;
+    --warning: 38 92% 50%;
+    --info: 199 89% 48%;
   }
 }
 
@@ -59,6 +106,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-wrap: pretty;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   .font-mono-data {
@@ -76,11 +124,24 @@
 @layer components {
   .card-surface {
     @apply bg-card rounded-[20px] p-2;
-    box-shadow: 0 1px 0 0 rgba(255,255,255,0.05) inset;
+    box-shadow: 0 1px 0 0 rgba(255,255,255,0.05) inset, 0 4px 16px -4px rgba(0,0,0,0.15);
+  }
+
+  .light .card-surface {
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 4px 16px -4px rgba(0,0,0,0.08);
   }
 
   .card-inner {
     @apply bg-secondary/50 rounded-[12px] p-4;
+  }
+
+  .card-glass {
+    @apply bg-card/80 backdrop-blur-xl rounded-[20px] p-2;
+    box-shadow: 0 1px 0 0 rgba(255,255,255,0.08) inset, 0 8px 32px -8px rgba(0,0,0,0.2);
+  }
+
+  .light .card-glass {
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.04), 0 8px 32px -8px rgba(0,0,0,0.06);
   }
 
   .velocity-bar {
@@ -98,5 +159,37 @@
 
   .category-dot {
     @apply w-2 h-2 rounded-full flex-shrink-0;
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(142 71% 55%));
+  }
+
+  .gradient-card {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--secondary)) 100%);
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .empty-state-icon {
+    @apply w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mx-auto mb-4;
+  }
+
+  /* Swipe action backgrounds */
+  .swipe-delete-bg {
+    background: linear-gradient(90deg, transparent 60%, hsl(var(--destructive)) 100%);
+  }
+
+  .swipe-edit-bg {
+    background: linear-gradient(270deg, transparent 60%, hsl(var(--primary)) 100%);
   }
 }
