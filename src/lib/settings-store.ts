@@ -44,6 +44,7 @@ export type AppSettings = {
   dailyBudget: number;
   showDecimals: boolean;
   customExchangeRates?: Record<Currency, number>;
+  theme: ThemeMode;
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
