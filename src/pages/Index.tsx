@@ -223,6 +223,10 @@ const Index = () => {
           {activeTab === "settings" && (
             <SettingsPage onImportCsv={() => setCsvImportOpen(true)} />
           )}
+
+          {activeTab === "profile" && (
+            <UserProfilePage />
+          )}
         </motion.div>
       </AnimatePresence>
 
