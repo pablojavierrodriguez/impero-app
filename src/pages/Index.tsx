@@ -23,6 +23,7 @@ import { BillReminders, BillsSummaryWidget } from "@/components/BillReminders";
 import { ReportsPage } from "@/components/ReportsPage";
 import { TagManager } from "@/components/TagManager";
 import { HealthScore } from "@/components/HealthScore";
+import { UserProfilePage } from "@/components/UserProfile";
 import { Transaction } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
