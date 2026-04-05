@@ -72,7 +72,7 @@ const Index = () => {
         onTransfer={() => setTransferOpen(true)}
         pendingBillsCount={pendingBillsCount}
       />
-      <div className="flex-1 max-w-2xl mx-auto relative pb-20 md:pb-6 md:px-6">
+      <div className="flex-1 max-w-2xl mx-auto relative pb-20 md:pb-6 md:px-6 md:max-w-5xl lg:max-w-6xl">
       <AnimatePresence mode="wait">
         <motion.div key={activeTab} variants={pageVariants} initial="initial" animate="animate" exit="exit"
           transition={{ duration: 0.2 }}>
