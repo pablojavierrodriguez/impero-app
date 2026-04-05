@@ -25,6 +25,7 @@ import { TagManager } from "@/components/TagManager";
 import { HealthScore } from "@/components/HealthScore";
 import { Transaction } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
+import { DesktopSidebar } from "@/components/DesktopSidebar";
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
