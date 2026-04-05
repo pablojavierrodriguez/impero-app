@@ -63,7 +63,15 @@ const Index = () => {
   const weekLabel = `${t("dash.weekSpent")}: ${formatAmount(store.weekSpent)}`;
 
   return (
-    <div className="min-h-screen bg-background max-w-md mx-auto relative pb-20" key="app-root">
+    <div className="min-h-screen bg-background flex" key="app-root">
+      <DesktopSidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onQuickAdd={() => setQuickAddOpen(true)}
+        onTransfer={() => setTransferOpen(true)}
+        pendingBillsCount={pendingBillsCount}
+      />
+      <div className="flex-1 max-w-2xl mx-auto relative pb-20 md:pb-6 md:px-6">
       <AnimatePresence mode="wait">
         <motion.div key={activeTab} variants={pageVariants} initial="initial" animate="animate" exit="exit"
           transition={{ duration: 0.2 }}>
