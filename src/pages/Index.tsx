@@ -235,9 +235,12 @@ const Index = () => {
         onDelete={store.deleteTransaction} onDuplicate={store.duplicateTransaction}
         accounts={store.getActiveAccounts()} categories={store.getAllActiveCategories()} tags={store.tags} />
 
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab}
-        onQuickAdd={() => setQuickAddOpen(true)} onTransfer={() => setTransferOpen(true)}
-        pendingBillsCount={pendingBillsCount} />
+      <div className="md:hidden">
+        <BottomNav activeTab={activeTab} onTabChange={setActiveTab}
+          onQuickAdd={() => setQuickAddOpen(true)} onTransfer={() => setTransferOpen(true)}
+          pendingBillsCount={pendingBillsCount} />
+      </div>
+      </div>
     </div>
   );
 };
