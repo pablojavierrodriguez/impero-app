@@ -23,6 +23,7 @@ import { BillReminders, BillsSummaryWidget } from "@/components/BillReminders";
 import { ReportsPage } from "@/components/ReportsPage";
 import { TagManager } from "@/components/TagManager";
 import { HealthScore } from "@/components/HealthScore";
+import { UserProfilePage } from "@/components/UserProfile";
 import { Transaction } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
@@ -71,70 +72,75 @@ const Index = () => {
         onTransfer={() => setTransferOpen(true)}
         pendingBillsCount={pendingBillsCount}
       />
-      <div className="flex-1 max-w-2xl mx-auto relative pb-20 md:pb-6 md:px-6">
+      <div className="flex-1 max-w-2xl mx-auto relative pb-20 md:pb-6 md:px-6 md:max-w-5xl lg:max-w-6xl">
       <AnimatePresence mode="wait">
         <motion.div key={activeTab} variants={pageVariants} initial="initial" animate="animate" exit="exit"
           transition={{ duration: 0.2 }}>
 
           {activeTab === "dashboard" && (
-            <>
-              {isSectionEnabled("velocity") && (
-                <VelocityBar spent={store.todaySpent} budget={settings.dailyBudget} />
-              )}
-              {isSectionEnabled("balance") && (
-                <BalanceHeader
-                  totalBalance={store.totalBalance}
-                  monthlyIncome={store.monthlyIncome}
-                  monthlyExpenses={store.monthlyExpenses}
-                />
-              )}
+            <div className="md:grid md:grid-cols-2 md:gap-6 md:pt-4">
+              {/* Left column */}
+              <div>
+                {isSectionEnabled("velocity") && (
+                  <VelocityBar spent={store.todaySpent} budget={settings.dailyBudget} />
+                )}
+                {isSectionEnabled("balance") && (
+                  <BalanceHeader
+                    totalBalance={store.totalBalance}
+                    monthlyIncome={store.monthlyIncome}
+                    monthlyExpenses={store.monthlyExpenses}
+                  />
+                )}
 
-              {/* Week spending chip */}
-              <div className="px-4 py-1">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 text-xs text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  {weekLabel}
+                <div className="px-4 py-1">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 text-xs text-muted-foreground">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    {weekLabel}
+                  </div>
                 </div>
+
+                {isSectionEnabled("accounts") && (
+                  <div className="my-4">
+                    <AccountCards accounts={store.getActiveAccounts()} />
+                  </div>
+                )}
+                {isSectionEnabled("breakdown") && (
+                  <SpendingBreakdown transactions={store.transactions} />
+                )}
               </div>
 
-              {isSectionEnabled("accounts") && (
-                <div className="my-4">
-                  <AccountCards accounts={store.getActiveAccounts()} />
-                </div>
-              )}
-              {isSectionEnabled("breakdown") && (
-                <SpendingBreakdown transactions={store.transactions} />
-              )}
-              {isSectionEnabled("budgets") && (
-                <BudgetSummaryWidget budgets={store.budgets} categories={store.categories}
-                  getBudgetSpent={store.getBudgetSpent} />
-              )}
-              {isSectionEnabled("goals") && (
-                <GoalsSummaryWidget goals={store.goals} />
-              )}
-              {isSectionEnabled("bills") && (
-                <BillsSummaryWidget bills={store.getPendingBills()} />
-              )}
+              {/* Right column */}
+              <div>
+                {isSectionEnabled("budgets") && (
+                  <BudgetSummaryWidget budgets={store.budgets} categories={store.categories}
+                    getBudgetSpent={store.getBudgetSpent} />
+                )}
+                {isSectionEnabled("goals") && (
+                  <GoalsSummaryWidget goals={store.goals} />
+                )}
+                {isSectionEnabled("bills") && (
+                  <BillsSummaryWidget bills={store.getPendingBills()} />
+                )}
 
-              {/* Health Score */}
-              <HealthScore
-                monthlyIncome={store.monthlyIncome}
-                monthlyExpenses={store.monthlyExpenses}
-                budgetsUsedPct={avgBudgetUsage}
-                goalsProgress={goalsProgress}
-                pendingBills={pendingBillsCount}
-              />
+                <HealthScore
+                  monthlyIncome={store.monthlyIncome}
+                  monthlyExpenses={store.monthlyExpenses}
+                  budgetsUsedPct={avgBudgetUsage}
+                  goalsProgress={goalsProgress}
+                  pendingBills={pendingBillsCount}
+                />
 
-              {isSectionEnabled("recent") && (
-                <div className="mt-2">
-                  <TransactionList
-                    transactions={store.transactions.slice(0, 5)}
-                    onSelect={setEditingTx}
-                    onDelete={store.deleteTransaction}
-                  />
-                </div>
-              )}
-            </>
+                {isSectionEnabled("recent") && (
+                  <div className="mt-2">
+                    <TransactionList
+                      transactions={store.transactions.slice(0, 5)}
+                      onSelect={setEditingTx}
+                      onDelete={store.deleteTransaction}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {activeTab === "transactions" && (
@@ -216,6 +222,10 @@ const Index = () => {
 
           {activeTab === "settings" && (
             <SettingsPage onImportCsv={() => setCsvImportOpen(true)} />
+          )}
+
+          {activeTab === "profile" && (
+            <UserProfilePage />
           )}
         </motion.div>
       </AnimatePresence>

@@ -27,6 +27,7 @@ const translations = {
     "nav.reportsDesc": "Análisis detallado de tus finanzas",
     "nav.tags": "Etiquetas",
     "nav.tagsDesc": "Organizá con etiquetas personalizadas",
+    "nav.profile": "Mi Perfil",
 
     // VelocityBar
     "velocity.title": "Velocidad diaria",
@@ -360,6 +361,7 @@ const translations = {
     "nav.reportsDesc": "Detailed financial analysis",
     "nav.tags": "Tags",
     "nav.tagsDesc": "Organize with custom labels",
+    "nav.profile": "My Profile",
 
     // VelocityBar
     "velocity.title": "Daily Velocity",

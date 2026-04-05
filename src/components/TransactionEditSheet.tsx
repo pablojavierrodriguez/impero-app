@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Save, Copy } from "lucide-react";
+import { motion } from "framer-motion";
+import { Trash2, Save, Copy } from "lucide-react";
 import { Transaction, Category, Account, Tag } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { format } from "date-fns";
 import { useSettings } from "@/lib/settings-store";
+import { ResponsiveSheet } from "./ResponsiveSheet";
 
 interface TransactionEditSheetProps {
   transaction: Transaction | null;
@@ -63,123 +64,106 @@ export function TransactionEditSheet({
     onClose();
   };
 
+  const titleRight = (
+    <div className="flex gap-1">
+      {onDuplicate && (
+        <button onClick={() => { if (transaction) { onDuplicate(transaction.id); onClose(); }}}
+          className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+          <Copy className="w-5 h-5" />
+        </button>
+      )}
+      <button onClick={handleDelete}
+        className={`p-2 transition-colors ${confirmDelete ? "text-destructive" : "text-muted-foreground hover:text-foreground"}`}>
+        <Trash2 className="w-5 h-5" />
+      </button>
+    </div>
+  );
+
   return (
-    <AnimatePresence>
-      {open && transaction && (
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 400, damping: 40 }}
-            onClick={e => e.stopPropagation()}
-            className="absolute bottom-0 left-0 right-0 bg-card rounded-t-[24px] max-h-[90vh] overflow-auto"
-          >
-            <div className="flex items-center justify-between px-5 pt-5 pb-3">
-              <button onClick={onClose} className="p-2 -ml-2 text-muted-foreground">
-                <X className="w-5 h-5" />
-              </button>
-              <span className="text-[15px] font-display font-semibold text-foreground">{t("txedit.title")}</span>
-              <div className="flex gap-1">
-                {onDuplicate && (
-                  <button onClick={() => { if (transaction) { onDuplicate(transaction.id); onClose(); }}}
-                    className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-                    <Copy className="w-5 h-5" />
-                  </button>
-                )}
-                <button onClick={handleDelete}
-                  className={`p-2 -mr-2 transition-colors ${confirmDelete ? "text-destructive" : "text-muted-foreground"}`}>
-                  <Trash2 className="w-5 h-5" />
+    <ResponsiveSheet open={open} onClose={onClose} title={t("txedit.title")} titleRight={titleRight}>
+      {transaction && (
+        <div className="px-4 pb-6">
+          {confirmDelete && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+              className="mb-3 p-3 rounded-[12px] bg-destructive/10 border border-destructive/20"
+            >
+              <p className="text-[13px] text-destructive font-medium">{t("txedit.deleteConfirm")}</p>
+              <div className="flex gap-2 mt-2">
+                <button onClick={() => setConfirmDelete(false)} className="flex-1 h-9 rounded-[8px] bg-secondary text-foreground text-[13px] font-medium">
+                  {t("txedit.cancel")}
+                </button>
+                <button onClick={handleDelete} className="flex-1 h-9 rounded-[8px] bg-destructive text-destructive-foreground text-[13px] font-medium">
+                  {t("txedit.confirm")}
                 </button>
               </div>
-            </div>
+            </motion.div>
+          )}
 
-            {confirmDelete && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-                className="mx-4 mb-3 p-3 rounded-[12px] bg-destructive/10 border border-destructive/20"
+          <div className="flex justify-center mb-4">
+            <div className="flex bg-secondary rounded-full p-0.5">
+              <button
+                onClick={() => { setType("expense"); setSelectedCategory(null); }}
+                className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${type === "expense" ? "bg-card text-foreground" : "text-muted-foreground"}`}
               >
-                <p className="text-[13px] text-destructive font-medium">{t("txedit.deleteConfirm")}</p>
-                <div className="flex gap-2 mt-2">
-                  <button onClick={() => setConfirmDelete(false)} className="flex-1 h-9 rounded-[8px] bg-secondary text-foreground text-[13px] font-medium">
-                    {t("txedit.cancel")}
-                  </button>
-                  <button onClick={handleDelete} className="flex-1 h-9 rounded-[8px] bg-destructive text-destructive-foreground text-[13px] font-medium">
-                    {t("txedit.confirm")}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            <div className="px-4 pb-6">
-              <div className="flex justify-center mb-4">
-                <div className="flex bg-secondary rounded-full p-0.5">
-                  <button
-                    onClick={() => { setType("expense"); setSelectedCategory(null); }}
-                    className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${type === "expense" ? "bg-card text-foreground" : "text-muted-foreground"}`}
-                  >
-                    {t("quickadd.expense")}
-                  </button>
-                  <button
-                    onClick={() => { setType("income"); setSelectedCategory(null); }}
-                    className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${type === "income" ? "bg-card text-foreground" : "text-muted-foreground"}`}
-                  >
-                    {t("quickadd.income")}
-                  </button>
-                </div>
-              </div>
-
-              <label className="text-[12px] text-muted-foreground font-medium mb-1 block">{t("txedit.amount")}</label>
-              <input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)}
-                className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[20px] text-center placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4" />
-
-              <label className="text-[12px] text-muted-foreground font-medium mb-1 block">{t("txedit.description")}</label>
-              <input type="text" value={description} onChange={e => setDescription(e.target.value)}
-                className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4" />
-
-              <label className="text-[12px] text-muted-foreground font-medium mb-1 block">{t("txedit.dateTime")}</label>
-              <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)}
-                className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] focus:border-muted-foreground outline-none transition-colors mb-4" />
-
-              <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.category")}</span>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {filteredCats.map(cat => (
-                  <button key={cat.id} onClick={() => setSelectedCategory(cat)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] transition-colors ${
-                      selectedCategory?.id === cat.id ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30" : "bg-secondary/50 text-muted-foreground"
-                    }`}>
-                    <div className={`w-5 h-5 rounded-[6px] ${cat.color} flex items-center justify-center`}>
-                      <CategoryIcon name={cat.icon || "circle-dot"} className="w-3 h-3 text-white" />
-                    </div>
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-
-              <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.account")}</span>
-              <div className="flex flex-wrap gap-2 mb-6">
-                {accounts.map(acc => (
-                  <button key={acc.id} onClick={() => setSelectedAccount(acc.id)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] transition-colors ${
-                      selectedAccount === acc.id ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30" : "bg-secondary/50 text-muted-foreground"
-                    }`}>
-                    <div className={`category-dot ${acc.color}`} />
-                    {acc.name}
-                  </button>
-                ))}
-              </div>
-
-              <button onClick={handleSave} disabled={!selectedCategory || !parseFloat(amount)}
-                className="w-full h-12 rounded-[12px] bg-primary text-primary-foreground font-medium text-[15px] disabled:opacity-40 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                <Save className="w-4 h-4" />
-                {t("txedit.saveChanges")}
+                {t("quickadd.expense")}
+              </button>
+              <button
+                onClick={() => { setType("income"); setSelectedCategory(null); }}
+                className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${type === "income" ? "bg-card text-foreground" : "text-muted-foreground"}`}
+              >
+                {t("quickadd.income")}
               </button>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+
+          <label className="text-[12px] text-muted-foreground font-medium mb-1 block">{t("txedit.amount")}</label>
+          <input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)}
+            className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[20px] text-center placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4" />
+
+          <label className="text-[12px] text-muted-foreground font-medium mb-1 block">{t("txedit.description")}</label>
+          <input type="text" value={description} onChange={e => setDescription(e.target.value)}
+            className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4" />
+
+          <label className="text-[12px] text-muted-foreground font-medium mb-1 block">{t("txedit.dateTime")}</label>
+          <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)}
+            className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] focus:border-muted-foreground outline-none transition-colors mb-4" />
+
+          <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.category")}</span>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {filteredCats.map(cat => (
+              <button key={cat.id} onClick={() => setSelectedCategory(cat)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] transition-colors ${
+                  selectedCategory?.id === cat.id ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30" : "bg-secondary/50 text-muted-foreground hover:bg-secondary/70"
+                }`}>
+                <div className={`w-5 h-5 rounded-[6px] ${cat.color} flex items-center justify-center`}>
+                  <CategoryIcon name={cat.icon || "circle-dot"} className="w-3 h-3 text-white" />
+                </div>
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.account")}</span>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {accounts.map(acc => (
+              <button key={acc.id} onClick={() => setSelectedAccount(acc.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] transition-colors ${
+                  selectedAccount === acc.id ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30" : "bg-secondary/50 text-muted-foreground hover:bg-secondary/70"
+                }`}>
+                <div className={`category-dot ${acc.color}`} />
+                {acc.name}
+              </button>
+            ))}
+          </div>
+
+          <button onClick={handleSave} disabled={!selectedCategory || !parseFloat(amount)}
+            className="w-full h-12 rounded-[12px] bg-primary text-primary-foreground font-medium text-[15px] disabled:opacity-40 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+            <Save className="w-4 h-4" />
+            {t("txedit.saveChanges")}
+          </button>
+        </div>
       )}
-    </AnimatePresence>
+    </ResponsiveSheet>
   );
 }
