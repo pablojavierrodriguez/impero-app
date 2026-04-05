@@ -361,6 +361,7 @@ const translations = {
     "nav.reportsDesc": "Detailed financial analysis",
     "nav.tags": "Tags",
     "nav.tagsDesc": "Organize with custom labels",
+    "nav.profile": "My Profile",
 
     // VelocityBar
     "velocity.title": "Daily Velocity",
