@@ -25,6 +25,7 @@ import { TagManager } from "@/components/TagManager";
 import { HealthScore } from "@/components/HealthScore";
 import { Transaction } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
+import { DesktopSidebar } from "@/components/DesktopSidebar";
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -62,7 +63,15 @@ const Index = () => {
   const weekLabel = `${t("dash.weekSpent")}: ${formatAmount(store.weekSpent)}`;
 
   return (
-    <div className="min-h-screen bg-background max-w-md mx-auto relative pb-20" key="app-root">
+    <div className="min-h-screen bg-background flex" key="app-root">
+      <DesktopSidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onQuickAdd={() => setQuickAddOpen(true)}
+        onTransfer={() => setTransferOpen(true)}
+        pendingBillsCount={pendingBillsCount}
+      />
+      <div className="flex-1 max-w-2xl mx-auto relative pb-20 md:pb-6 md:px-6">
       <AnimatePresence mode="wait">
         <motion.div key={activeTab} variants={pageVariants} initial="initial" animate="animate" exit="exit"
           transition={{ duration: 0.2 }}>
@@ -226,9 +235,12 @@ const Index = () => {
         onDelete={store.deleteTransaction} onDuplicate={store.duplicateTransaction}
         accounts={store.getActiveAccounts()} categories={store.getAllActiveCategories()} tags={store.tags} />
 
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab}
-        onQuickAdd={() => setQuickAddOpen(true)} onTransfer={() => setTransferOpen(true)}
-        pendingBillsCount={pendingBillsCount} />
+      <div className="md:hidden">
+        <BottomNav activeTab={activeTab} onTabChange={setActiveTab}
+          onQuickAdd={() => setQuickAddOpen(true)} onTransfer={() => setTransferOpen(true)}
+          pendingBillsCount={pendingBillsCount} />
+      </div>
+      </div>
     </div>
   );
 };
