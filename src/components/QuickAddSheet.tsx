@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowDownLeft, ArrowUpRight, Delete } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Delete } from "lucide-react";
 import { Category, Account, Tag } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { useSettings } from "@/lib/settings-store";
+import { ResponsiveSheet } from "./ResponsiveSheet";
 
 interface QuickAddSheetProps {
   open: boolean;
@@ -56,147 +57,123 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
 
   const keys = ["1","2","3","4","5","6","7","8","9",".","0","del"];
 
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
-          onClick={resetAndClose}
-        >
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 400, damping: 40 }}
-            onClick={e => e.stopPropagation()}
-            className="absolute bottom-0 left-0 right-0 bg-card rounded-t-[24px] max-h-[90vh] overflow-auto"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-3">
-              <button onClick={resetAndClose} className="p-2 -ml-2 text-muted-foreground">
-                <X className="w-5 h-5" />
-              </button>
-              <div className="flex bg-secondary rounded-full p-0.5">
-                <button
-                  onClick={() => setType("expense")}
-                  className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${type === "expense" ? "bg-card text-foreground" : "text-muted-foreground"}`}
-                >
-                  {t("quickadd.expense")}
-                </button>
-                <button
-                  onClick={() => setType("income")}
-                  className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${type === "income" ? "bg-card text-foreground" : "text-muted-foreground"}`}
-                >
-                  {t("quickadd.income")}
-                </button>
-              </div>
-              <div className="w-9" />
-            </div>
+  const typeToggle = (
+    <div className="flex bg-secondary rounded-full p-0.5">
+      <button
+        onClick={() => setType("expense")}
+        className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${type === "expense" ? "bg-card text-foreground" : "text-muted-foreground"}`}
+      >
+        {t("quickadd.expense")}
+      </button>
+      <button
+        onClick={() => setType("income")}
+        className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${type === "income" ? "bg-card text-foreground" : "text-muted-foreground"}`}
+      >
+        {t("quickadd.income")}
+      </button>
+    </div>
+  );
 
-            <AnimatePresence mode="wait">
-              {step === "amount" ? (
-                <motion.div key="amount" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                  <div className="px-5 py-6 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      {type === "expense" ? <ArrowUpRight className="w-5 h-5 text-destructive" /> : <ArrowDownLeft className="w-5 h-5 text-primary" />}
-                      <span className={`font-mono-data text-[40px] tracking-tight ${type === "income" ? "text-primary" : "text-foreground"}`}>
-                        {currencySymbol}{amount}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1 px-4 pb-3">
-                    {keys.map(key => (
-                      <button
-                        key={key}
-                        onClick={() => handleKey(key)}
-                        className="h-14 rounded-[12px] bg-secondary/50 flex items-center justify-center text-foreground text-[20px] font-medium active:bg-secondary transition-colors"
-                        style={{ boxShadow: "0 1px 0 0 rgba(255,255,255,0.05) inset" }}
-                      >
-                        {key === "del" ? <Delete className="w-5 h-5" /> : key}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="px-4 pb-6">
-                    <button
-                      onClick={handleNext}
-                      disabled={parseFloat(amount) <= 0}
-                      className="w-full h-12 rounded-[12px] bg-primary text-primary-foreground font-medium text-[15px] disabled:opacity-40 transition-opacity active:scale-[0.98]"
-                    >
-                      {t("quickadd.next")}
-                    </button>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div key="details" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="px-4 pb-6">
-                  <div className="text-center py-3">
-                    <span className={`font-mono-data text-[28px] ${type === "income" ? "text-primary" : "text-foreground"}`}>
-                      {type === "expense" ? "-" : "+"}{currencySymbol}{amount}
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder={t("quickadd.descPlaceholder")}
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
-                  />
-                  <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.category")}</span>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {filteredCats.map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] transition-colors ${
-                          selectedCategory?.id === cat.id
-                            ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30"
-                            : "bg-secondary/50 text-muted-foreground"
-                        }`}
-                      >
-                        <div className={`w-5 h-5 rounded-[6px] ${cat.color} flex items-center justify-center`}>
-                          <CategoryIcon name={cat.icon || "circle-dot"} className="w-3 h-3 text-white" />
-                        </div>
-                        {cat.name}
-                      </button>
-                    ))}
-                  </div>
-                  <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.account")}</span>
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {accounts.map(acc => (
-                      <button
-                        key={acc.id}
-                        onClick={() => setSelectedAccount(acc.id)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] transition-colors ${
-                          selectedAccount === acc.id
-                            ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30"
-                            : "bg-secondary/50 text-muted-foreground"
-                        }`}
-                      >
-                        <div className={`category-dot ${acc.color}`} />
-                        {acc.name}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-3">
-                    <button onClick={() => setStep("amount")} className="flex-1 h-12 rounded-[12px] bg-secondary text-foreground font-medium text-[15px] active:scale-[0.98] transition-transform">
-                      {t("quickadd.back")}
-                    </button>
-                    <button
-                      onClick={handleSubmit}
-                      disabled={!selectedCategory}
-                      className="flex-[2] h-12 rounded-[12px] bg-primary text-primary-foreground font-medium text-[15px] disabled:opacity-40 active:scale-[0.98] transition-all"
-                    >
-                      {t("quickadd.save")}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+  return (
+    <ResponsiveSheet open={open} onClose={resetAndClose} title={typeToggle}>
+      <AnimatePresence mode="wait">
+        {step === "amount" ? (
+          <motion.div key="amount" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <div className="px-5 py-6 text-center">
+              <div className="flex items-center justify-center gap-1">
+                {type === "expense" ? <ArrowUpRight className="w-5 h-5 text-destructive" /> : <ArrowDownLeft className="w-5 h-5 text-primary" />}
+                <span className={`font-mono-data text-[40px] tracking-tight ${type === "income" ? "text-primary" : "text-foreground"}`}>
+                  {currencySymbol}{amount}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-1 px-4 pb-3">
+              {keys.map(key => (
+                <button
+                  key={key}
+                  onClick={() => handleKey(key)}
+                  className="h-14 rounded-[12px] bg-secondary/50 flex items-center justify-center text-foreground text-[20px] font-medium active:bg-secondary hover:bg-secondary/80 transition-colors"
+                  style={{ boxShadow: "0 1px 0 0 rgba(255,255,255,0.05) inset" }}
+                >
+                  {key === "del" ? <Delete className="w-5 h-5" /> : key}
+                </button>
+              ))}
+            </div>
+            <div className="px-4 pb-6">
+              <button
+                onClick={handleNext}
+                disabled={parseFloat(amount) <= 0}
+                className="w-full h-12 rounded-[12px] bg-primary text-primary-foreground font-medium text-[15px] disabled:opacity-40 transition-opacity active:scale-[0.98]"
+              >
+                {t("quickadd.next")}
+              </button>
+            </div>
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        ) : (
+          <motion.div key="details" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="px-4 pb-6">
+            <div className="text-center py-3">
+              <span className={`font-mono-data text-[28px] ${type === "income" ? "text-primary" : "text-foreground"}`}>
+                {type === "expense" ? "-" : "+"}{currencySymbol}{amount}
+              </span>
+            </div>
+            <input
+              type="text"
+              placeholder={t("quickadd.descPlaceholder")}
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
+            />
+            <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.category")}</span>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {filteredCats.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] transition-colors ${
+                    selectedCategory?.id === cat.id
+                      ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30"
+                      : "bg-secondary/50 text-muted-foreground hover:bg-secondary/70"
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-[6px] ${cat.color} flex items-center justify-center`}>
+                    <CategoryIcon name={cat.icon || "circle-dot"} className="w-3 h-3 text-white" />
+                  </div>
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+            <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.account")}</span>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {accounts.map(acc => (
+                <button
+                  key={acc.id}
+                  onClick={() => setSelectedAccount(acc.id)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] transition-colors ${
+                    selectedAccount === acc.id
+                      ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30"
+                      : "bg-secondary/50 text-muted-foreground hover:bg-secondary/70"
+                  }`}
+                >
+                  <div className={`category-dot ${acc.color}`} />
+                  {acc.name}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setStep("amount")} className="flex-1 h-12 rounded-[12px] bg-secondary text-foreground font-medium text-[15px] active:scale-[0.98] transition-transform">
+                {t("quickadd.back")}
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={!selectedCategory}
+                className="flex-[2] h-12 rounded-[12px] bg-primary text-primary-foreground font-medium text-[15px] disabled:opacity-40 active:scale-[0.98] transition-all"
+              >
+                {t("quickadd.save")}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </ResponsiveSheet>
   );
 }
