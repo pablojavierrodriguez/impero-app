@@ -1,40 +1,46 @@
 import { useState, useEffect } from "react";
-import { User, Mail, Camera, LogOut, LogIn } from "lucide-react";
+import { User, Mail, Camera, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/lib/settings-store";
+import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-interface UserProfileData {
+interface ProfileData {
   name: string;
   email: string;
-  avatar: string;
-}
-
-const DEFAULT_PROFILE: UserProfileData = {
-  name: "",
-  email: "",
-  avatar: "",
-};
-
-function loadProfile(): UserProfileData {
-  try {
-    const stored = localStorage.getItem("user-profile");
-    return stored ? { ...DEFAULT_PROFILE, ...JSON.parse(stored) } : DEFAULT_PROFILE;
-  } catch { return DEFAULT_PROFILE; }
-}
-
-function saveProfile(p: UserProfileData) {
-  localStorage.setItem("user-profile", JSON.stringify(p));
+  avatar_url: string;
 }
 
 export function UserProfilePage() {
   const { t } = useSettings();
-  const [profile, setProfile] = useState(loadProfile);
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    try { return localStorage.getItem("user-logged-in") === "true"; } catch { return false; }
-  });
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<ProfileData>({ name: "", email: user?.email || "", avatar_url: "" });
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => { saveProfile(profile); }, [profile]);
-  useEffect(() => { localStorage.setItem("user-logged-in", String(isLoggedIn)); }, [isLoggedIn]);
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("name, email, avatar_url")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) setProfile({ name: data.name || "", email: data.email || user.email || "", avatar_url: data.avatar_url || "" });
+      });
+  }, [user]);
+
+  const saveProfile = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ name: profile.name, avatar_url: profile.avatar_url })
+      .eq("user_id", user.id);
+    setSaving(false);
+    if (error) toast.error("Error al guardar");
+    else toast.success("Perfil actualizado");
+  };
 
   const initials = profile.name
     ? profile.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
@@ -46,34 +52,28 @@ export function UserProfilePage() {
         {t("nav.profile") || "Mi Perfil"}
       </h1>
 
-      {/* Avatar */}
       <div className="flex flex-col items-center mb-8">
         <div className="relative">
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/20 flex items-center justify-center text-2xl font-bold text-primary">
-            {profile.avatar ? (
-              <img src={profile.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+            {profile.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
             ) : (
               initials
             )}
           </div>
           <button
             onClick={() => {
-              const url = prompt("URL de avatar (o dejá vacío para quitar):", profile.avatar);
-              if (url !== null) setProfile(p => ({ ...p, avatar: url }));
+              const url = prompt("URL de avatar (o dejá vacío para quitar):", profile.avatar_url);
+              if (url !== null) setProfile(p => ({ ...p, avatar_url: url }));
             }}
             className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
           >
             <Camera className="w-4 h-4" />
           </button>
         </div>
-        {isLoggedIn && (
-          <span className="mt-2 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-            Conectado
-          </span>
-        )}
+        <span className="mt-2 text-xs text-muted-foreground">{user?.email}</span>
       </div>
 
-      {/* Form */}
       <div className="space-y-4">
         <div>
           <label className="text-[12px] text-muted-foreground font-medium mb-1 block uppercase tracking-wider">
@@ -100,35 +100,30 @@ export function UserProfilePage() {
             <input
               type="email"
               value={profile.email}
-              onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
-              placeholder="tu@email.com"
-              className="w-full h-12 pl-10 pr-4 rounded-xl bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-primary/50 focus:ring-1 focus:ring-primary/20 outline-none transition-all"
+              disabled
+              className="w-full h-12 pl-10 pr-4 rounded-xl bg-input border border-border text-foreground/50 text-[14px] outline-none"
             />
           </div>
         </div>
       </div>
 
-      {/* Login/Logout */}
-      <div className="mt-8">
-        {isLoggedIn ? (
-          <Button
-            variant="outline"
-            className="w-full gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
-            onClick={() => setIsLoggedIn(false)}
-          >
-            <LogOut className="w-4 h-4" />
-            Cerrar sesión
-          </Button>
-        ) : (
-          <Button className="w-full gap-2" onClick={() => setIsLoggedIn(true)}>
-            <LogIn className="w-4 h-4" />
-            Iniciar sesión
-          </Button>
-        )}
+      <div className="mt-6">
+        <Button onClick={saveProfile} disabled={saving} className="w-full gap-2">
+          {saving ? "Guardando..." : "Guardar cambios"}
+        </Button>
+      </div>
+
+      <div className="mt-4">
+        <Button
+          variant="outline"
+          className="w-full gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
+          onClick={signOut}
+        >
+          <LogOut className="w-4 h-4" />
+          Cerrar sesión
+        </Button>
         <p className="text-[11px] text-muted-foreground text-center mt-2">
-          {isLoggedIn
-            ? "Tus datos están guardados localmente en este dispositivo."
-            : "Iniciá sesión para sincronizar tus datos entre dispositivos."}
+          Tus datos están sincronizados en la nube.
         </p>
       </div>
     </div>

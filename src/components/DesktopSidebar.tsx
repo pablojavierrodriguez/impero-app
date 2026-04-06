@@ -65,7 +65,7 @@ export function DesktopSidebar({ activeTab, onTabChange, onQuickAdd, onTransfer,
               animate={{ opacity: 1 }}
               className="text-lg font-display font-bold text-foreground tracking-tight whitespace-nowrap"
             >
-              💰 FinanceApp
+              💰 FinTrack
             </motion.h1>
           )}
           <button
