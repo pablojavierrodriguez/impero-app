@@ -38,7 +38,7 @@ export function PwaInstallPrompt() {
           <div>
             <h4 className="text-sm font-semibold text-foreground">Instalar m3 en tu teléfono</h4>
             <p className="text-xs text-muted-foreground">
-              Acceso en 1 toque, pantalla completa y disponibilidad sin conexión.
+              Tu dinero. Tu mente. Tu control. Acceso en 1 toque, pantalla completa y offline.
             </p>
           </div>
         </div>

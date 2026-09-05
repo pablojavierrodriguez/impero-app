@@ -69,10 +69,13 @@ export function DesktopSidebar({ activeTab, onTabChange, onQuickAdd, onTransfer,
                 exit={{ opacity: 0 }}
                 className="flex items-center gap-2"
               >
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center font-display font-bold text-primary text-sm">
-                  💰
+                <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                  <img src="/icons/icon.svg" alt="m3 logo" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(16,185,129,0.25)]" />
                 </div>
-                <span className="font-display font-bold text-foreground text-base tracking-tight">m3</span>
+                <div className="flex flex-col">
+                  <span className="font-display font-bold text-foreground text-base tracking-tight leading-none">m3</span>
+                  <span className="text-[10px] text-muted-foreground tracking-tight leading-tight mt-0.5">Money • Mind • Mastery</span>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

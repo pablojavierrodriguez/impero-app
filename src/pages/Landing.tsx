@@ -25,12 +25,12 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center font-display font-bold text-primary-foreground text-base shadow-sm">
-              m3
+            <div className="w-9 h-9 rounded-xl overflow-hidden border border-border/60 bg-background/50 flex items-center justify-center shrink-0 shadow-sm">
+              <img src="/icons/icon.svg" alt="m3 logo" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col">
               <span className="font-display font-bold text-foreground text-sm tracking-tight leading-none">m3</span>
-              <span className="text-[10px] font-semibold text-primary uppercase tracking-wider mt-0.5">Money Master</span>
+              <span className="text-[10px] font-semibold text-primary uppercase tracking-wider mt-0.5">Money • Mind • Mastery</span>
             </div>
           </div>
 
@@ -292,7 +292,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="mt-auto border-t border-border/50 py-8 px-4 text-center text-xs text-muted-foreground">
-        <p>m3 (Money Master) · Software Libre y Soberano para Finanzas Personales.</p>
+        <p>m3 — Money • Mind • Mastery · Tu dinero. Tu mente. Tu control.</p>
       </footer>
     </div>
   );

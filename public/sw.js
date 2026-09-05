@@ -5,7 +5,7 @@
  * - Bypass estricto (Network-Only) para peticiones a Supabase y APIs externas.
  */
 
-const CACHE_NAME = 'm3-shell-v1';
+const CACHE_NAME = 'm3-shell-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

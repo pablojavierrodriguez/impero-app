@@ -1,7 +1,19 @@
-# m3 (Money Master) — Sovereign Personal Finance
+# m3 — Money Mind Master
 
-> **Tus finanzas, tu base de datos, tu propio bot de WhatsApp.**  
-> Aplicación de finanzas personales open-source y self-hosted, diseñada para eliminar toda fricción de registro, calcular cuotas diferidas reales y proyectar tu flujo de fondos a 30, 60 y 90 días.
+<p align="center">
+  <img src="public/icons/icon.svg" width="128" height="128" alt="m3 logo" />
+  <br />
+  <strong>Money • Mind • Mastery</strong>
+  <br />
+  <em>Tu dinero. Tu mente. Tu control.</em>
+</p>
+
+> **Finanzas personales soberanas, transparentes y en tres dimensiones ($m^3$).**  
+> 1. **Identidad:** *Money Mind Master* (el dominio sereno y consciente de tu economía).  
+> 2. **Pilares:** *Money • Mind • Mastery* (recurso, mentalidad y maestría operativa).  
+> 3. **Visión 3D:** Pasado (auditoría), Presente (flujo y cuotas reales) y Futuro (proyecciones de liquidez).  
+>
+> Aplicación open-source y self-hosted diseñada para eliminar la fricción de registro, dominar cuotas diferidas reales y proyectar tu flujo de fondos con claridad absoluta.
 
 ---
 
@@ -108,4 +120,4 @@ La app estará disponible en `http://localhost:5173` y la base en `postgresql://
 
 ## 📄 Licencia
 
-Software libre bajo licencia MIT. Desarrollado con excelencia por y para personas que valoran la soberanía de sus finanzas.
+Software libre bajo licencia MIT. Desarrollado con excelencia por y para personas que valoran la soberanía de sus finanzas. m3: Money • Mind • Mastery.
