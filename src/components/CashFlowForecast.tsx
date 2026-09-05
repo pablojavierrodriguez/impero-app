@@ -1,0 +1,217 @@
+import { useState, useMemo } from "react";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine } from "recharts";
+import { AlertTriangle, TrendingUp, TrendingDown, Calendar, ShieldCheck, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { useSettings } from "@/lib/settings-store";
+import { Account, Transaction, RecurringTransaction, BillReminder } from "@/lib/types";
+import { calculateCashFlowForecast } from "@/lib/cashflow-forecast";
+
+interface CashFlowForecastProps {
+  accounts: Account[];
+  transactions: Transaction[];
+  recurringTxs: RecurringTransaction[];
+  bills: BillReminder[];
+}
+
+export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }: CashFlowForecastProps) {
+  const { formatAmount } = useSettings();
+  const [daysAhead, setDaysAhead] = useState<30 | 60 | 90>(30);
+  const [simulatedAmount, setSimulatedAmount] = useState("");
+  const [showSim, setShowSim] = useState(false);
+
+  const forecast = useMemo(() => {
+    const simAmount = parseFloat(simulatedAmount) || 0;
+    const simDate = new Date();
+    simDate.setDate(simDate.getDate() + 15);
+
+    return calculateCashFlowForecast(accounts, transactions, recurringTxs, bills, {
+      daysAhead,
+      simulatedExpense: simAmount > 0 ? { amount: simAmount, date: simDate, name: "Gasto Simulado" } : undefined,
+    });
+  }, [accounts, transactions, recurringTxs, bills, daysAhead, simulatedAmount]);
+
+  const minBalance = forecast.lowestBalance;
+  const isCritical = forecast.hasDeficitRisk;
+
+  return (
+    <div className="card-surface p-4 rounded-2xl mb-6">
+      {/* Header & Range Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-[16px] font-display font-semibold text-foreground">
+              Proyección de Flujo de Caja
+            </h3>
+            {isCritical ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive text-[11px] font-semibold">
+                <AlertTriangle className="w-3 h-3" /> Riesgo de Déficit
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[11px] font-semibold">
+                <ShieldCheck className="w-3 h-3" /> Liquidez Saludable
+              </span>
+            )}
+          </div>
+          <p className="text-[12px] text-muted-foreground mt-0.5">
+            Estimación día a día combinando saldo líquido, cuotas, recurrentes y facturas.
+          </p>
+        </div>
+
+        {/* Days Filter */}
+        <div className="flex items-center gap-1 bg-secondary/80 p-1 rounded-xl self-start sm:self-auto">
+          {([30, 60, 90] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => setDaysAhead(d)}
+              className={`px-2.5 py-1 text-[12px] font-mono-data rounded-lg transition-colors ${
+                daysAhead === d
+                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {d}D
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Metrics Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <div className="p-2.5 bg-secondary/40 rounded-xl">
+          <span className="text-[11px] text-muted-foreground block">Saldo Inicial Líquido</span>
+          <span className="font-mono-data text-[15px] font-semibold text-foreground">
+            {formatAmount(forecast.startingBalance)}
+          </span>
+        </div>
+
+        <div className="p-2.5 bg-secondary/40 rounded-xl">
+          <span className="text-[11px] text-muted-foreground block">Mínimo Proyectado</span>
+          <span
+            className={`font-mono-data text-[15px] font-semibold ${
+              minBalance < 0 ? "text-destructive" : "text-foreground"
+            }`}
+          >
+            {formatAmount(minBalance)}
+          </span>
+        </div>
+
+        <div className="p-2.5 bg-secondary/40 rounded-xl">
+          <span className="text-[11px] text-muted-foreground block">Ingresos Esperados</span>
+          <span className="font-mono-data text-[15px] font-semibold text-emerald-400">
+            +{formatAmount(forecast.totalIncomeExpected)}
+          </span>
+        </div>
+
+        <div className="p-2.5 bg-secondary/40 rounded-xl">
+          <span className="text-[11px] text-muted-foreground block">Egresos Comprometidos</span>
+          <span className="font-mono-data text-[15px] font-semibold text-foreground">
+            -{formatAmount(forecast.totalExpensesExpected)}
+          </span>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="h-56 w-full pt-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={forecast.points} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="forecastColorSafe" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+              </linearGradient>
+              <linearGradient id="forecastColorDanger" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
+              </linearGradient>
+            </defs>
+
+            <XAxis
+              dataKey="dayLabel"
+              stroke="#71717a"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              interval={Math.floor(forecast.points.length / 6)}
+            />
+            <YAxis
+              stroke="#71717a"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (!active || !payload || !payload.length) return null;
+                const pt = payload[0].payload;
+                return (
+                  <div className="bg-popover/95 border border-border p-2.5 rounded-xl shadow-xl text-xs space-y-1 backdrop-blur-md">
+                    <span className="font-semibold text-foreground block">{pt.date}</span>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">Saldo estimado:</span>
+                      <span
+                        className={`font-mono-data font-bold ${
+                          pt.balance < 0 ? "text-destructive" : "text-emerald-400"
+                        }`}
+                      >
+                        {formatAmount(pt.balance)}
+                      </span>
+                    </div>
+                    {pt.events.length > 0 && (
+                      <div className="pt-1 border-t border-border/50 text-[11px] space-y-0.5">
+                        {pt.events.map((ev: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between gap-2 text-muted-foreground">
+                            <span className="truncate max-w-[130px]">{ev.name}</span>
+                            <span
+                              className={`font-mono-data ${
+                                ev.type === "in" ? "text-emerald-400" : "text-destructive"
+                              }`}
+                            >
+                              {ev.type === "in" ? "+" : "-"}
+                              {formatAmount(ev.amount)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }}
+            />
+            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" opacity={0.6} />
+            <Area
+              type="monotone"
+              dataKey="balance"
+              stroke={isCritical ? "#ef4444" : "#10b981"}
+              strokeWidth={2.5}
+              fillOpacity={1}
+              fill={isCritical ? "url(#forecastColorDanger)" : "url(#forecastColorSafe)"}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Simulator Toggle */}
+      <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between">
+        <button
+          onClick={() => setShowSim((prev) => !prev)}
+          className="text-[12px] text-primary hover:underline font-medium flex items-center gap-1"
+        >
+          {showSim ? "Ocultar Simulador de Compra" : "Simular impacto de un gasto futuro..."}
+        </button>
+
+        {showSim && (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              placeholder="Monto ($)"
+              value={simulatedAmount}
+              onChange={(e) => setSimulatedAmount(e.target.value)}
+              className="w-28 px-2.5 py-1 text-[12px] bg-secondary rounded-lg border border-border font-mono-data text-foreground outline-none"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

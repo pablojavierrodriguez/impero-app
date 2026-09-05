@@ -1,0 +1,105 @@
+import { supabase } from "@/integrations/supabase/client";
+import { Account, AccountType, CreditCardBrand } from "@/lib/types";
+import { Database } from "@/integrations/supabase/types";
+
+type AccountUpdate = Database["public"]["Tables"]["accounts"]["Update"];
+
+export async function fetchAccounts(): Promise<Account[]> {
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    balance: Number(row.balance),
+    type: row.type as AccountType,
+    color: row.color,
+    icon: row.icon || undefined,
+    archived: row.archived,
+    creditLimit: row.credit_limit ? Number(row.credit_limit) : undefined,
+    closingDay: row.closing_day || undefined,
+    paymentDay: row.payment_day || undefined,
+    brand: (row.brand as CreditCardBrand) || undefined,
+    customBrandName: row.custom_brand_name || undefined,
+    currency: (row.currency as any) || "ARS",
+  }));
+}
+
+export async function insertAccount(acc: Omit<Account, "id">): Promise<Account> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No authenticated user");
+
+  const { data, error } = await supabase
+    .from("accounts")
+    .insert({
+      user_id: user.id,
+      name: acc.name,
+      balance: acc.balance,
+      type: acc.type,
+      color: acc.color,
+      icon: acc.icon || null,
+      archived: acc.archived || false,
+      credit_limit: acc.creditLimit || null,
+      closing_day: acc.closingDay || null,
+      payment_day: acc.paymentDay || null,
+      brand: acc.brand || null,
+      custom_brand_name: acc.customBrandName || null,
+      currency: acc.currency || "ARS",
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    name: data.name,
+    balance: Number(data.balance),
+    type: data.type as AccountType,
+    color: data.color,
+    icon: data.icon || undefined,
+    archived: data.archived,
+    creditLimit: data.credit_limit ? Number(data.credit_limit) : undefined,
+    closingDay: data.closing_day || undefined,
+    paymentDay: data.payment_day || undefined,
+    brand: (data.brand as CreditCardBrand) || undefined,
+    customBrandName: data.custom_brand_name || undefined,
+    currency: (data.currency as any) || "ARS",
+  };
+}
+
+export async function updateAccountRemote(id: string, updates: Partial<Account>): Promise<void> {
+  const payload: AccountUpdate = {};
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.balance !== undefined) payload.balance = updates.balance;
+  if (updates.type !== undefined) payload.type = updates.type;
+  if (updates.color !== undefined) payload.color = updates.color;
+  if (updates.icon !== undefined) payload.icon = updates.icon;
+  if (updates.archived !== undefined) payload.archived = updates.archived;
+  if (updates.creditLimit !== undefined) payload.credit_limit = updates.creditLimit;
+  if (updates.closingDay !== undefined) payload.closing_day = updates.closingDay;
+  if (updates.paymentDay !== undefined) payload.payment_day = updates.paymentDay;
+  if (updates.brand !== undefined) payload.brand = updates.brand;
+  if (updates.customBrandName !== undefined) payload.custom_brand_name = updates.customBrandName;
+  if (updates.currency !== undefined) payload.currency = updates.currency;
+
+  const { error } = await supabase
+    .from("accounts")
+    .update(payload)
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+export async function deleteAccountRemote(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("accounts")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw error;
+}
