@@ -49,6 +49,18 @@
     --success: 142 71% 45%;
     --warning: 38 92% 50%;
     --info: 199 89% 48%;
+
+    /* Theme visual metrics (Obsidian default) */
+    --card-radius: 16px;
+    --card-inner-radius: 10px;
+    --card-border-width: 1px;
+    --card-shadow: 0 1px 0 0 rgba(255,255,255,0.05) inset, 0 4px 16px -4px rgba(0,0,0,0.25);
+    --card-bg-gradient: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--card)) 100%);
+    --hero-bg-gradient: linear-gradient(135deg, hsl(240 10% 8%) 0%, hsl(240 10% 5%) 100%);
+    --hero-border: 1px solid hsl(240 5% 18%);
+    --hero-shadow: 0 8px 32px -8px rgba(0,0,0,0.5);
+    --fab-glow-color: rgba(16, 185, 129, 0.35);
+    --pill-radius: 12px;
   }
 
   .light {
@@ -92,6 +104,322 @@
     --success: 142 71% 40%;
     --warning: 38 92% 50%;
     --info: 199 89% 48%;
+
+    --card-radius: 16px;
+    --card-inner-radius: 10px;
+    --card-border-width: 1px;
+    --card-shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 4px 16px -4px rgba(0,0,0,0.08);
+    --card-bg-gradient: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    --hero-bg-gradient: linear-gradient(135deg, #ffffff 0%, #f4f4f5 100%);
+    --hero-border: 1px solid rgba(0,0,0,0.08);
+    --hero-shadow: 0 10px 25px -5px rgba(0,0,0,0.06);
+    --fab-glow-color: rgba(16, 185, 129, 0.25);
+    --pill-radius: 12px;
+  }
+
+  /* ==========================================================================
+     1. OBSIDIAN EMERALD (Pure Minimalist Tech OLED)
+     - Dark: Negro absoluto OLED (#030305), tarjetas grafito técnico (#0d0d11),
+             hairlines sutiles plateados, estética nítida y austera estilo Linear/Stripe.
+     - Light: Blanco platino puro (#FAFAFA), tarjetas blancas con bordes de precisión.
+     ========================================================================== */
+  [data-app-theme="m3"] {
+    --background: 240 15% 2%;         /* #030305 Negro OLED puro */
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 6.5%;            /* #0e0e12 grafito técnico mate */
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 6.5%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 152 76% 42%;          /* #10b981 Esmeralda puro */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 7% 12%;         /* #1c1c22 */
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 6% 12%;
+    --muted-foreground: 240 5% 58%;
+
+    --accent: 240 8% 14%;
+    --accent-foreground: 0 0% 98%;
+
+    --border: 240 6% 14%;            /* Borde ultrafino sobrio */
+    --input: 240 6% 10%;
+    --ring: 152 76% 42%;
+
+    --sidebar-background: 240 15% 2%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 152 76% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 7% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 6% 13%;
+    --sidebar-ring: 152 76% 42%;
+
+    --radius: 14px;
+    --radius-inner: 9px;
+
+    --card-radius: 14px;
+    --card-inner-radius: 9px;
+    --card-border-width: 1px;
+    --card-shadow: 0 1px 0 0 rgba(255,255,255,0.06) inset, 0 4px 16px -4px rgba(0,0,0,0.5);
+    --card-bg-gradient: linear-gradient(180deg, #0f0f14 0%, #0a0a0d 100%);
+    --hero-bg-gradient: linear-gradient(145deg, #13131a 0%, #0a0a0e 100%);
+    --hero-border: 1px solid rgba(255,255,255,0.09);
+    --hero-shadow: 0 8px 30px -8px rgba(0,0,0,0.7);
+    --fab-glow-color: rgba(16, 185, 129, 0.35);
+    --pill-radius: 10px;
+  }
+
+  [data-app-theme="m3"].light,
+  .light[data-app-theme="m3"],
+  [data-app-theme="m3"] .light {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 8%;
+    --primary: 158 84% 28%;          /* Esmeralda Bosque #076d49 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 94%;
+    --secondary-foreground: 240 10% 8%;
+    --muted: 240 5% 93%;
+    --muted-foreground: 240 5% 42%;
+    --border: 240 5% 86%;
+    --input: 240 5% 92%;
+    --ring: 158 84% 28%;
+
+    --radius: 14px;
+    --radius-inner: 9px;
+    --card-radius: 14px;
+    --card-inner-radius: 9px;
+    --card-border-width: 1px;
+    --card-shadow: 0 1px 3px 0 rgba(0,0,0,0.05), 0 4px 16px -4px rgba(0,0,0,0.05);
+    --card-bg-gradient: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    --hero-bg-gradient: linear-gradient(135deg, #ffffff 0%, #f4f4f5 100%);
+    --hero-border: 1px solid rgba(0,0,0,0.09);
+    --hero-shadow: 0 8px 24px -4px rgba(0,0,0,0.05);
+    --fab-glow-color: rgba(7, 109, 73, 0.25);
+    --pill-radius: 10px;
+  }
+
+  /* ==========================================================================
+     2. ROYAL VIOLET / MOBILLS (Curvas Orgánicas & Púrpura Eléctrico Fluido)
+     - Dark: Fondo noche amatista (#0a0516), tarjetas amatista profunda con halo
+             violeta luminiscente (rgba(139, 92, 246, 0.24)), curvas amplias y botones píldora.
+     - Light: Fondo Lavanda Suave (#f6f4fe), tarjetas blanco puro redondeadas,
+             acento Violeta Real (#7C3AED).
+     ========================================================================== */
+  [data-app-theme="teal"],
+  [data-app-theme="mobills"] {
+    --background: 265 55% 5.5%;       /* #0a0516 Amatista noche profundo */
+    --foreground: 260 25% 98%;
+
+    --card: 265 40% 9.5%;            /* #150d29 Superficie amatista rica */
+    --card-foreground: 260 25% 98%;
+
+    --popover: 265 40% 9.5%;
+    --popover-foreground: 260 25% 98%;
+
+    --primary: 262 83% 58%;          /* #8B5CF6 Violeta eléctrico de alta luminosidad */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 265 30% 16%;        /* #261a40 */
+    --secondary-foreground: 260 25% 98%;
+
+    --muted: 265 25% 15%;
+    --muted-foreground: 265 18% 68%;
+
+    --accent: 265 35% 20%;
+    --accent-foreground: 260 25% 98%;
+
+    --border: 265 30% 18%;
+    --input: 265 30% 14%;
+    --ring: 262 83% 58%;
+
+    --sidebar-background: 265 55% 4.5%;
+    --sidebar-foreground: 260 25% 98%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 265 30% 14%;
+    --sidebar-accent-foreground: 260 25% 98%;
+    --sidebar-border: 265 30% 16%;
+    --sidebar-ring: 262 83% 58%;
+
+    --success: 152 76% 45%;
+    --info: 217 91% 60%;
+    --radius: 28px;
+    --radius-inner: 18px;
+
+    /* Organic tactile metrics: Curvas amplias, relieve amatista y aura violeta */
+    --card-radius: 28px;
+    --card-inner-radius: 18px;
+    --card-border-width: 1px;
+    --card-shadow: 0 12px 36px -8px rgba(139, 92, 246, 0.16), 0 4px 18px -2px rgba(0,0,0,0.5);
+    --card-bg-gradient: linear-gradient(165deg, #1d1235 0%, #100a20 100%);
+    --hero-bg-gradient: linear-gradient(145deg, #241445 0%, #0c061a 100%);
+    --hero-border: 1px solid rgba(139, 92, 246, 0.32);
+    --hero-shadow: 0 16px 44px -10px rgba(139, 92, 246, 0.28), 0 6px 20px -2px rgba(0,0,0,0.55);
+    --fab-glow-color: rgba(139, 92, 246, 0.45);
+    --pill-radius: 9999px;
+  }
+
+  [data-app-theme="teal"].light,
+  .light[data-app-theme="teal"],
+  [data-app-theme="teal"] .light,
+  [data-app-theme="mobills"].light,
+  .light[data-app-theme="mobills"],
+  [data-app-theme="mobills"] .light {
+    --background: 260 40% 96%;       /* #f5f3ff Lavanda suave distintivo */
+    --foreground: 265 40% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 265 40% 10%;
+
+    --primary: 262 83% 45%;          /* #7C3AED Violeta real nítido */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 260 25% 90%;        /* Lavanda medio para botones */
+    --secondary-foreground: 265 40% 10%;
+
+    --muted: 260 20% 90%;
+    --muted-foreground: 265 20% 40%;
+
+    --accent: 260 30% 86%;
+    --accent-foreground: 265 40% 10%;
+
+    --border: 260 25% 82%;
+    --input: 260 25% 92%;
+    --ring: 262 83% 45%;
+
+    --sidebar-background: 260 30% 97%;
+    --sidebar-foreground: 265 40% 10%;
+    --sidebar-primary: 262 83% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-border: 260 25% 86%;
+
+    --radius: 28px;
+    --radius-inner: 18px;
+
+    --card-radius: 28px;
+    --card-inner-radius: 18px;
+    --card-border-width: 1px;
+    --card-shadow: 0 10px 30px -8px rgba(124, 58, 237, 0.14), 0 2px 8px rgba(0,0,0,0.04);
+    --card-bg-gradient: linear-gradient(180deg, #ffffff 0%, #f9f7ff 100%);
+    --hero-bg-gradient: linear-gradient(145deg, #ffffff 0%, #ede9fe 100%);
+    --hero-border: 1px solid rgba(124, 58, 237, 0.28);
+    --hero-shadow: 0 14px 34px -8px rgba(124, 58, 237, 0.18);
+    --fab-glow-color: rgba(124, 58, 237, 0.35);
+    --pill-radius: 9999px;
+  }
+
+  /* ==========================================================================
+     3. COBALT FLOW (Azul Marino Suizo Financiero & Geometría Estructurada)
+     - Dark: #070e1e azul marino abismal, tarjetas estructuradas navy (#101c38)
+             con bordes azul acero y líneas geométricas precisas.
+     - Light: Azul cielo financiero muy suave (#f0f4f9), tarjetas blancas nítidas.
+     ========================================================================== */
+  [data-app-theme="cobalt"],
+  [data-app-theme="wallet"] {
+    --background: 224 45% 7%;        /* #080e1e azul marino profundo */
+    --foreground: 210 40% 98%;
+
+    --card: 224 35% 12.5%;          /* #131e36 navy estructurado */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 224 35% 12.5%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;         /* #3B82F6 Azul Cobalto clásico */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 224 25% 19%;       /* #242f47 */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 224 20% 19%;
+    --muted-foreground: 217 15% 65%;
+
+    --accent: 224 25% 23%;
+    --accent-foreground: 210 40% 98%;
+
+    --border: 224 25% 20%;
+    --input: 224 25% 15%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 224 45% 6%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 224 25% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 224 25% 18%;
+    --sidebar-ring: 217 91% 60%;
+
+    --success: 152 76% 45%;
+    --info: 217 91% 60%;
+    --radius: 10px;
+    --radius-inner: 6px;
+
+    --card-radius: 10px;
+    --card-inner-radius: 6px;
+    --card-border-width: 1px;
+    --card-shadow: 0 4px 14px -2px rgba(0,0,0,0.45);
+    --card-bg-gradient: linear-gradient(180deg, #14213d 0%, #0f192e 100%);
+    --hero-bg-gradient: linear-gradient(135deg, #18284a 0%, #0d1629 100%);
+    --hero-border: 1px solid rgba(59, 130, 246, 0.28);
+    --hero-shadow: 0 10px 28px -6px rgba(0,0,0,0.6);
+    --fab-glow-color: rgba(59, 130, 246, 0.35);
+    --pill-radius: 6px;
+  }
+
+  [data-app-theme="wallet"].light,
+  .light[data-app-theme="wallet"],
+  [data-app-theme="wallet"] .light,
+  [data-app-theme="cobalt"].light,
+  .light[data-app-theme="cobalt"],
+  [data-app-theme="cobalt"] .light {
+    --background: 215 30% 97%;      /* Azul cielo muy suave */
+    --foreground: 224 45% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 45% 12%;
+
+    --primary: 217 91% 54%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 25% 91%;
+    --secondary-foreground: 224 45% 12%;
+
+    --muted: 215 20% 91%;
+    --muted-foreground: 215 15% 42%;
+
+    --accent: 215 25% 88%;
+    --accent-foreground: 224 45% 12%;
+
+    --border: 215 25% 84%;
+    --input: 215 25% 92%;
+    --ring: 217 91% 54%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 224 45% 12%;
+    --sidebar-primary: 217 91% 54%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-border: 215 25% 88%;
+
+    --radius: 10px;
+    --radius-inner: 6px;
+
+    --card-radius: 10px;
+    --card-inner-radius: 6px;
+    --card-border-width: 1px;
+    --card-shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 3px 10px -2px rgba(0,0,0,0.05);
+    --card-bg-gradient: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    --hero-bg-gradient: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    --hero-border: 1px solid rgba(0,0,0,0.08);
+    --hero-shadow: 0 8px 20px -4px rgba(0,0,0,0.06);
+    --fab-glow-color: rgba(59, 130, 246, 0.25);
+    --pill-radius: 6px;
   }
 }
 
@@ -100,13 +428,15 @@
     @apply border-border;
   }
 
-  body {
+  html, body {
     @apply bg-background text-foreground antialiased;
     font-family: 'IBM Plex Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-wrap: pretty;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   .font-mono-data {
@@ -122,22 +452,106 @@
 }
 
 @layer components {
+  /* Dynamic morphic card surface that inherits exact theme curves, shadows and gradient */
   .card-surface {
-    @apply bg-card rounded-[20px] p-2;
-    box-shadow: 0 1px 0 0 rgba(255,255,255,0.05) inset, 0 4px 16px -4px rgba(0,0,0,0.15);
-  }
-
-  .light .card-surface {
-    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 4px 16px -4px rgba(0,0,0,0.08);
+    background: var(--card-bg-gradient, hsl(var(--card)));
+    border-radius: var(--card-radius, 16px);
+    box-shadow: var(--card-shadow, 0 4px 16px -4px rgba(0,0,0,0.25));
+    border: 1px solid hsl(var(--border) / 0.7);
+    padding: 0.5rem;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .card-inner {
-    @apply bg-secondary/50 rounded-[12px] p-4;
+    @apply bg-secondary/50 p-4;
+    border-radius: var(--card-inner-radius, 10px);
+    transition: border-radius 0.25s ease;
+  }
+
+  /* Distinctive Hero Balance Card inspired by Mobills & Premium banking apps */
+  .hero-balance-surface {
+    background: var(--hero-bg-gradient, hsl(var(--card)));
+    border-radius: var(--card-radius, 24px);
+    border: var(--hero-border, 1px solid hsl(var(--border)));
+    box-shadow: var(--hero-shadow, 0 12px 36px -8px rgba(0,0,0,0.4));
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Dynamic tactile pill button/chip that transforms into a full organic capsule in Teal/Mobills */
+  .theme-pill-btn {
+    border-radius: var(--pill-radius, 12px);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Morphological theme overrides for tactile identity across ALL components */
+  [data-app-theme="teal"] .theme-pill-btn,
+  [data-app-theme="mobills"] .theme-pill-btn {
+    border-radius: 9999px !important;
+  }
+
+  [data-app-theme="m3"] .theme-pill-btn {
+    border-radius: 12px !important;
+  }
+
+  [data-app-theme="cobalt"] .theme-pill-btn,
+  [data-app-theme="wallet"] .theme-pill-btn {
+    border-radius: 6px !important;
+  }
+
+  /* Global Curvature Harmony: En Cobalt Flow los contenedores, botones y switches adoptan precisión estructurada */
+  [data-app-theme="cobalt"],
+  [data-app-theme="wallet"] {
+    .rounded-2xl {
+      border-radius: 10px !important;
+    }
+    .rounded-xl {
+      border-radius: 6px !important;
+    }
+    .rounded-lg {
+      border-radius: 6px !important;
+    }
+    .rounded-t-\[28px\] {
+      border-top-left-radius: 10px !important;
+      border-top-right-radius: 10px !important;
+    }
+    .rounded-3xl {
+      border-radius: 12px !important;
+    }
+    /* Switches estructurados tipo toggle rectangular suave */
+    button[role="switch"] {
+      border-radius: 6px !important;
+    }
+    button[role="switch"] span {
+      border-radius: 4px !important;
+    }
+  }
+
+  /* En Mobills / Royal Violet los contenedores expanden su curva orgánica */
+  [data-app-theme="teal"],
+  [data-app-theme="mobills"] {
+    .rounded-2xl {
+      border-radius: 26px !important;
+    }
+    .rounded-xl {
+      border-radius: 18px !important;
+    }
+  }
+
+  /* En m3 / Obsidian Emerald los contenedores mantienen minimalismo lineal puro */
+  [data-app-theme="m3"] {
+    .rounded-2xl {
+      border-radius: 16px !important;
+    }
+    .rounded-xl {
+      border-radius: 12px !important;
+    }
   }
 
   .card-glass {
-    @apply bg-card/80 backdrop-blur-xl rounded-[20px] p-2;
+    @apply bg-card/80 backdrop-blur-xl p-2;
+    border-radius: var(--card-radius, 20px);
     box-shadow: 0 1px 0 0 rgba(255,255,255,0.08) inset, 0 8px 32px -8px rgba(0,0,0,0.2);
+    border: 1px solid hsl(var(--border) / 0.5);
   }
 
   .light .card-glass {
@@ -150,7 +564,7 @@
   }
 
   .fab-glow {
-    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 10px 28px var(--fab-glow-color, rgba(16, 185, 129, 0.35));
   }
 
   .transaction-row {

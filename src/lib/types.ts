@@ -113,6 +113,7 @@ export type Account = {
   brand?: CreditCardBrand;
   customBrandName?: string;
   currency?: Currency; // 'ARS' | 'USD' | 'EUR', defaults to 'ARS'
+  creditCardViewMode?: "statement_cycles" | "negative_balance"; // Ciclos de facturación vs saldo continuo de pasivo
 };
 
 export const ACCOUNT_ICONS = [
@@ -214,6 +215,30 @@ export function getPaymentDueDate(closingDay: number, paymentDay: number, refere
   const dueDate = new Date(periodEnd.getFullYear(), periodEnd.getMonth() + 1, paymentDay);
   return dueDate;
 }
+
+// Shopping List types
+export type ShoppingListStatus = "active" | "completed" | "archived";
+
+export type ShoppingListItem = {
+  id: string;
+  listId: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  isChecked: boolean;
+  sortOrder: number;
+};
+
+export type ShoppingList = {
+  id: string;
+  name: string;
+  status: ShoppingListStatus;
+  targetAccountId?: string | null;
+  targetCategoryId?: string | null;
+  items: ShoppingListItem[];
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export type {
   TransactionRule,

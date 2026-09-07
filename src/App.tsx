@@ -29,7 +29,10 @@ function ThemeApplier({ children }: { children: React.ReactNode }) {
       if (prefersDark) root.classList.remove("light");
       else root.classList.add("light");
     }
-  }, [settings.theme]);
+
+    const appTheme = settings.appTheme || "m3";
+    root.setAttribute("data-app-theme", appTheme);
+  }, [settings.theme, settings.appTheme]);
 
   return <>{children}</>;
 }

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { format } from "date-fns";
 import { CategoryIcon } from "./CategoryIcon";
-import { Trash2, Pencil, ArrowLeftRight, CreditCard, ChevronDown, DollarSign } from "lucide-react";
+import { Trash2, Pencil, ArrowLeftRight, CreditCard, ChevronDown, DollarSign, Calculator } from "lucide-react";
 import { useSettings } from "@/lib/settings-store";
 import { usePrivacy } from "@/contexts/PrivacyContext";
 import { EmptyState } from "./EmptyState";
@@ -55,31 +55,31 @@ function SwipeableTransaction({
         dragConstraints={{ left: -120, right: 120 }}
         dragElastic={0.1}
         onDragEnd={handleDragEnd}
-        className="transaction-row bg-background relative z-10 cursor-grab active:cursor-grabbing"
+        className="transaction-row bg-transparent hover:bg-secondary/30 transition-colors relative z-10 cursor-grab active:cursor-grabbing px-2"
         onClick={() => onSelect?.(tx)}
       >
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-[10px] ${tx.category.color} flex items-center justify-center flex-shrink-0`}>
+        <div className="flex items-center gap-3 min-w-0 flex-1 mr-3">
+          <div className={`w-9 h-9 theme-pill-btn ${tx.category.color} flex items-center justify-center flex-shrink-0 shadow-xs`}>
             <CategoryIcon name={tx.category.icon || "circle-dot"} className="w-4 h-4 text-white" />
           </div>
-          <div className="flex flex-col">
-            <span className="text-[14px] text-foreground font-medium">{tx.description}</span>
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <span>{tx.category.name} · {format(tx.date, "h:mm a")}</span>
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-[14px] text-foreground font-medium truncate block leading-snug">{tx.description}</span>
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+              <span className="truncate">{tx.category.name} · {format(tx.date, "h:mm a")}</span>
               {tx.installmentInfo && (
-                <span className="text-primary font-medium">
+                <span className="text-primary font-medium shrink-0">
                   ({tx.installmentInfo.current}/{tx.installmentInfo.total})
                 </span>
               )}
               {tx.receiptUrl && (
-                <span className="text-primary/70" title="Tiene comprobante adjunto">
+                <span className="text-primary/70 shrink-0" title="Tiene comprobante adjunto">
                   📎
                 </span>
               )}
             </span>
           </div>
         </div>
-        <span className={`font-mono-data text-[14px] tracking-tight ${tx.type === "income" ? "text-primary" : "text-foreground"}`}>
+        <span className={`font-mono-data text-[14px] tracking-tight shrink-0 font-medium ${tx.type === "income" ? "text-primary" : "text-foreground"}`}>
           {formatAmount(tx.amount, { sign: tx.type === "income" ? "+" : "-" })}
         </span>
       </motion.div>
@@ -112,31 +112,31 @@ function StatementGroupRow({
   const { account, periodEnd, total, txs } = group;
 
   return (
-    <div className="mb-1">
+    <div className="mb-0">
       <div
-        className="transaction-row bg-background cursor-pointer active:bg-secondary/40 select-none flex items-center justify-between"
+        className="transaction-row bg-transparent hover:bg-secondary/30 transition-colors cursor-pointer active:bg-secondary/40 select-none flex items-center justify-between px-2"
         onClick={onToggleExpand}
       >
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-[10px] ${account.color} flex items-center justify-center flex-shrink-0 text-white`}>
+        <div className="flex items-center gap-3 min-w-0 flex-1 mr-3">
+          <div className={`w-9 h-9 theme-pill-btn ${account.color} flex items-center justify-center flex-shrink-0 text-white shadow-xs`}>
             <CreditCard className="w-4 h-4" />
           </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[14px] text-foreground font-medium">
+          <div className="flex flex-col min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[14px] text-foreground font-medium truncate block leading-snug">
                 Resumen {account.name}
               </span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground font-medium">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground font-medium shrink-0">
                 {txs.length}
               </span>
             </div>
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <span>Cierre {format(periodEnd, "MMM d")} · {txs.length} consumos</span>
-              <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+              <span className="truncate">Cierre {format(periodEnd, "MMM d")} · {txs.length} consumos</span>
+              <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform duration-200 shrink-0 ${isExpanded ? "rotate-180" : ""}`} />
             </span>
           </div>
         </div>
-        <span className="font-mono-data text-[14px] tracking-tight text-foreground">
+        <span className="font-mono-data text-[14px] tracking-tight text-foreground shrink-0 font-medium">
           {formatAmount(total, { sign: "-" })}
         </span>
       </div>
@@ -206,11 +206,17 @@ type ListItem =
     };
 
 export function TransactionList({ transactions, accounts = [], onSelect, onDelete, onPayStatement }: TransactionListProps) {
-  const { formatAmount: baseFormatAmount, t } = useSettings();
+  const { formatAmount: baseFormatAmount, t, settings, updateSettings } = useSettings();
   const { maskAmount } = usePrivacy();
   const formatAmount = (n: number, opts?: { sign?: string }) => maskAmount(baseFormatAmount(n, opts));
   const [viewMode, setViewMode] = useState<"detailed" | "grouped">("detailed");
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+
+  const showSubtotals = settings.showDailySubtotals ?? false;
+
+  const toggleSubtotals = () => {
+    updateSettings({ showDailySubtotals: !showSubtotals });
+  };
 
   const creditCardAccountIds = new Set(
     accounts.filter(a => a.type === "credit").map(a => a.id)
@@ -309,71 +315,103 @@ export function TransactionList({ transactions, accounts = [], onSelect, onDelet
   }
 
   return (
-    <div className="px-4 pb-28">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[13px] text-muted-foreground font-medium font-display">{t("tx.title")}</h2>
-        {showGroupingToggle && (
-          <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/50 text-[11px]">
-            <button
-              onClick={() => setViewMode("detailed")}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
-                viewMode === "detailed"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t("tx.viewDetailed")}
-            </button>
-            <button
-              onClick={() => setViewMode("grouped")}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
-                viewMode === "grouped"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t("tx.viewGrouped")}
-            </button>
-          </div>
-        )}
+    <div className="px-4 pb-28 w-full max-w-full">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h2 className="text-[13px] text-muted-foreground font-medium font-display shrink-0">{t("tx.title")}</h2>
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {/* Botón opcional de subtotales diarios */}
+          <button
+            onClick={toggleSubtotals}
+            className={`p-1.5 rounded-lg border text-[11px] font-medium transition-colors ${
+              showSubtotals
+                ? "bg-primary/15 text-primary border-primary/40 shadow-xs"
+                : "bg-secondary/60 text-muted-foreground border-border/50 hover:text-foreground"
+            }`}
+            title={showSubtotals ? "Ocultar subtotales diarios" : "Mostrar subtotales por día"}
+          >
+            <Calculator className="w-3.5 h-3.5" />
+          </button>
+
+          {showGroupingToggle && (
+            <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/50 text-[11px]">
+              <button
+                onClick={() => setViewMode("detailed")}
+                className={`px-2 py-1 rounded-md font-medium transition-colors ${
+                  viewMode === "detailed"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t("tx.viewDetailed")}
+              </button>
+              <button
+                onClick={() => setViewMode("grouped")}
+                className={`px-2 py-1 rounded-md font-medium transition-colors ${
+                  viewMode === "grouped"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t("tx.viewGrouped")}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {viewMode === "detailed" ? (
         // Modo desglosado estándar
-        Object.entries(detailedGroupedByDate).map(([date, txs]) => (
-          <div key={date} className="mb-4">
-            <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{date}</span>
-            <div className="mt-1">
-              {txs.map((tx, i) => (
-                <motion.div
-                  key={tx.id}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03, type: "spring", stiffness: 400, damping: 40 }}
-                >
-                  <SwipeableTransaction
-                    tx={tx}
-                    onSelect={onSelect}
-                    onDelete={onDelete}
-                    formatAmount={formatAmount}
-                  />
-                </motion.div>
-              ))}
+        Object.entries(detailedGroupedByDate).map(([date, txs]) => {
+          const dayExpenses = txs.filter(t => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
+          const dayIncome = txs.filter(t => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
+
+          return (
+            <div key={date} className="mb-4">
+              <div className="flex items-center justify-between py-1 px-1 mb-1.5">
+                <span className="text-[11px] text-muted-foreground/80 font-semibold uppercase tracking-wider font-display">{date}</span>
+                {showSubtotals && (
+                  <div className="flex items-center gap-2 text-[11px] font-mono-data font-semibold">
+                    {dayIncome > 0 && (
+                      <span className="text-primary">+{formatAmount(dayIncome)}</span>
+                    )}
+                    {dayExpenses > 0 && (
+                      <span className="text-muted-foreground">-{formatAmount(dayExpenses)}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="card-surface p-1.5 divide-y divide-border/40">
+                {txs.map((tx, i) => (
+                  <motion.div
+                    key={tx.id}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.02, type: "spring", stiffness: 400, damping: 40 }}
+                  >
+                    <SwipeableTransaction
+                      tx={tx}
+                      onSelect={onSelect}
+                      onDelete={onDelete}
+                      formatAmount={formatAmount}
+                    />
+                  </motion.div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))
+          );
+        })
       ) : (
         // Modo agrupado por resumen con apariencia idéntica a cualquier otro gasto
         Object.entries(timelineGroupedByDate).map(([date, items]) => (
           <div key={date} className="mb-4">
-            <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{date}</span>
-            <div className="mt-1">
+            <span className="text-[11px] text-muted-foreground/80 font-semibold uppercase tracking-wider font-display px-1 block mb-1.5">{date}</span>
+            <div className="card-surface p-1.5 divide-y divide-border/40">
               {items.map((item, i) => (
                 <motion.div
                   key={item.kind === "statement" ? item.id : item.tx.id}
-                  initial={{ opacity: 0, x: -8 }}
+                  initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03, type: "spring", stiffness: 400, damping: 40 }}
+                  transition={{ delay: i * 0.02, type: "spring", stiffness: 400, damping: 40 }}
                 >
                   {item.kind === "statement" ? (
                     <StatementGroupRow

@@ -24,19 +24,19 @@ export function ResponsiveSheet({ open, onClose, children, title, titleRight }: 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end md:items-center md:justify-center"
+          className="fixed inset-0 z-50 bg-background/60 backdrop-blur-md flex items-end md:items-center md:justify-center p-0 md:p-4"
           onClick={onClose}
         >
           <motion.div
-            initial={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
+            initial={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.96 }}
             animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
-            exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 40 }}
+            exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 420, damping: 38 }}
             onClick={e => e.stopPropagation()}
             className={
               isMobile
-                ? "w-full bg-card rounded-t-[24px] max-h-[90vh] overflow-auto"
-                : "w-full max-w-lg bg-card rounded-2xl shadow-2xl border border-border/50 max-h-[85vh] overflow-auto"
+                ? "w-full bg-card/95 backdrop-blur-2xl rounded-t-[var(--card-radius)] border-t border-border/50 max-h-[90vh] overflow-y-auto shadow-2xl"
+                : "w-full max-w-lg bg-card/95 backdrop-blur-2xl rounded-[var(--card-radius)] shadow-2xl border border-border/60 max-h-[85vh] overflow-y-auto"
             }
           >
             {/* Header */}

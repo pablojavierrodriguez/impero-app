@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, ArrowLeftRight, Wallet, PiggyBank, Target,
   Repeat, Bell, BarChart3, CreditCard, Tags, Hash, Settings, Plus,
-  Repeat as RepeatIcon, PanelLeftClose, PanelLeft, User, LogIn, Upload, Zap
+  Repeat as RepeatIcon, PanelLeftClose, PanelLeft, User, LogIn, Upload, Zap, ShoppingCart
 } from "lucide-react";
 import { useSettings } from "@/lib/settings-store";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ export function DesktopSidebar({ activeTab, onTabChange, onQuickAdd, onTransfer,
     { id: "categories", icon: Tags, label: t("nav.categories") },
     { id: "tags", icon: Hash, label: t("nav.tags") },
     { id: "rules", icon: Zap, label: "Reglas" },
+    { id: "shopping", icon: ShoppingCart, label: "Listas de Compras" },
   ];
 
   const bottomItems = [
@@ -57,7 +58,7 @@ export function DesktopSidebar({ activeTab, onTabChange, onQuickAdd, onTransfer,
       <motion.aside
         animate={{ width: collapsed ? 68 : 240 }}
         transition={{ type: "spring", stiffness: 400, damping: 40 }}
-        className="hidden md:flex flex-col h-screen sticky top-0 bg-card border-r border-border/50 overflow-hidden"
+        className="hidden md:flex flex-col h-screen sticky top-0 shrink-0 z-30 bg-card border-r border-border/50 overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 h-14 border-b border-border/50">
@@ -126,26 +127,27 @@ export function DesktopSidebar({ activeTab, onTabChange, onQuickAdd, onTransfer,
                 <Plus className="w-4 h-4" />
                 {t("nav.newExpense")}
               </Button>
-              <Button size="sm" variant="secondary" className="gap-1.5" onClick={onTransfer}>
-                <RepeatIcon className="w-4 h-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="sm" variant="secondary" className="px-2.5" onClick={onTransfer}>
+                    <RepeatIcon className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{t("nav.transfer")}</TooltipContent>
+              </Tooltip>
+              {onImportCsv && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" variant="outline" className="px-2.5 border-border/70 hover:bg-secondary/60 text-muted-foreground hover:text-foreground" onClick={onImportCsv}>
+                      <Upload className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{t("tx.importCsv") || "Importar CSV"}</TooltipContent>
+                </Tooltip>
+              )}
             </>
           )}
         </div>
-
-        {onImportCsv && !collapsed && (
-          <div className="px-3 pb-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full gap-2 text-xs border-dashed border-border text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-              onClick={onImportCsv}
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Importar Extracto (CSV)
-            </Button>
-          </div>
-        )}
 
         {/* Main nav */}
         <div className={`flex-1 overflow-y-auto ${collapsed ? "px-2" : "px-3"} space-y-0.5`}>
@@ -214,7 +216,7 @@ function SidebarItem({ icon: Icon, label, active, badge, collapsed, onClick }: {
       {active && (
         <motion.div
           layoutId="sidebar-indicator"
-          className={`absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-primary`}
+          className="absolute left-1 top-2 bottom-2 w-1 rounded-full bg-primary"
           transition={{ type: "spring", stiffness: 400, damping: 40 }}
         />
       )}

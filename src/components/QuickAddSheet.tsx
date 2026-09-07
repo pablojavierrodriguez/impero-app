@@ -21,12 +21,13 @@ interface QuickAddSheetProps {
   accounts: Account[];
   categories: Category[];
   tags?: Tag[];
+  initialType?: "expense" | "income";
 }
 
-export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, tags = [] }: QuickAddSheetProps) {
+export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, tags = [], initialType = "expense" }: QuickAddSheetProps) {
   const { currencySymbol, t } = useSettings();
   const [amount, setAmount] = useState("0");
-  const [type, setType] = useState<"income" | "expense">("expense");
+  const [type, setType] = useState<"income" | "expense">(initialType);
   const [step, setStep] = useState<"amount" | "details">("amount");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedAccount, setSelectedAccount] = useState(accounts[0]?.id ?? "");
@@ -34,6 +35,11 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
   const [installments, setInstallments] = useState(1);
   const [receiptUrl, setReceiptUrl] = useState<string | undefined>(undefined);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
+
+  // Sincronizar con el tipo inicial al abrirse desde el Speed Dial
+  useState(() => {
+    if (initialType) setType(initialType);
+  });
 
   const selectedAccObj = accounts.find(a => a.id === selectedAccount);
   const isCreditCard = selectedAccObj?.type === "credit";
@@ -51,22 +57,51 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
     } catch {}
   };
 
+  const evaluateExpression = (expr: string): string => {
+    try {
+      // Sanitizar expresión: permitir solo números, +, - y punto decimal
+      const sanitized = expr.replace(/[^0-9+\-.]/g, "");
+      if (!sanitized || /[+\-.]$/.test(sanitized)) return expr;
+      // Evaluar suma o resta simple sin librerías externas
+      const tokens = sanitized.match(/([+-]?[0-9.]+)/g);
+      if (!tokens) return expr;
+      const total = tokens.reduce((acc, curr) => acc + parseFloat(curr), 0);
+      return isNaN(total) ? expr : (Math.round(total * 100) / 100).toString();
+    } catch {
+      return expr;
+    }
+  };
+
   const handleKey = (key: string) => {
     triggerHaptic(8);
     if (key === "del") {
       setAmount(prev => prev.length > 1 ? prev.slice(0, -1) : "0");
+    } else if (key === "=") {
+      setAmount(prev => evaluateExpression(prev));
+    } else if (key === "+" || key === "-") {
+      setAmount(prev => {
+        if (prev.endsWith("+") || prev.endsWith("-")) {
+          return prev.slice(0, -1) + key;
+        }
+        return prev + key;
+      });
     } else if (key === ".") {
-      if (!amount.includes(".")) setAmount(prev => prev + ".");
+      setAmount(prev => {
+        const parts = prev.split(/[+\-]/);
+        const lastPart = parts[parts.length - 1];
+        if (!lastPart.includes(".")) return prev + ".";
+        return prev;
+      });
     } else {
       setAmount(prev => prev === "0" ? key : prev + key);
     }
   };
 
   const handleQuickCategorySubmit = (cat: Category) => {
-    const val = parseFloat(amount);
-    if (isNaN(val) || val <= 0) return;
+    const finalAmount = parseFloat(evaluateExpression(amount));
+    if (isNaN(finalAmount) || finalAmount <= 0) return;
     triggerHaptic(15);
-    onSubmit(val, cat.name, cat, type, selectedAccount, {});
+    onSubmit(finalAmount, cat.name, cat, type, selectedAccount, {});
     resetAndClose();
   };
 
@@ -115,7 +150,12 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
     onClose();
   };
 
-  const keys = ["1","2","3","4","5","6","7","8","9",".","0","del"];
+  const keys = [
+    "7", "8", "9", "+",
+    "4", "5", "6", "-",
+    "1", "2", "3", "=",
+    ".", "0", "del"
+  ];
 
   const typeToggle = (
     <div className="flex bg-secondary rounded-full p-0.5">
@@ -138,14 +178,26 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
     <ResponsiveSheet open={open} onClose={resetAndClose} title={typeToggle}>
       <AnimatePresence mode="wait">
         {step === "amount" ? (
-          <motion.div key="amount" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-            <div className="px-5 py-5 text-center">
-              <div className="flex items-center justify-center gap-1">
-                {type === "expense" ? <ArrowUpRight className="w-5 h-5 text-destructive" /> : <ArrowDownLeft className="w-5 h-5 text-primary" />}
-                <span className={`font-mono-data text-[40px] tracking-tight ${type === "income" ? "text-primary" : "text-foreground"}`}>
-                  {currencySymbol}{amount}
+          <motion.div key="amount" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            {/* Amount display */}
+            <div className={`text-center pt-2 pb-3 mb-2 rounded-2xl mx-4 border transition-colors ${
+              type === "expense"
+                ? "bg-destructive/10 border-destructive/20"
+                : "bg-primary/10 border-primary/20"
+            }`}>
+              <div className="flex items-center justify-center gap-1.5">
+                {type === "expense" ? (
+                  <ArrowUpRight className="w-6 h-6 text-destructive" />
+                ) : (
+                  <ArrowDownLeft className="w-6 h-6 text-primary" />
+                )}
+                <span className={`font-mono-data text-[40px] font-semibold tracking-tight ${type === "expense" ? "text-destructive" : "text-primary"}`}>
+                  {type === "expense" ? "-" : "+"}{currencySymbol}{amount}
                 </span>
               </div>
+              <span className="text-[11px] font-medium text-muted-foreground block mt-0.5 uppercase tracking-wider">
+                {type === "expense" ? "Salida de dinero" : "Entrada de dinero"}
+              </span>
             </div>
 
             {/* Smart Chips: Guardado en 1 toque para categorías frecuentes */}
@@ -166,22 +218,30 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-1 px-4 pb-3">
-              {keys.map(key => (
-                <button
-                  key={key}
-                  onClick={() => handleKey(key)}
-                  className="h-14 rounded-[12px] bg-secondary/50 flex items-center justify-center text-foreground text-[20px] font-medium active:bg-secondary hover:bg-secondary/80 transition-colors"
-                  style={{ boxShadow: "0 1px 0 0 rgba(255,255,255,0.05) inset" }}
-                >
-                  {key === "del" ? <Delete className="w-5 h-5" /> : key}
-                </button>
-              ))}
+            {/* Teclado numérico tipo calculadora con operadores */}
+            <div className="grid grid-cols-4 gap-1 px-4 pb-3">
+              {keys.map(key => {
+                const isOp = key === "+" || key === "-" || key === "=";
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleKey(key)}
+                    className={`h-13 rounded-[12px] flex items-center justify-center font-medium active:scale-95 transition-all ${
+                      isOp
+                        ? "bg-primary/20 text-primary text-[20px] font-semibold hover:bg-primary/30"
+                        : "bg-secondary/50 text-foreground text-[19px] hover:bg-secondary/80"
+                    } ${key === "del" ? "col-span-2" : ""}`}
+                    style={{ boxShadow: "0 1px 0 0 rgba(255,255,255,0.05) inset" }}
+                  >
+                    {key === "del" ? <Delete className="w-5 h-5" /> : key}
+                  </button>
+                );
+              })}
             </div>
             <div className="px-4 pb-6">
               <button
                 onClick={handleNext}
-                disabled={parseFloat(amount) <= 0}
+                disabled={parseFloat(amount) <= 0 && !/[0-9]/.test(amount)}
                 className="w-full h-12 rounded-[12px] bg-primary text-primary-foreground font-medium text-[15px] disabled:opacity-40 transition-opacity active:scale-[0.98]"
               >
                 {t("quickadd.next")}
@@ -203,23 +263,29 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
               className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
             />
             <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.category")}</span>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {filteredCats.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] transition-colors ${
-                    selectedCategory?.id === cat.id
-                      ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30"
-                      : "bg-secondary/50 text-muted-foreground hover:bg-secondary/70"
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-[6px] ${cat.color} flex items-center justify-center`}>
-                    <CategoryIcon name={cat.icon || "circle-dot"} className="w-3 h-3 text-white" />
-                  </div>
-                  {cat.name}
-                </button>
-              ))}
+            <div className="grid grid-cols-4 gap-2.5 mb-5 max-h-48 overflow-y-auto pr-1">
+              {filteredCats.map(cat => {
+                const isSelected = selectedCategory?.id === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`flex flex-col items-center justify-center p-2 rounded-2xl transition-all ${
+                      isSelected
+                        ? "bg-secondary ring-2 ring-primary scale-102 shadow-sm"
+                        : "bg-secondary/30 hover:bg-secondary/60 active:scale-95"
+                    }`}
+                  >
+                    <div className={`w-11 h-11 rounded-full ${cat.color} flex items-center justify-center text-white mb-1.5 shadow-sm`}>
+                      <CategoryIcon name={cat.icon || "circle-dot"} className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-[11px] font-medium text-foreground text-center truncate w-full px-1">
+                      {cat.name}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
             <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.account")}</span>
             <div className="flex flex-wrap gap-2 mb-4">

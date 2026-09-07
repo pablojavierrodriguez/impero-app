@@ -8,12 +8,16 @@ interface AnimatedNumberProps {
 }
 
 export function AnimatedNumber({ value, formatter, className = "" }: AnimatedNumberProps) {
-  const spring = useSpring(0, { stiffness: 100, damping: 30 });
-  const [display, setDisplay] = useState(formatter(value));
+  const spring = useSpring(value, { stiffness: 120, damping: 25 });
+  const [display, setDisplay] = useState(() => formatter(value));
 
   useEffect(() => {
-    spring.set(value);
-    const unsub = spring.on("change", v => {
+    // Si el valor cambia drásticamente (ej: cambio de divisa de 100000 a 83.33),
+    // jump directo para evitar un deslizamiento que confunda al usuario
+    spring.jump(value);
+    setDisplay(formatter(value));
+
+    const unsub = spring.on("change", (v) => {
       setDisplay(formatter(v));
     });
     return unsub;

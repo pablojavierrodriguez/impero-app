@@ -5,13 +5,23 @@ import { BarChart, Bar, AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, Ce
 
 interface SpendingBreakdownProps {
   transactions: Transaction[];
+  referenceDate?: Date;
 }
 
-export function SpendingBreakdown({ transactions }: SpendingBreakdownProps) {
+export function SpendingBreakdown({ transactions, referenceDate = new Date() }: SpendingBreakdownProps) {
   const { formatAmount, t, settings } = useSettings();
   const chartType = settings.chartType;
 
-  const expenses = transactions.filter(t => t.type === "expense" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === new Date().getMonth());
+  const targetMonth = referenceDate.getMonth();
+  const targetYear = referenceDate.getFullYear();
+
+  const expenses = transactions.filter(
+    t => t.type === "expense" &&
+      !t.isCardPayment &&
+      !t.isTransfer &&
+      t.date.getMonth() === targetMonth &&
+      t.date.getFullYear() === targetYear
+  );
   const total = expenses.reduce((s, t) => s + t.amount, 0);
 
   const byCategory = expenses.reduce<Record<string, { name: string; amount: number; color: string }>>((acc, t) => {

@@ -23,6 +23,7 @@ import { BillReminders, BillsSummaryWidget } from "@/components/BillReminders";
 import { ReportsPage } from "@/components/ReportsPage";
 import { TagManager } from "@/components/TagManager";
 import { RulesManager } from "@/components/RulesManager";
+import { ShoppingListManager } from "@/components/ShoppingListManager";
 import { HealthScore } from "@/components/HealthScore";
 import { UserProfilePage } from "@/components/UserProfile";
 import { Transaction, Account } from "@/lib/types";
@@ -30,6 +31,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { NetWorthChart } from "@/components/NetWorthChart";
 import { PayStatementModal } from "@/components/PayStatementModal";
+import { MonthSelector } from "@/components/MonthSelector";
+import { TrendingDown, TrendingUp, Calendar, Sparkles } from "lucide-react";
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -42,9 +45,17 @@ const Index = () => {
   const { settings, isSectionEnabled, t, formatAmount } = useSettings();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddType, setQuickAddType] = useState<"expense" | "income">("expense");
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [txFilters, setTxFilters] = useState<TransactionFilterValues>(EMPTY_FILTERS);
+  const [selectedDetailAccountId, setSelectedDetailAccountId] = useState<string | null>(null);
+
+  const handleOpenQuickAdd = (type: "expense" | "income" = "expense") => {
+    setQuickAddType(type);
+    setQuickAddOpen(true);
+  };
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [payingCard, setPayingCard] = useState<Account | null>(null);
   const [payingAmount, setPayingAmount] = useState(0);
@@ -54,6 +65,15 @@ const Index = () => {
     if (card) {
       setPayingCard(card);
       setPayingAmount(amount);
+    }
+  };
+
+  const handleSelectAccountFromHome = (account: Account) => {
+    setSelectedDetailAccountId(account.id);
+    if (account.type === "credit") {
+      setActiveTab("cards");
+    } else {
+      setActiveTab("accounts");
     }
   };
 
@@ -69,6 +89,28 @@ const Index = () => {
   }, []);
 
   const pendingBillsCount = store.getPendingBills().filter(b => b.status !== "paid").length;
+
+  // Métricas reactivas al mes seleccionado
+  const selMonth = selectedDate.getMonth();
+  const selYear = selectedDate.getFullYear();
+
+  const selectedMonthExpenses = store.transactions
+    .filter(t => t.type === "expense" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === selMonth && t.date.getFullYear() === selYear)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const selectedMonthIncome = store.transactions
+    .filter(t => t.type === "income" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === selMonth && t.date.getFullYear() === selYear)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Comparativa contra mes anterior
+  const prevDate = new Date(selYear, selMonth - 1, 1);
+  const prevMonthExpenses = store.transactions
+    .filter(t => t.type === "expense" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === prevDate.getMonth() && t.date.getFullYear() === prevDate.getFullYear())
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const expenseDiffPct = prevMonthExpenses > 0
+    ? Math.round(((selectedMonthExpenses - prevMonthExpenses) / prevMonthExpenses) * 100)
+    : 0;
 
   // Health score computations
   const budgets = store.getCurrentMonthBudgets();
@@ -86,7 +128,7 @@ const Index = () => {
   const weekLabel = `${t("dash.weekSpent")}: ${formatAmount(store.weekSpent)}`;
 
   return (
-    <div className="min-h-screen bg-background flex" key="app-root">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-background flex w-full overflow-x-hidden" key="app-root">
       <DesktopSidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -95,23 +137,31 @@ const Index = () => {
         onImportCsv={() => setCsvImportOpen(true)}
         pendingBillsCount={pendingBillsCount}
       />
-      <div className="flex-1 max-w-2xl mx-auto relative pb-20 md:pb-6 md:px-6 md:max-w-5xl lg:max-w-6xl">
+      <div className="flex-1 w-full min-w-0 max-w-2xl mx-auto relative pb-20 md:pb-6 md:px-6 md:max-w-5xl lg:max-w-6xl md:h-screen md:overflow-y-auto overflow-x-hidden">
       <AnimatePresence mode="wait">
         <motion.div key={activeTab} variants={pageVariants} initial="initial" animate="animate" exit="exit"
-          transition={{ duration: 0.2 }}>
+          transition={{ duration: 0.2 }} className="w-full min-w-0">
 
           {activeTab === "dashboard" && (
             <div className="md:grid md:grid-cols-2 md:gap-6 md:pt-4">
               {/* Left column */}
               <div>
+                {/* Selector de Mes Global (< Mes Año >) */}
+                <div className="px-4 pt-2 pb-2">
+                  <MonthSelector
+                    currentDate={selectedDate}
+                    onChangeDate={setSelectedDate}
+                  />
+                </div>
+
                 {isSectionEnabled("velocity") && (
                   <VelocityBar spent={store.todaySpent} budget={settings.dailyBudget} />
                 )}
                 {isSectionEnabled("balance") && (
                   <BalanceHeader
                     totalBalance={store.totalBalance}
-                    monthlyIncome={store.monthlyIncome}
-                    monthlyExpenses={store.monthlyExpenses}
+                    monthlyIncome={selectedMonthIncome}
+                    monthlyExpenses={selectedMonthExpenses}
                     accounts={store.accounts}
                   />
                 )}
@@ -125,17 +175,71 @@ const Index = () => {
 
                 {isSectionEnabled("accounts") && (
                   <div className="my-4">
-                    <AccountCards accounts={store.getActiveAccounts()} />
+                    <AccountCards
+                      accounts={store.getActiveAccounts()}
+                      onSelectAccount={handleSelectAccountFromHome}
+                    />
                   </div>
                 )}
                 <NetWorthChart accounts={store.getActiveAccounts()} transactions={store.transactions} />
                 {isSectionEnabled("breakdown") && (
-                  <SpendingBreakdown transactions={store.transactions} />
+                  <SpendingBreakdown
+                    transactions={store.transactions}
+                    referenceDate={selectedDate}
+                  />
                 )}
               </div>
 
-              {/* Right column */}
-              <div>
+              {/* Right column: Panel Lateral de Contexto & Histórico */}
+              <div className="space-y-4 pt-2 md:pt-0">
+                {/* Tarjeta Comparativa contra Mes Anterior (Monthly Insights) */}
+                <div className="px-4">
+                  <div className="card-surface p-3.5 rounded-2xl border border-border/60 bg-gradient-to-br from-secondary/40 via-card to-secondary/20 shadow-xs">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-semibold text-foreground font-display">
+                          Comparativa Mensual
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground font-mono-data">
+                        vs. mes anterior
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="p-2.5 rounded-xl bg-secondary/40 border border-border/30">
+                        <span className="text-[11px] text-muted-foreground block mb-0.5">Gasto del período</span>
+                        <span className="font-mono-data text-sm font-semibold text-foreground">
+                          {formatAmount(selectedMonthExpenses)}
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-secondary/40 border border-border/30">
+                        <span className="text-[11px] text-muted-foreground block mb-0.5">Variación</span>
+                        <div className="flex items-center gap-1">
+                          {expenseDiffPct <= 0 ? (
+                            <>
+                              <TrendingDown className="w-3.5 h-3.5 text-primary" />
+                              <span className="font-mono-data text-sm font-semibold text-primary">
+                                {expenseDiffPct}%
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="w-3.5 h-3.5 text-destructive" />
+                              <span className="font-mono-data text-sm font-semibold text-destructive">
+                                +{expenseDiffPct}%
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {isSectionEnabled("budgets") && (
                   <BudgetSummaryWidget budgets={store.budgets} categories={store.categories}
                     getBudgetSpent={store.getBudgetSpent} />
@@ -179,10 +283,29 @@ const Index = () => {
                   {t("tx.importCsv")}
                 </button>
               </div>
+
+              {/* Selector de Mes Global en Historial */}
+              <div className="px-4 mb-3">
+                <MonthSelector
+                  currentDate={selectedDate}
+                  onChangeDate={setSelectedDate}
+                />
+              </div>
+
               <TransactionFilters filters={txFilters} onChange={setTxFilters}
                 categories={store.getAllActiveCategories()} accounts={store.getActiveAccounts()} />
+
+              {/* Transacciones del mes seleccionado, combinadas con los filtros activos */}
               <TransactionList
-                transactions={applyFilters(store.transactions, txFilters)}
+                transactions={applyFilters(
+                  store.transactions.filter(t => {
+                    // Si el usuario fijó fechas manuales en los filtros avanzados, respetarlas
+                    if (txFilters.dateFrom || txFilters.dateTo) return true;
+                    return t.date.getMonth() === selectedDate.getMonth() &&
+                           t.date.getFullYear() === selectedDate.getFullYear();
+                  }),
+                  txFilters
+                )}
                 accounts={store.accounts}
                 onSelect={setEditingTx}
                 onDelete={store.deleteTransaction}
@@ -192,11 +315,22 @@ const Index = () => {
           )}
 
           {activeTab === "cards" && (
-            <CreditCardManager accounts={store.accounts} getCreditCards={store.getCreditCards}
-              getArchivedAccounts={store.getArchivedAccounts} getTransactionsByAccount={store.getTransactionsByAccount}
-              getStatementTransactions={store.getStatementTransactions} getNonCardAccounts={store.getNonCardAccounts}
-              onAdd={store.addAccount} onUpdate={store.updateAccount} onArchive={store.archiveAccount}
-              onUnarchive={store.unarchiveAccount} onPayCard={store.payCard} onSelectTransaction={setEditingTx} />
+            <CreditCardManager
+              accounts={store.accounts}
+              getCreditCards={store.getCreditCards}
+              getArchivedAccounts={store.getArchivedAccounts}
+              getTransactionsByAccount={store.getTransactionsByAccount}
+              getStatementTransactions={store.getStatementTransactions}
+              getNonCardAccounts={store.getNonCardAccounts}
+              onAdd={store.addAccount}
+              onUpdate={store.updateAccount}
+              onArchive={store.archiveAccount}
+              onUnarchive={store.unarchiveAccount}
+              onPayCard={store.payCard}
+              onSelectTransaction={setEditingTx}
+              initialSelectedCardId={selectedDetailAccountId}
+              onClearInitialCard={() => setSelectedDetailAccountId(null)}
+            />
           )}
 
           {activeTab === "categories" && (
@@ -208,11 +342,20 @@ const Index = () => {
           )}
 
           {activeTab === "accounts" && (
-            <AccountManager accounts={store.accounts} getActiveAccounts={store.getActiveAccounts}
-              getArchivedAccounts={store.getArchivedAccounts} getTransactionsByAccount={store.getTransactionsByAccount}
-              onAdd={store.addAccount} onUpdate={store.updateAccount} onArchive={store.archiveAccount}
-              onUnarchive={store.unarchiveAccount} onAdjustBalance={store.adjustAccountBalance}
-              onSelectTransaction={setEditingTx} />
+            <AccountManager
+              accounts={store.accounts}
+              getActiveAccounts={store.getActiveAccounts}
+              getArchivedAccounts={store.getArchivedAccounts}
+              getTransactionsByAccount={store.getTransactionsByAccount}
+              onAdd={store.addAccount}
+              onUpdate={store.updateAccount}
+              onArchive={store.archiveAccount}
+              onUnarchive={store.unarchiveAccount}
+              onAdjustBalance={store.adjustAccountBalance}
+              onSelectTransaction={setEditingTx}
+              initialSelectedAccountId={selectedDetailAccountId}
+              onClearInitialAccount={() => setSelectedDetailAccountId(null)}
+            />
           )}
 
           {activeTab === "budgets" && (
@@ -270,6 +413,24 @@ const Index = () => {
             />
           )}
 
+          {activeTab === "shopping" && (
+            <ShoppingListManager
+              accounts={store.accounts}
+              categories={store.getAllActiveCategories()}
+              onCheckout={(listName, totalAmount, accountId, categoryId) => {
+                const cat = store.getAllActiveCategories().find(c => c.id === categoryId);
+                if (!cat) return;
+                store.addTransaction(
+                  totalAmount,
+                  `Compra: ${listName}`,
+                  cat,
+                  "expense",
+                  accountId
+                );
+              }}
+            />
+          )}
+
           {activeTab === "settings" && (
             <SettingsPage onImportCsv={() => setCsvImportOpen(true)} />
           )}
@@ -282,7 +443,8 @@ const Index = () => {
 
       <QuickAddSheet open={quickAddOpen} onClose={() => setQuickAddOpen(false)}
         onSubmit={store.addTransaction} accounts={store.getActiveAccounts()}
-        categories={store.getAllActiveCategories()} tags={store.tags} />
+        categories={store.getAllActiveCategories()} tags={store.tags}
+        initialType={quickAddType} />
 
       <CsvImportSheet open={csvImportOpen} onClose={() => setCsvImportOpen(false)}
         onImport={store.importTransactions} accounts={store.getActiveAccounts()}
@@ -310,7 +472,8 @@ const Index = () => {
 
       <div className="md:hidden">
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab}
-          onQuickAdd={() => setQuickAddOpen(true)} onTransfer={() => setTransferOpen(true)}
+          onQuickAdd={(type) => handleOpenQuickAdd(type)} onTransfer={() => setTransferOpen(true)}
+          onImportCsv={() => setCsvImportOpen(true)}
           pendingBillsCount={pendingBillsCount} />
       </div>
       </div>

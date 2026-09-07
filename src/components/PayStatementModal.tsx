@@ -22,10 +22,26 @@ export function PayStatementModal({
   onConfirmPay,
 }: PayStatementModalProps) {
   const { formatAmount } = useSettings();
+  const [payMode, setPayMode] = useState<"total" | "minimum" | "custom">("total");
   const [amount, setAmount] = useState(suggestedAmount > 0 ? suggestedAmount.toString() : "");
   const [fromAccountId, setFromAccountId] = useState(sourceAccounts[0]?.id || "");
 
+  // Calcular pago mínimo de referencia (típico 10% del total o $1.000 como estándar de la industria)
+  const minimumAmount = suggestedAmount > 0 ? Math.max(Math.round(suggestedAmount * 0.1), Math.min(1000, suggestedAmount)) : 0;
+
   if (!card) return null;
+
+  const currentAmountNum = parseFloat(amount) || 0;
+  const remainingDebt = Math.max(0, suggestedAmount - currentAmountNum);
+
+  const handleSelectMode = (mode: "total" | "minimum" | "custom") => {
+    setPayMode(mode);
+    if (mode === "total") {
+      setAmount(suggestedAmount > 0 ? suggestedAmount.toString() : "");
+    } else if (mode === "minimum") {
+      setAmount(minimumAmount.toString());
+    }
+  };
 
   const handlePay = () => {
     const parsed = parseFloat(amount);
@@ -37,6 +53,7 @@ export function PayStatementModal({
   return (
     <ResponsiveSheet open={open} onClose={onClose} title={`Pagar Resumen: ${card.name}`}>
       <div className="p-4 space-y-4">
+        {/* Resumen Card Header */}
         <div className="card-surface">
           <div className="card-inner flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -45,7 +62,7 @@ export function PayStatementModal({
               </div>
               <div>
                 <span className="text-sm font-medium text-foreground block">{card.name}</span>
-                <span className="text-xs text-muted-foreground">Deuda del resumen</span>
+                <span className="text-xs text-muted-foreground">Total liquidado del resumen</span>
               </div>
             </div>
             <span className="font-mono-data text-lg font-semibold text-destructive">
@@ -54,24 +71,82 @@ export function PayStatementModal({
           </div>
         </div>
 
+        {/* Modalidades de pago estilo Mobills (Total / Mínimo / Otro) */}
         <div>
           <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-            Monto a pagar
+            Modalidad de pago
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => handleSelectMode("total")}
+              className={`py-2 px-2 rounded-xl border text-xs font-medium transition-all ${
+                payMode === "total"
+                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                  : "bg-secondary/40 text-foreground border-border/60 hover:bg-secondary/70"
+              }`}
+            >
+              Pago Total
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectMode("minimum")}
+              className={`py-2 px-2 rounded-xl border text-xs font-medium transition-all ${
+                payMode === "minimum"
+                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                  : "bg-secondary/40 text-foreground border-border/60 hover:bg-secondary/70"
+              }`}
+            >
+              Pago Mínimo
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectMode("custom")}
+              className={`py-2 px-2 rounded-xl border text-xs font-medium transition-all ${
+                payMode === "custom"
+                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                  : "bg-secondary/40 text-foreground border-border/60 hover:bg-secondary/70"
+              }`}
+            >
+              Otro Monto
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+            Monto a abonar
           </label>
           <input
             type="number"
             step="0.01"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => {
+              setAmount(e.target.value);
+              setPayMode("custom");
+            }}
             className="w-full h-11 px-3 rounded-xl bg-input border border-border text-foreground font-mono-data text-base focus:border-primary outline-none transition-colors"
           />
         </div>
+
+        {/* Feedback de arrastre de deuda (Si es pago parcial) */}
+        {remainingDebt > 0 && currentAmountNum > 0 && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
+            <div className="flex items-center justify-between font-medium text-amber-500">
+              <span>Arrastre al próximo resumen</span>
+              <span className="font-mono-data">{formatAmount(remainingDebt)}</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              El saldo impago no cubierto pasará a formar parte del saldo adeudado del siguiente ciclo de facturación.
+            </p>
+          </div>
+        )}
 
         <div>
           <label className="text-xs font-medium text-muted-foreground block mb-1.5">
             Debitar desde la cuenta
           </label>
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
             {sourceAccounts.map((acc) => (
               <button
                 key={acc.id}

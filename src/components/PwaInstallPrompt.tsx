@@ -46,7 +46,7 @@ export function PwaInstallPrompt() {
         <Button
           size="sm"
           onClick={handleInstallClick}
-          className="w-full sm:w-auto h-10 px-4 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl shadow transition-all active:scale-[0.98]"
+          className="w-full sm:w-auto h-10 px-4 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium theme-pill-btn shadow transition-all active:scale-[0.98]"
         >
           <Download className="w-4 h-4" />
           <span>Instalar App</span>

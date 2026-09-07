@@ -19,6 +19,8 @@ interface AccountManagerProps {
   onUnarchive: (id: string) => void;
   onAdjustBalance: (accountId: string, newBalance: number) => void;
   onSelectTransaction?: (tx: Transaction) => void;
+  initialSelectedAccountId?: string | null;
+  onClearInitialAccount?: () => void;
 }
 
 type ViewMode = "list" | "create" | "edit" | "archived" | "detail" | "adjust";
@@ -26,10 +28,12 @@ type ViewMode = "list" | "create" | "edit" | "archived" | "detail" | "adjust";
 export function AccountManager({
   accounts, getActiveAccounts, getArchivedAccounts, getTransactionsByAccount,
   onAdd, onUpdate, onArchive, onUnarchive, onAdjustBalance, onSelectTransaction,
+  initialSelectedAccountId, onClearInitialAccount,
 }: AccountManagerProps) {
-  const [view, setView] = useState<ViewMode>("list");
+  const initialAcc = initialSelectedAccountId ? accounts.find(a => a.id === initialSelectedAccountId) : null;
+  const [view, setView] = useState<ViewMode>(initialAcc ? "detail" : "list");
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [detailAccount, setDetailAccount] = useState<Account | null>(null);
+  const [detailAccount, setDetailAccount] = useState<Account | null>(initialAcc || null);
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -133,7 +137,13 @@ export function AccountManager({
           </>
         ) : (
           <div className="flex items-center gap-3">
-            <button onClick={() => setView("list")} className="p-1 text-muted-foreground">
+            <button
+              onClick={() => {
+                onClearInitialAccount?.();
+                setView("list");
+              }}
+              className="p-1 text-muted-foreground hover:text-foreground"
+            >
               <X className="w-5 h-5" />
             </button>
             <h2 className="text-[16px] font-display font-semibold text-foreground">

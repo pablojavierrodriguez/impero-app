@@ -26,6 +26,7 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
 | **P15** 💳 | **Flujo Unificado de Conciliación y Pago de Tarjeta de Crédito** | **Resolución contable en 1-tap:** pagar resumen adeudado debitando de cuenta y cancelando el ciclo sin transferencias manuales. | Medio | **Alto** | [SPEC-017](specs/SPEC-017-credit-card-settlement.md) | Completado |
 | **P16** 🎨 | **Refinamiento del Design System: Contraste WCAG AA, Modo Claro y Safe Areas Móviles** | **Accesibilidad y confort visual:** paleta `.light` con contraste > 4.5:1, targets táctiles de 44px y control de teclado virtual móvil. | Bajo | **Alto** | [SPEC-018](specs/SPEC-018-design-system-and-a11y.md) | Completado |
 | **P17** 📊 | **Curva de Evolución Patrimonial (Net Worth Chart) y Empty States Dinámicos** | **Visión histórica clara y onboarding continuo:** gráfico minimalista de saldo neto en el tiempo y guías interactivas en estados vacíos. | Medio | **Medio** | [SPEC-019](specs/SPEC-019-net-worth-and-empty-states.md) | Completado |
+| **P18** 🚀 | **Convergencia m3: Excelencia Mobills (Tarjetas/Ciclos) + Potencia Wallet (Shopping List/Filtros) + Factor Wow** | **Superioridad definitiva:** Liquidación con pago parcial y arrastre de deuda de tarjeta, Shopping List con checkout directo a gasto, y buscador/filtros multi-criterio rápidos. | Medio | **Altísimo (Core Value)** | [SPEC-020](specs/SPEC-020-mobills-wallet-m3-convergence.md) | Completado |
 
 ---
 
@@ -255,4 +256,31 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
   - El gráfico de evolución neta se renderiza de forma fluida y responsiva.
   - Los estados vacíos proporcionan claridad contextual e incentivo a la acción.
 
+---
 
+### P18 — Convergencia m3: Excelencia Mobills (Tarjetas/Ciclos) + Potencia Wallet (Shopping List/Filtros) + Factor Wow
+- **Problema:** Mobills ofrece la mejor experiencia de tarjetas de crédito y navegación histórica pero es costoso, tiene pésimos filtros y carece de automatizaciones e ingesta inteligente. Wallet tiene excelentes listas de compras calculadas y reglas, pero limita categorías, no soporta gastos futuros ni cuotas reales y no modela ciclos de tarjetas.
+- **Alcance:**
+  - **Fase 1 (Tarjetas Mobills+):** Liquidación con opción de pago total, pago mínimo o parcial con arrastre de deuda acumulada e intereses para el próximo resumen. Cálculo de resúmenes pasados, presentes y futuros.
+  - **Fase 2 (Búsqueda & Filtros Pro):** Buscador multi-criterio con presets temporales (Hoy, Esta semana, Mes, Año), chips descartables rápidos y selector de estado.
+  - **Fase 3 (Shopping List Inteligente):** Módulo de lista de compras con ítem, cantidad, precio unitario y total automático, con botón *"Completar y Registrar Gasto"* imputado en 1 clic a la cuenta o tarjeta seleccionada.
+- **Criterios de Aceptación:**
+  - Pago parcial de tarjeta traslada el saldo remanente al ciclo siguiente.
+  - Búsqueda y filtrado instantáneo sin lags ni recargas.
+  - Creación de listas de compras y conversión a transacción contable automática.
+  - [ ] Cero errores de compilación (`tsc --noEmit && npm run build`).
+
+---
+
+## 💡 Ideas Futuras & Nice-to-Have (Could Have)
+
+### C1 — Personalidades Configurables del Bot Financiero (Salo / Levi / Tito)
+- **Problema:** Cada usuario tiene una relación psicológica distinta con el dinero. Algunos prefieren sobriedad y sabiduría directa, otros precisión técnica de copiloto, y otros un trato compinche y relajado que desdramatice las finanzas.
+- **Alcance:**
+  - Selector de arquetipo en *Ajustes de Perfil / Integración WhatsApp*:
+    1. **Salo (El Sabio Práctico):** Directo, protector, astuto con las cuotas y vencimientos, habla con sabiduría de calle y firmeza paternal.
+    2. **Levi (El Copiloto Analítico):** Preciso, sobrio, métrico, enfocado en eficiencia, apalancamiento y ratios de ahorro.
+    3. **Tito (El Compinche Positivo):** Relajado, amigable, desestresante, celebra los logros y quita la culpa del gasto sin perder el rigor en el registro.
+  - Inyección dinámica del *system prompt* del webhook de WhatsApp según la preferencia elegida en `public.profiles.bot_personality`.
+- **Criterios de Aceptación:**
+  - El usuario puede alternar la personalidad de su asistente desde la app y el bot adopta el tono inmediatamente en su siguiente respuesta.

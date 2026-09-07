@@ -36,6 +36,7 @@ export async function fetchRemoteSettings(): Promise<AppSettings | null> {
     dailyBudget: Number(data.daily_budget) || DEFAULT_SETTINGS.dailyBudget,
     showDecimals: typeof data.show_decimals === "boolean" ? data.show_decimals : DEFAULT_SETTINGS.showDecimals,
     theme: (data.theme as ThemeMode) || DEFAULT_SETTINGS.theme,
+    appTheme: ((data as any).app_theme as any) || DEFAULT_SETTINGS.appTheme,
     homeSections: mergedSections,
     customExchangeRates: (data.custom_exchange_rates as Record<Currency, number>) || undefined,
   };
@@ -60,7 +61,10 @@ export async function saveRemoteSettings(settings: AppSettings): Promise<void> {
         show_decimals: settings.showDecimals,
         theme: settings.theme,
         home_sections: settings.homeSections as any,
-        custom_exchange_rates: settings.customExchangeRates as any,
+        custom_exchange_rates: {
+          ...(settings.customExchangeRates || {}),
+          __app_theme: settings.appTheme || "m3",
+        } as any,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" }

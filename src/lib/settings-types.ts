@@ -4,6 +4,7 @@ export type { Language };
 export type Currency = "ARS" | "USD" | "EUR";
 export type ChartType = "bar" | "area" | "none";
 export type ThemeMode = "dark" | "light" | "system";
+export type AppTheme = "m3" | "mobills" | "wallet";
 
 export type HomeSection = {
   id: string;
@@ -43,6 +44,9 @@ export type AppSettings = {
   showDecimals: boolean;
   customExchangeRates?: Record<Currency, number>;
   theme: ThemeMode;
+  appTheme?: AppTheme;
+  accountViewMode?: "list" | "carousel";
+  showDailySubtotals?: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -53,4 +57,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dailyBudget: 150,
   showDecimals: true,
   theme: "dark",
+  appTheme: "m3",
+  accountViewMode: "list",
+  showDailySubtotals: false,
 };
+

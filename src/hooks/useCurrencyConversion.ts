@@ -43,9 +43,12 @@ export function useCurrencyConversion(): CurrencyConversionResult {
     (amount: number, currency: Currency, opts?: { sign?: string; abs?: boolean }): string => {
       const sym = getCurrencySymbol(currency);
       const val = opts?.abs ? Math.abs(amount) : amount;
+      // En divisas extranjeras (USD / EUR) siempre mostrar al menos 2 decimales para evitar pérdida de precisión
+      const forceDecimals = currency !== "ARS";
+      const showDec = forceDecimals || settings.showDecimals;
       const formatted = Math.abs(val).toLocaleString("en-US", {
-        minimumFractionDigits: settings.showDecimals ? 2 : 0,
-        maximumFractionDigits: settings.showDecimals ? 2 : 0,
+        minimumFractionDigits: showDec ? 2 : 0,
+        maximumFractionDigits: showDec ? 2 : 0,
       });
       const sign = opts?.sign ?? (val < 0 ? "-" : "");
       return `${sign}${sym}${formatted}`;
