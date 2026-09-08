@@ -1,4 +1,4 @@
-# Product Backlog — m3 (Money Master)
+# Product Backlog - IMPERO
 
 Documento vivo de priorización de producto basado en valor para el usuario final, robustez financiera y arquitectura sobre Supabase.
 
@@ -9,7 +9,7 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
 | Prioridad | Épica / Feature | Valor para el Usuario | Esfuerzo | Impacto | Spec | Estado |
 | :---: | :--- | :--- | :--- | :---: | :---: | :---: |
 | **P0** 🔴 | **Importación de Extractos Bancarios (CSV/PDF)** | **Elimina la mayor fricción:** permite cargar cientos de movimientos de bancos y billeteras en segundos sin tipeo manual. | Medio | **Altísimo** | [SPEC-003](specs/SPEC-003-csv-banking-import.md) | Completado |
-| **P1** 🟡 | **Agente IA de Ingesta Autónoma (Bot WhatsApp / Visión / Archivos)** | **Fricción cero:** registrar gastos por mensaje de voz, foto de ticket/comprobante o reenvío de extractos directamente a un bot de WhatsApp conectado a la base de m3. | Alto | **Altísimo (Game Changer)** | [SPEC-008](specs/SPEC-008-autonomous-agent-whatsapp-bot.md) | Completado |
+| **P1** 🟡 | **Agente IA de Ingesta Autónoma (Bot WhatsApp / Visión / Archivos)** | **Fricción cero:** registrar gastos por mensaje de voz, foto de ticket/comprobante o reenvío de extractos directamente a un bot de WhatsApp conectado a la base de IMPERO. | Alto | **Altísimo (Game Changer)** | [SPEC-008](specs/SPEC-008-autonomous-agent-whatsapp-bot.md) | Completado |
 | **P2** 🟢 | **Tarjetas de Crédito & Gestión de Cuotas** | **Resuelve la distorsión financiera real:** proyecta compras en cuotas diferidas y calcula saldos adeudados futuros. | Medio | **Alto** | [SPEC-004](specs/SPEC-004-credit-cards-and-installments.md) | Completado |
 | **P3** 🟡 | **Presupuestos Inteligentes & Alertas de Desvío** | **Control preventivo en tiempo real:** alerta sobregastos por categoría antes del cierre de mes. | Medio | **Alto** | [SPEC-005](specs/SPEC-005-intelligent-budgets.md) | Completado |
 | **P4** 🟢 | **Comprobantes y Adjuntos en Alta Rápida** | **Optimización de conveniencia:** adjuntar ticket/foto directamente al crear la transacción en `QuickAddSheet`. | Bajo | **Medio** | [SPEC-002](specs/SPEC-002-receipt-attachments.md) | Completado |
@@ -23,10 +23,11 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
 | **P12** 🛡️ | **Modo Privacidad & Bloqueo Biométrico Web** | **Tranquilidad en público:** ofuscación de saldos de un toque (`$ ••••••`) y reanudación segura con FaceID / TouchID. | Bajo | **Medio** | [SPEC-014](specs/SPEC-014-privacy-mode-and-biometrics.md) | Completado |
 | **P13** 💎 | **Unificación de Identidad de Marca, Nomenclatura y Microcopia de Alta Gama** | **Coherencia y artesanía:** eliminar discrepancias (`FinTrack` vs `m3`), traducir 100% la microcopia al español financiero y armonizar términos. | Bajo | **Alto** | [SPEC-015](specs/SPEC-015-brand-and-microcopy.md) | Completado |
 | **P14** ⚡ | **QuickAdd 2.0: Fricción Mínima, Smart Chips y Feedback Sensorial (Háptica)** | **Velocidad de registro de clase mundial:** chips rápidos de categorías frecuentes, vibración física nativa en teclado y cálculo en 1-tap. | Bajo | **Altísimo** | [SPEC-016](specs/SPEC-016-quickadd-frictionless.md) | Completado |
+| **P19** 🏛️ | **Consolidación de Identidad IMPERO & Dominio Propio** | **Alineación filosófica y técnica:** formalización de SPEC-021, ajuste de microcopia (asignación de recursos, serenidad) y metadatos globales. | Bajo | **Altísimo** | [SPEC-021](specs/SPEC-021-brand-identity-impero.md) | En progreso |
 | **P15** 💳 | **Flujo Unificado de Conciliación y Pago de Tarjeta de Crédito** | **Resolución contable en 1-tap:** pagar resumen adeudado debitando de cuenta y cancelando el ciclo sin transferencias manuales. | Medio | **Alto** | [SPEC-017](specs/SPEC-017-credit-card-settlement.md) | Completado |
 | **P16** 🎨 | **Refinamiento del Design System: Contraste WCAG AA, Modo Claro y Safe Areas Móviles** | **Accesibilidad y confort visual:** paleta `.light` con contraste > 4.5:1, targets táctiles de 44px y control de teclado virtual móvil. | Bajo | **Alto** | [SPEC-018](specs/SPEC-018-design-system-and-a11y.md) | Completado |
 | **P17** 📊 | **Curva de Evolución Patrimonial (Net Worth Chart) y Empty States Dinámicos** | **Visión histórica clara y onboarding continuo:** gráfico minimalista de saldo neto en el tiempo y guías interactivas en estados vacíos. | Medio | **Medio** | [SPEC-019](specs/SPEC-019-net-worth-and-empty-states.md) | Completado |
-| **P18** 🚀 | **Convergencia m3: Excelencia Mobills (Tarjetas/Ciclos) + Potencia Wallet (Shopping List/Filtros) + Factor Wow** | **Superioridad definitiva:** Liquidación con pago parcial y arrastre de deuda de tarjeta, Shopping List con checkout directo a gasto, y buscador/filtros multi-criterio rápidos. | Medio | **Altísimo (Core Value)** | [SPEC-020](specs/SPEC-020-mobills-wallet-m3-convergence.md) | Completado |
+| **P18** 🚀 | **Convergencia IMPERO: Excelencia Mobills (Tarjetas/Ciclos) + Potencia Wallet (Shopping List/Filtros) + Factor Wow** | **Superioridad definitiva:** Liquidación con pago parcial y arrastre de deuda de tarjeta, Shopping List con checkout directo a gasto, y buscador/filtros multi-criterio rápidos. | Medio | **Altísimo (Core Value)** | [SPEC-020](specs/SPEC-020-mobills-wallet-m3-convergence.md) | Completado |
 
 ---
 
@@ -52,7 +53,7 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
 ### P1 — Agente IA de Ingesta Autónoma (Bot WhatsApp / Visión / Archivos)
 - **Problema:** Incluso con importadores en la app, abrir la web/app cada vez que se hace un gasto en la calle o llega un comprobante genera fricción. WhatsApp es el canal donde el usuario ya vive todo el día.
 - **Alcance:**
-  - **Canal WhatsApp:** Webhook (Meta Cloud API o Twilio / Baileys) vinculado al `user_id` de **m3**.
+  - **Canal WhatsApp:** Webhook (Meta Cloud API o Twilio / Baileys) vinculado al `user_id` de **IMPERO**.
   - **Modos de Ingesta:**
     1. **Mensaje de texto o audio:** *"Gasté 14500 en Coto con Galicia"* -> Whisper (audio a texto) + LLM (extracción de `{ amount: 14500, description: "Coto", category: "groceries", account: "Galicia", type: "expense" }`).
     2. **Foto de comprobante / ticket físico:** Visión multimodal (Gemini / GPT-4o Vision) extrae el total, comercio, fecha y categorías.
@@ -60,7 +61,7 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
   - **Seguridad & Auth:** Vinculación por número verificado de teléfono en la tabla de perfiles de usuario.
 - **Criterios de Aceptación:**
   - El usuario envía un mensaje o foto y recibe en segundos la confirmación: *"✅ Registrado: $14.500 en Supermercado (Galicia)"*.
-  - Los datos impactan en tiempo real en la base de datos de Supabase y se visualizan al abrir **m3**.
+  - Los datos impactan en tiempo real en la base de datos de Supabase y se visualizan al abrir **IMPERO**.
 
 ---
 
@@ -201,7 +202,7 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
 ### P13 — Unificación de Identidad de Marca, Nomenclatura y Microcopia de Alta Gama
 - **Problema:** Discrepancias de nombre (`FinTrack` vs. `m3 / Money Master`), textos en inglés en tooltips y modales ("Transfer", "del"), y jerga técnica poco accesible.
 - **Alcance:**
-  - Estandarizar la identidad visual de marca `m3` en la barra lateral desktop (`DesktopSidebar.tsx`), encabezados, título del documento y meta tags de PWA.
+  - Estandarizar la identidad visual de marca hacia **IMPERO** en la barra lateral desktop (`DesktopSidebar.tsx`), encabezados, título del documento y meta tags de PWA.
   - Auditar el 100% de la microcopia asegurando español neutro y financiero consistente.
   - Homogeneizar nomenclaturas de widgets y métricas (ej. "Ritmo de gasto", "Ciclo de tarjeta", "Salud financiera").
 - **Criterios de Aceptación:**
@@ -258,7 +259,7 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
 
 ---
 
-### P18 — Convergencia m3: Excelencia Mobills (Tarjetas/Ciclos) + Potencia Wallet (Shopping List/Filtros) + Factor Wow
+### P18 — Convergencia IMPERO: Excelencia Mobills (Tarjetas/Ciclos) + Potencia Wallet (Shopping List/Filtros) + Factor Wow
 - **Problema:** Mobills ofrece la mejor experiencia de tarjetas de crédito y navegación histórica pero es costoso, tiene pésimos filtros y carece de automatizaciones e ingesta inteligente. Wallet tiene excelentes listas de compras calculadas y reglas, pero limita categorías, no soporta gastos futuros ni cuotas reales y no modela ciclos de tarjetas.
 - **Alcance:**
   - **Fase 1 (Tarjetas Mobills+):** Liquidación con opción de pago total, pago mínimo o parcial con arrastre de deuda acumulada e intereses para el próximo resumen. Cálculo de resúmenes pasados, presentes y futuros.

@@ -172,7 +172,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     const formatAmount = (ars: number, opts?: { sign?: string; abs?: boolean }) => {
       const converted = Math.abs(ars) * rate;
-      const formatted = converted.toLocaleString("en-US", {
+      const formatted = converted.toLocaleString("es-AR", {
         minimumFractionDigits: settings.showDecimals ? 2 : 0,
         maximumFractionDigits: settings.showDecimals ? 2 : 0,
       });

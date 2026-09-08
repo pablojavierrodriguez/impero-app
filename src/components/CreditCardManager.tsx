@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { useSettings } from "@/lib/settings-store";
 import { Currency, CURRENCIES } from "@/lib/settings-types";
 import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
+import { formatThousandsInput, parseThousandsInput } from "@/lib/utils";
 
 interface CreditCardManagerProps {
   accounts: Account[];
@@ -89,11 +90,11 @@ export function CreditCardManager({
     setFormIcon(card.icon || "credit-card");
     setFormBrand(card.brand || "visa");
     setFormCustomBrand(card.customBrandName || "");
-    setFormLimit((card.creditLimit || 0).toString());
+    setFormLimit(card.creditLimit ? formatThousandsInput(card.creditLimit) : "");
     setFormClosingDay((card.closingDay || 15).toString());
     setFormPaymentDay((card.paymentDay || 5).toString());
     setFormCurrency((card.currency as Currency) || "ARS");
-    setFormBalance(Math.abs(card.balance).toString());
+    setFormBalance(formatThousandsInput(Math.abs(card.balance)));
     setFormViewMode(card.creditCardViewMode || "statement_cycles");
     setEditingCard(card);
     setView("edit");
@@ -108,7 +109,7 @@ export function CreditCardManager({
   const openPay = (card: Account) => {
     setSelectedCardId(card.id);
     const owed = Math.abs(card.balance);
-    setPayAmount(owed.toFixed(2));
+    setPayAmount(formatThousandsInput(owed));
     setPayFromAccount(sourceAccounts[0]?.id ?? "");
     setPayMode("total");
     setView("pay");
@@ -118,7 +119,7 @@ export function CreditCardManager({
     if (!formName.trim()) return;
     const closingDay = Math.max(1, Math.min(28, parseInt(formClosingDay) || 15));
     const paymentDay = Math.max(1, Math.min(28, parseInt(formPaymentDay) || 5));
-    const creditLimit = parseFloat(formLimit) || 5000;
+    const creditLimit = parseThousandsInput(formLimit) || 5000;
 
     if (editingCard) {
       onUpdate(editingCard.id, {
@@ -134,7 +135,7 @@ export function CreditCardManager({
         currency: formCurrency,
       });
     } else {
-      const balance = -(parseFloat(formBalance) || 0);
+      const balance = -Math.abs(parseThousandsInput(formBalance) || 0);
       onAdd({
         id: `card-${Date.now()}`,
         name: formName.trim(),
@@ -157,7 +158,7 @@ export function CreditCardManager({
 
   const handlePay = () => {
     if (!detailCard || !payFromAccount) return;
-    const amount = parseFloat(payAmount);
+    const amount = parseThousandsInput(payAmount);
     if (isNaN(amount) || amount <= 0) return;
     onPayCard(detailCard.id, payFromAccount, amount);
     setView("list");
@@ -357,10 +358,10 @@ export function CreditCardManager({
             <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Límite de crédito</label>
             <input
               value={formLimit}
-              onChange={e => setFormLimit(e.target.value)}
-              type="number"
-              step="100"
-              placeholder="5000"
+              onChange={e => setFormLimit(formatThousandsInput(e.target.value))}
+              type="text"
+              inputMode="decimal"
+              placeholder="5.000.000"
               className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
             />
 
@@ -436,10 +437,10 @@ export function CreditCardManager({
                 <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Saldo adeudado inicial</label>
                 <input
                   value={formBalance}
-                  onChange={e => setFormBalance(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
+                  onChange={e => setFormBalance(formatThousandsInput(e.target.value))}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
                   className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
                 />
               </>
@@ -448,7 +449,7 @@ export function CreditCardManager({
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-muted-foreground font-medium">Saldo adeudado registrado</span>
                   <span className="font-mono-data text-[14px] font-semibold text-foreground">
-                    {activeCurrencySymbol}{parseFloat(formBalance || "0").toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {activeCurrencySymbol}{parseFloat(formBalance || "0").toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1">
@@ -558,8 +559,8 @@ export function CreditCardManager({
 
               const handleModeChange = (mode: "total" | "minimum" | "custom") => {
                 setPayMode(mode);
-                if (mode === "total") setPayAmount(owed.toFixed(2));
-                else if (mode === "minimum") setPayAmount(minimumPayment.toFixed(2));
+                if (mode === "total") setPayAmount(formatThousandsInput(owed));
+                else if (mode === "minimum") setPayAmount(formatThousandsInput(minimumPayment));
                 // custom: keep current amount for user to edit
               };
 
@@ -609,9 +610,9 @@ export function CreditCardManager({
             <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Monto a pagar</label>
             <input
               value={payAmount}
-              onChange={e => { setPayAmount(e.target.value); setPayMode("custom"); }}
-              type="number"
-              step="0.01"
+              onChange={e => { setPayAmount(formatThousandsInput(e.target.value)); setPayMode("custom"); }}
+              type="text"
+              inputMode="decimal"
               className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[16px] focus:border-primary outline-none transition-colors mb-4"
             />
 
@@ -639,7 +640,7 @@ export function CreditCardManager({
 
             {/* Remaining balance indicator */}
             {(() => {
-              const amount = parseFloat(payAmount) || 0;
+              const amount = parseThousandsInput(payAmount) || 0;
               const owed = Math.abs(Math.min(detailCard.balance, 0));
               if (amount <= 0) return null;
 

@@ -54,15 +54,15 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
                 <Sparkles className="w-10 h-10 text-primary-foreground" />
               </div>
               <h1 className="text-2xl font-bold font-display text-foreground text-center mb-1">
-                m3
+                IMPERO
               </h1>
               <p className="text-xs font-semibold text-primary uppercase tracking-wider text-center mb-3">
-                Money Master
+                Administración financiera con visión y propósito
               </p>
               <p className="text-muted-foreground text-center text-sm mb-8">
                 {selectedLang === "es"
-                  ? "Tu asistente financiero personal. Controlá tus gastos, ahorrá más y alcanzá tus metas."
-                  : "Your personal finance assistant. Track expenses, save more, and reach your goals."}
+                  ? "Gestioná tus recursos con claridad, proyectá con certeza y decidí con propósito."
+                  : "Manage your resources with clarity, project with certainty, and decide with purpose."}
               </p>
             </>
           )}

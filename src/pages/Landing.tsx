@@ -26,11 +26,11 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl overflow-hidden border border-border/60 bg-background/50 flex items-center justify-center shrink-0 shadow-sm">
-              <img src="/icons/icon.svg" alt="m3 logo" className="w-full h-full object-cover" />
+              <img src="/icons/icon.svg" alt="IMPERO logo" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col">
-              <span className="font-display font-bold text-foreground text-sm tracking-tight leading-none">m3</span>
-              <span className="text-[10px] font-semibold text-primary uppercase tracking-wider mt-0.5">Money • Mind • Mastery</span>
+              <span className="font-display font-bold text-foreground text-sm tracking-tight leading-none">IMPERO</span>
+              <span className="text-[10px] font-semibold text-primary uppercase tracking-wider mt-0.5">Visión y Propósito</span>
             </div>
           </div>
 
@@ -156,7 +156,7 @@ export default function LandingPage() {
         <div className="text-center mb-10">
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">Benchmark de Mercado</span>
           <h2 className="text-2xl sm:text-4xl font-display font-bold text-foreground mt-1 mb-3">
-            ¿Por qué m3 supera a los líderes comerciales?
+            ¿Por qué IMPERO supera a las soluciones comerciales?
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-xl mx-auto">
             Comparativa directa frente a las dos soluciones móviles más populares a nivel global y regional.
@@ -168,7 +168,7 @@ export default function LandingPage() {
             <thead>
               <tr className="border-b border-border/70 bg-secondary/50">
                 <th className="py-4 px-4 sm:px-6 font-semibold text-foreground">Capacidad Clave</th>
-                <th className="py-4 px-4 sm:px-6 font-semibold text-primary bg-primary/10">m3 (Money Master)</th>
+                <th className="py-4 px-4 sm:px-6 font-semibold text-primary bg-primary/10">IMPERO</th>
                 <th className="py-4 px-4 sm:px-6 font-semibold text-muted-foreground">Mobills Premium</th>
                 <th className="py-4 px-4 sm:px-6 font-semibold text-muted-foreground">Wallet by BudgetBakers</th>
               </tr>
@@ -264,7 +264,7 @@ export default function LandingPage() {
       <section className="py-12 px-4 max-w-4xl mx-auto w-full">
         <div className="rounded-2xl gradient-card border border-border/60 p-8 text-center relative">
           <h3 className="text-2xl font-display font-bold text-foreground mb-3">
-            ¿Querés tu propia instancia privada de m3?
+            ¿Querés tu propia instancia privada de IMPERO?
           </h3>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto mb-6">
             Podés desplegarla en 5 minutos en Vercel conectada a una base de datos gratuita de Supabase, 
@@ -292,7 +292,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="mt-auto border-t border-border/50 py-8 px-4 text-center text-xs text-muted-foreground">
-        <p>m3 — Money • Mind • Mastery · Tu dinero. Tu mente. Tu control.</p>
+        <p>IMPERO - Administración financiera con visión y propósito.</p>
       </footer>
     </div>
   );

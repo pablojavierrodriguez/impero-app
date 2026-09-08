@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { useSettings } from "@/lib/settings-store";
 import { Currency, CURRENCIES } from "@/lib/settings-types";
 import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
+import { formatThousandsInput, parseThousandsInput } from "@/lib/utils";
 
 interface AccountManagerProps {
   accounts: Account[];
@@ -82,13 +83,13 @@ export function AccountManager({
 
   const openAdjust = (acc: Account) => {
     setSelectedAccountId(acc.id);
-    setAdjustBalance(acc.balance.toFixed(2));
+    setAdjustBalance(formatThousandsInput(acc.balance));
     setView("adjust");
   };
 
   const handleSave = () => {
     if (!formName.trim()) return;
-    const balance = parseFloat(formBalance) || 0;
+    const balance = parseThousandsInput(formBalance) || 0;
     if (editingAccount) {
       onUpdate(editingAccount.id, {
         name: formName.trim(),
@@ -114,10 +115,10 @@ export function AccountManager({
 
   const handleAdjust = () => {
     if (!detailAccount) return;
-    const newBal = parseFloat(adjustBalance);
+    const newBal = parseThousandsInput(adjustBalance);
     if (isNaN(newBal)) return;
     onAdjustBalance(detailAccount.id, newBal);
-    setView("list");
+    setView("detail");
   };
 
   const { formatAmount: formatCurrency, t } = useSettings();
@@ -268,10 +269,10 @@ export function AccountManager({
                 <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Initial Balance</label>
                 <input
                   value={formBalance}
-                  onChange={e => setFormBalance(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
+                  onChange={e => setFormBalance(formatThousandsInput(e.target.value))}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
                   className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
                 />
               </>
@@ -354,14 +355,14 @@ export function AccountManager({
             <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">New actual balance</label>
             <input
               value={adjustBalance}
-              onChange={e => setAdjustBalance(e.target.value)}
-              type="number"
-              step="0.01"
+              onChange={e => setAdjustBalance(formatThousandsInput(e.target.value))}
+              type="text"
+              inputMode="decimal"
               className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[16px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-3"
             />
 
             {(() => {
-              const diff = (parseFloat(adjustBalance) || 0) - detailAccount.balance;
+              const diff = (parseThousandsInput(adjustBalance) || 0) - detailAccount.balance;
               if (diff === 0) return null;
               return (
                 <div className={`text-[13px] mb-4 p-3 rounded-[12px] ${diff > 0 ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
@@ -492,7 +493,7 @@ export function AccountManager({
                             </div>
                           </div>
                           <span className={`font-mono-data text-[14px] tracking-tight ${tx.type === "income" ? "text-primary" : "text-foreground"}`}>
-                            {tx.type === "income" ? "+" : "-"}${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                            {tx.type === "income" ? "+" : "-"}${tx.amount.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       ))}

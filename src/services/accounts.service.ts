@@ -15,7 +15,8 @@ export async function fetchAccounts(): Promise<Account[]> {
   return (data || []).map((row) => ({
     id: row.id,
     name: row.name,
-    balance: Number(row.balance),
+    // Para tarjetas de crédito, garantizar que el balance sea siempre <= 0
+    balance: row.type === "credit" ? -Math.abs(Number(row.balance)) : Number(row.balance),
     type: row.type as AccountType,
     color: row.color,
     icon: row.icon || undefined,
@@ -26,6 +27,7 @@ export async function fetchAccounts(): Promise<Account[]> {
     brand: (row.brand as CreditCardBrand) || undefined,
     customBrandName: row.custom_brand_name || undefined,
     currency: (row.currency as any) || "ARS",
+    creditCardViewMode: (row as any).credit_card_view_mode || "statement_cycles",
   }));
 }
 
@@ -33,12 +35,15 @@ export async function insertAccount(acc: Omit<Account, "id">): Promise<Account> 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No authenticated user");
 
+  // Para tarjetas de crédito, garantizar balance <= 0 (la deuda es negativa)
+  const safeBalance = acc.type === "credit" ? -Math.abs(acc.balance) : acc.balance;
+
   const { data, error } = await supabase
     .from("accounts")
     .insert({
       user_id: user.id,
       name: acc.name,
-      balance: acc.balance,
+      balance: safeBalance,
       type: acc.type,
       color: acc.color,
       icon: acc.icon || null,
@@ -58,7 +63,8 @@ export async function insertAccount(acc: Omit<Account, "id">): Promise<Account> 
   return {
     id: data.id,
     name: data.name,
-    balance: Number(data.balance),
+    // Re-aplicar la garantía de signo correcto al retornar
+    balance: data.type === "credit" ? -Math.abs(Number(data.balance)) : Number(data.balance),
     type: data.type as AccountType,
     color: data.color,
     icon: data.icon || undefined,
@@ -69,6 +75,7 @@ export async function insertAccount(acc: Omit<Account, "id">): Promise<Account> 
     brand: (data.brand as CreditCardBrand) || undefined,
     customBrandName: data.custom_brand_name || undefined,
     currency: (data.currency as any) || "ARS",
+    creditCardViewMode: (data as any).credit_card_view_mode || "statement_cycles",
   };
 }
 

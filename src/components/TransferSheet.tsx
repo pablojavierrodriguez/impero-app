@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useSettings } from "@/lib/settings-store";
 import { Currency } from "@/lib/settings-types";
 import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
+import { formatThousandsInput, parseThousandsInput } from "@/lib/utils";
 import { ResponsiveSheet } from "./ResponsiveSheet";
 
 interface TransferSheetProps {
@@ -31,7 +32,7 @@ export function TransferSheet({ open, onClose, accounts, onTransfer }: TransferS
   const toCurr = (toAccount?.currency as Currency) || "ARS";
   const isBiMonetary = Boolean(fromAccount && toAccount && fromCurr !== toCurr);
 
-  const parsedAmount = parseFloat(amount) || 0;
+  const parsedAmount = parseThousandsInput(amount) || 0;
 
   // Si son de distinta divisa, calcular monto convertido sugerido
   const suggestedTargetAmount = useMemo(() => {
@@ -39,7 +40,7 @@ export function TransferSheet({ open, onClose, accounts, onTransfer }: TransferS
     return convert(parsedAmount, fromCurr, toCurr);
   }, [isBiMonetary, parsedAmount, fromCurr, toCurr, convert]);
 
-  const effectiveTargetAmount = targetAmountManual !== "" ? (parseFloat(targetAmountManual) || 0) : suggestedTargetAmount;
+  const effectiveTargetAmount = targetAmountManual !== "" ? (parseThousandsInput(targetAmountManual) || 0) : suggestedTargetAmount;
 
   const valid = fromId && toId && fromId !== toId && parsedAmount > 0 && (!isBiMonetary || effectiveTargetAmount > 0);
 
@@ -132,11 +133,11 @@ export function TransferSheet({ open, onClose, accounts, onTransfer }: TransferS
             )}
           </div>
           <input
-            type="number"
+            type="text"
             inputMode="decimal"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
+            onChange={(e) => setAmount(formatThousandsInput(e.target.value))}
+            placeholder="0,00"
             className="w-full mt-1 bg-secondary rounded-xl px-3 py-2.5 text-[14px] text-foreground font-mono-data border-none outline-none"
           />
         </div>
@@ -157,10 +158,10 @@ export function TransferSheet({ open, onClose, accounts, onTransfer }: TransferS
                 Monto a Acreditar en {toAccount?.name} ({toCurr})
               </label>
               <input
-                type="number"
+                type="text"
                 inputMode="decimal"
-                value={targetAmountManual !== "" ? targetAmountManual : suggestedTargetAmount.toFixed(2)}
-                onChange={(e) => setTargetAmountManual(e.target.value)}
+                value={targetAmountManual !== "" ? targetAmountManual : formatThousandsInput(suggestedTargetAmount)}
+                onChange={(e) => setTargetAmountManual(formatThousandsInput(e.target.value))}
                 className="w-full bg-background rounded-lg px-3 py-2 text-[13px] text-foreground font-mono-data border border-border outline-none focus:border-primary"
               />
             </div>

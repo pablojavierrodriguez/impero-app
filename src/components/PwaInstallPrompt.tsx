@@ -13,7 +13,7 @@ export function PwaInstallPrompt() {
     return (
       <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-medium">
         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-        <span>Aplicación m3 instalada en este dispositivo.</span>
+        <span>Aplicación IMPERO instalada en este dispositivo.</span>
       </div>
     );
   }
@@ -36,7 +36,7 @@ export function PwaInstallPrompt() {
             <Smartphone className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-foreground">Instalar m3 en tu teléfono</h4>
+            <h4 className="text-sm font-semibold text-foreground">Instalar IMPERO en tu teléfono</h4>
             <p className="text-xs text-muted-foreground">
               Tu dinero. Tu mente. Tu control. Acceso en 1 toque, pantalla completa y offline.
             </p>
@@ -61,7 +61,7 @@ export function PwaInstallPrompt() {
               <Smartphone className="w-6 h-6 text-primary" />
             </div>
             <DialogTitle className="text-center text-lg font-bold">
-              Instalar m3 en tu Pantalla de Inicio
+              Instalar IMPERO en tu Pantalla de Inicio
             </DialogTitle>
             <DialogDescription className="text-center text-xs text-muted-foreground">
               Sigue estos 2 sencillos pasos en tu navegador móvil para tener la app como nativa:

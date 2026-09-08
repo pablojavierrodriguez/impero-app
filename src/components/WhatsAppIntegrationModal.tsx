@@ -115,7 +115,7 @@ export function WhatsAppIntegrationModal() {
           <div className="flex items-center gap-3">
             <MessageSquare className="w-4 h-4 text-emerald-500" />
             <div>
-              <span className="text-sm text-foreground block">Bot de WhatsApp (m3 IA)</span>
+              <span className="text-sm text-foreground block">Bot de WhatsApp (IMPERO IA)</span>
               <span className="text-[11px] text-muted-foreground block">
                 {isConnected ? "Vinculado y activo" : "Carga de gastos por audio, texto o ticket"}
               </span>
@@ -140,7 +140,7 @@ export function WhatsAppIntegrationModal() {
             Asistente Autónomo de WhatsApp
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Registrá compras al instante enviando un audio, una foto del ticket o un mensaje directo a m3.
+            Registrá compras al instante enviando un audio, una foto del ticket o un mensaje directo a IMPERO.
           </DialogDescription>
         </DialogHeader>
 
@@ -207,7 +207,7 @@ export function WhatsAppIntegrationModal() {
                     size="sm"
                     className="w-full text-xs"
                     onClick={() => {
-                      const msg = encodeURIComponent(`Hola! Mi código de vinculación m3 es: ${otpInfo.code}`);
+                      const msg = encodeURIComponent(`Hola! Mi código de vinculación IMPERO es: ${otpInfo.code}`);
                       window.open(`https://wa.me/?text=${msg}`, "_blank");
                     }}
                   >
@@ -220,7 +220,7 @@ export function WhatsAppIntegrationModal() {
               <div className="rounded-lg bg-muted/40 p-3 flex gap-2.5 text-xs text-muted-foreground items-start">
                 <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <span>
-                  Por seguridad, m3 solo procesará mensajes provenientes de tu número autenticado. Nunca compartas tu código.
+                  Por seguridad, IMPERO solo procesará mensajes provenientes de tu número autenticado. Nunca compartas tu código.
                 </span>
               </div>
             </div>
