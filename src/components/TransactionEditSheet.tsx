@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { useSettings, CURRENCIES, type Currency } from "@/lib/settings-store";
 import { ResponsiveSheet } from "./ResponsiveSheet";
 import { uploadReceipt } from "@/services/storage.service";
+import { formatThousandsInput, parseThousandsInput } from "@/lib/utils";
 
 interface TransactionEditSheetProps {
   transaction: Transaction | null;
@@ -435,7 +436,7 @@ export function TransactionEditSheet({
                 </label>
                 {currentAccount && (
                   <span className="text-[11px] text-muted-foreground font-mono-data">
-                    Saldo: {currencySymbol} {currentAccount.balance.toLocaleString()}
+                    Saldo: {currencySymbol} {currentAccount.balance.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                   </span>
                 )}
               </div>

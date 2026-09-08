@@ -53,6 +53,10 @@
 - **PROHIBIDO INFERIR PERMISOS:** La aprobación previa de un commit o push NUNCA otorga permiso tácito para ejecutar commits o pushes posteriores.
 - **PALABRAS DE TAREA NO SON PERMISO DE COMMIT:** Frases como *"ok"*, *"adelante"*, *"armalo"*, *"hacelo"*, *"listo"* o *"procedé"* significan **exclusivamente implementar o editar el código**, **JAMÁS** ejecutar `git commit` ni `git push`.
 - **REGLA DE ACCIÓN ÚNICA Y VERBAL:** Cada commit y cada push requiere un mensaje de autorización individual que contenga la palabra *"commit"* o *"push"* explícita.
+- **MENSAJES DE COMMIT AUTODESCRIPTIVOS Y DETALLADOS:**
+  - Prohibido usar mensajes vagos, genéricos o basados en jerga de sesión/sprints (ej: *"fix bugs"*, *"sprint 1-4"*, *"update files"*).
+  - El título debe resumir claramente el impacto principal del cambio.
+  - Cuando el commit englobe múltiples cambios, es obligatorio incluir un cuerpo descriptivo estructurado (macro-resumen y viñetas por módulo: Core, UI, DB, etc.) que explique con precisión **qué** se modificó para que cualquier persona externa entienda el contenido del commit sin haber estado presente.
 - Ante la duda, terminar el turno mostrando lo que se modificó y esperar la orden de commit del usuario.
 
 ---

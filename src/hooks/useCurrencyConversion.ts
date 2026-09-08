@@ -56,7 +56,7 @@ export function useCurrencyConversion(): CurrencyConversionResult {
       // En divisas extranjeras (USD / EUR) siempre mostrar al menos 2 decimales para evitar pérdida de precisión
       const forceDecimals = currency !== "ARS";
       const showDec = forceDecimals || settings.showDecimals;
-      const formatted = Math.abs(val).toLocaleString("en-US", {
+      const formatted = Math.abs(val).toLocaleString("es-AR", {
         minimumFractionDigits: showDec ? 2 : 0,
         maximumFractionDigits: showDec ? 2 : 0,
       });

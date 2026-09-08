@@ -131,7 +131,7 @@ export function matchAccount(accountHint: string | undefined, accounts: Account[
 }
 
 /**
- * Reconcilia la entidad extraída por IA con los datos reales del usuario en m3
+ * Reconcilia la entidad extraída por IA con los datos reales del usuario en IMPERO
  */
 export function reconcileExpenseWithUserEntities(
   extracted: WhatsAppExtractedExpense,

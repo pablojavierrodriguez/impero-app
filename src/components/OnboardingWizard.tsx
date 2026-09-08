@@ -54,15 +54,15 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
                 <Sparkles className="w-10 h-10 text-primary-foreground" />
               </div>
               <h1 className="text-2xl font-bold font-display text-foreground text-center mb-1">
-                m3
+                IMPERO
               </h1>
               <p className="text-xs font-semibold text-primary uppercase tracking-wider text-center mb-3">
-                Money Master
+                Dominio Propio Financiero
               </p>
               <p className="text-muted-foreground text-center text-sm mb-8">
                 {selectedLang === "es"
-                  ? "Tu asistente financiero personal. Controlá tus gastos, ahorrá más y alcanzá tus metas."
-                  : "Your personal finance assistant. Track expenses, save more, and reach your goals."}
+                  ? "El dominio propio no se impone por fuerza de voluntad. Se cultiva. Finanzas personales soberanas y en orden."
+                  : "Financial self-mastery is not forced. It is cultivated. Sovereign personal finances in true clarity."}
               </p>
             </>
           )}

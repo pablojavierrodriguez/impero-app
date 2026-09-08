@@ -1,23 +1,19 @@
-# m3 — Money Mind Master
+# IMPERO — Dominio Propio Financiero
 
 <p align="center">
-  <img src="public/icons/icon.svg" width="128" height="128" alt="m3 logo" />
+  <img src="public/icons/icon.svg" width="128" height="128" alt="IMPERO logo" />
   <br />
-  <strong>Money • Mind • Mastery</strong>
+  <strong>Autogobierno • Claridad • Soberanía</strong>
   <br />
-  <em>Tu dinero. Tu mente. Tu control.</em>
+  <em>El dominio propio no se impone por fuerza de voluntad. Se cultiva.</em>
 </p>
 
-> **Finanzas personales soberanas, transparentes y en tres dimensiones ($m^3$).**  
-> 1. **Identidad:** *Money Mind Master* (el dominio sereno y consciente de tu economía).  
-> 2. **Pilares:** *Money • Mind • Mastery* (recurso, mentalidad y maestría operativa).  
-> 3. **Visión 3D:** Pasado (auditoría), Presente (flujo y cuotas reales) y Futuro (proyecciones de liquidez).  
->
-> Aplicación open-source y self-hosted diseñada para eliminar la fricción de registro, dominar cuotas diferidas reales y proyectar tu flujo de fondos con claridad absoluta.
+> **Finanzas personales soberanas, privadas y con proyección certera.**  
+> Aplicación open-source y self-hosted diseñada para eliminar la fricción de registro mediante IA (WhatsApp con audio, fotos o texto), proyectar el flujo de caja a 30/60/90 días y gobernar tu economía personal con serenidad y templanza.
 
 ---
 
-## 🌟 ¿Por qué m3? (Ventajas frente a soluciones tradicionales)
+## 🌟 ¿Por qué IMPERO? (Ventajas frente a soluciones tradicionales)
 
 A diferencia de aplicaciones comerciales cerradas (**Mobills**, **Wallet by BudgetBakers**, etc.) que cobran suscripciones mensuales recurrentes o venden datos a redes de crédito:
 
@@ -77,8 +73,8 @@ Para máxima privacidad sin tocar la nube:
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/tu-usuario/m3.git
-cd m3
+git clone https://github.com/tu-usuario/impero.git
+cd impero
 
 # 2. Instalar dependencias
 npm install
@@ -120,4 +116,4 @@ La app estará disponible en `http://localhost:5173` y la base en `postgresql://
 
 ## 📄 Licencia
 
-Software libre bajo licencia MIT. Desarrollado con excelencia por y para personas que valoran la soberanía de sus finanzas. m3: Money • Mind • Mastery.
+Software libre bajo licencia MIT. Desarrollado con excelencia por y para personas que valoran la soberanía de sus finanzas. IMPERO: Autogobierno • Claridad • Soberanía.

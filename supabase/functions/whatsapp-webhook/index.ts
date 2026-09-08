@@ -90,7 +90,7 @@ serve(async (req: Request) => {
             whatsappPhoneId,
             whatsappAccessToken,
             senderPhone,
-            "👋 ¡Hola! Soy el asistente de finanzas de *m3 (Money Master)*.\n\nTu número no está vinculado a ninguna cuenta. Por favor ingresá a la app, abrí *Ajustes* ⚙️ y seleccioná *Integración con WhatsApp* para vincular tu teléfono."
+            "👋 ¡Hola! Soy el asistente financiero de *IMPERO*.\n\nTu número no está vinculado a ninguna cuenta. Por favor ingresá a la app, abrí *Ajustes* ⚙️ y seleccioná *Integración con WhatsApp* para vincular tu teléfono."
           );
         }
         return new Response(JSON.stringify({ status: "unregistered_sender" }), {

@@ -7,6 +7,7 @@ import { useSettings } from "@/lib/settings-store";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { calculateBudgetMetrics, calculateSuggestedBudget, calculateEffectiveBudgetAmount } from "@/lib/budget-utils";
+import { formatThousandsInput, parseThousandsInput } from "@/lib/utils";
 
 interface BudgetManagerProps {
   budgets: Budget[];
@@ -39,12 +40,13 @@ export function BudgetManager({
     if (!selectedCat) return;
     const suggested = calculateSuggestedBudget(transactions, selectedCat, 3, now);
     if (suggested > 0) {
-      setLimitAmount(suggested.toString());
+      setLimitAmount(formatThousandsInput(suggested));
     }
   };
 
   const handleAdd = () => {
-    if (!selectedCat || !parseFloat(limitAmount)) return;
+    const parsedLimit = parseThousandsInput(limitAmount);
+    if (!selectedCat || !parsedLimit) return;
     // Computar remanente del mes previo si tiene rollover habilitado
     const prevMonth = month === 0 ? 11 : month - 1;
     const prevYear = month === 0 ? year - 1 : year;
@@ -58,7 +60,7 @@ export function BudgetManager({
     onAdd({
       id: Date.now().toString(),
       categoryId: selectedCat,
-      amount: parseFloat(limitAmount),
+      amount: parsedLimit,
       month, year,
       enableRollover,
       accumulatedRollover: initialAccumulated,
@@ -117,9 +119,9 @@ export function BudgetManager({
             )}
           </div>
 
-          <input type="number" value={limitAmount} onChange={e => setLimitAmount(e.target.value)}
-            placeholder="0.00"
-            className="w-full h-10 px-3 rounded-[10px] bg-input border border-border text-foreground text-[14px] mb-3 focus:outline-none focus:ring-1 focus:ring-ring" />
+          <input type="text" inputMode="decimal" value={limitAmount} onChange={e => setLimitAmount(formatThousandsInput(e.target.value))}
+            placeholder="0,00"
+            className="w-full h-10 px-3 rounded-[10px] bg-input border border-border text-foreground font-mono-data text-[14px] mb-3 focus:outline-none focus:ring-1 focus:ring-ring" />
 
           {/* Rollover Dinámico Switch */}
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-secondary/40 border border-border/40 mb-3">
@@ -130,7 +132,7 @@ export function BudgetManager({
             <Switch checked={enableRollover} onCheckedChange={setEnableRollover} />
           </div>
 
-          <button onClick={handleAdd} disabled={!selectedCat || !parseFloat(limitAmount)}
+          <button onClick={handleAdd} disabled={!selectedCat || !parseThousandsInput(limitAmount)}
             className="w-full h-10 rounded-[10px] bg-primary text-primary-foreground text-[14px] font-medium disabled:opacity-40 active:scale-[0.99] transition-all">
             {t("common.save")}
           </button>

@@ -1,7 +1,7 @@
 {
-  "name": "m3 — Money Mind Master",
-  "short_name": "m3",
-  "description": "Tu dinero. Tu mente. Tu control. La app para dominar tus números sin perder la cabeza.",
+  "name": "IMPERO — Dominio Propio Financiero",
+  "short_name": "IMPERO",
+  "description": "El dominio propio no se impone por fuerza de voluntad. Se cultiva. Finanzas personales soberanas, privadas y con proyección certera.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

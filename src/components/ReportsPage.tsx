@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useSettings } from "@/lib/settings-store";
-import { Transaction, Account } from "@/lib/types";
+import { Transaction, Account, Category } from "@/lib/types";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { TrendingUp, TrendingDown, Download, PiggyBank, Calendar } from "lucide-react";
 import { generateTransactionsCsv, downloadCsvFile } from "@/lib/export-utils";
@@ -97,7 +97,7 @@ export function ReportsPage({
       }, {});
 
       const csvContent = generateTransactionsCsv(filteredTransactions, accountsMap);
-      const filename = `m3_transacciones_${dateRange}_${new Date().toISOString().split("T")[0]}.csv`;
+      const filename = `impero_transacciones_${dateRange}_${new Date().toISOString().split("T")[0]}.csv`;
       downloadCsvFile(csvContent, filename);
       toast.success(t("report.exportSuccess"));
     } catch {

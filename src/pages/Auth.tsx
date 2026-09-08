@@ -65,10 +65,10 @@ export default function AuthPage() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 rounded-2xl overflow-hidden border border-border/60 bg-background/50 flex items-center justify-center mb-4 shadow-lg">
-            <img src="/icons/icon.svg" alt="m3 logo" className="w-full h-full object-cover" />
+            <img src="/icons/icon.svg" alt="IMPERO logo" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-2xl font-bold font-display text-foreground">m3</h1>
-          <p className="text-xs font-medium text-primary tracking-wider uppercase mb-1">Money • Mind • Mastery</p>
+          <h1 className="text-2xl font-bold font-display text-foreground">IMPERO</h1>
+          <p className="text-xs font-medium text-primary tracking-wider uppercase mb-1">Autogobierno • Claridad • Soberanía</p>
           <p className="text-sm text-muted-foreground mt-1">
             {mode === "login" && "Iniciá sesión para continuar"}
             {mode === "signup" && "Creá tu cuenta gratuita"}

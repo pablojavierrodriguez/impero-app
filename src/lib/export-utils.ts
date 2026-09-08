@@ -70,7 +70,7 @@ export function generateTransactionsCsv(
 /**
  * Triggers a browser download of the generated CSV file
  */
-export function downloadCsvFile(content: string, filename = "transacciones_m3.csv"): void {
+export function downloadCsvFile(content: string, filename = "transacciones_impero.csv"): void {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

@@ -10,10 +10,10 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
     navigator.serviceWorker
       .register("/sw.js")
       .then((reg) => {
-        console.info("[m3 PWA] Service Worker registrado:", reg.scope);
+        console.info("[IMPERO PWA] Service Worker registrado:", reg.scope);
       })
       .catch((err) => {
-        console.warn("[m3 PWA] Error al registrar Service Worker:", err);
+        console.warn("[IMPERO PWA] Error al registrar Service Worker:", err);
       });
   });
 }
