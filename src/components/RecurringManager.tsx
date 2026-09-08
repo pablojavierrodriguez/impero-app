@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Plus, Trash2, Pause, Play } from "lucide-react";
+import { Plus, Trash2, Pause, Play, Pencil, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { RecurringTransaction, Category, Account, type RecurrenceFrequency } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { useSettings } from "@/lib/settings-store";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 interface RecurringManagerProps {
   recurringTxs: RecurringTransaction[];
@@ -23,6 +24,7 @@ export function RecurringManager({
 }: RecurringManagerProps) {
   const { formatAmount, t } = useSettings();
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [type, setType] = useState<"income" | "expense">("expense");
   const [amount, setAmount] = useState("");
   const [desc, setDesc] = useState("");
@@ -30,21 +32,68 @@ export function RecurringManager({
   const [accId, setAccId] = useState(accounts[0]?.id ?? "");
   const [freq, setFreq] = useState<RecurrenceFrequency>("monthly");
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const filteredCats = categories.filter(c => c.type === type && !c.archived);
 
   const freqLabel = (f: RecurrenceFrequency) => t(`recurring.${f}` as any);
 
-  const handleAdd = () => {
+  const handleStartEdit = (rtx: RecurringTransaction) => {
+    setEditingId(rtx.id);
+    setType(rtx.type);
+    setAmount(rtx.amount.toString());
+    setDesc(rtx.description);
+    setCatId(rtx.category.id);
+    setAccId(rtx.accountId);
+    setFreq(rtx.frequency);
+    setStartDate(format(new Date(rtx.nextDate), "yyyy-MM-dd"));
+    setShowForm(true);
+  };
+
+  const handleCancelForm = () => {
+    setEditingId(null);
+    setAmount("");
+    setDesc("");
+    setCatId("");
+    setShowForm(false);
+  };
+
+  const handleSubmit = () => {
+    const selectedAccId = accId || accounts[0]?.id;
     const cat = categories.find(c => c.id === catId);
-    if (!cat || !parseFloat(amount)) return;
-    const start = new Date(startDate);
+    if (!cat || !parseFloat(amount) || !selectedAccId) return;
+    const start = parseLocalDate(startDate);
+    const selectedAccount = accounts.find(a => a.id === selectedAccId);
+
+    if (editingId) {
+      onUpdate(editingId, {
+        amount: parseFloat(amount),
+        description: desc || cat.name,
+        category: cat,
+        type,
+        accountId: selectedAccId,
+        frequency: freq,
+        nextDate: start,
+        currency: (selectedAccount?.currency as any) || "ARS",
+      });
+      handleCancelForm();
+      return;
+    }
+
     onAdd({
-      id: Date.now().toString(), amount: parseFloat(amount), description: desc || cat.name,
-      category: cat, type, accountId: accId, frequency: freq,
-      startDate: start, nextDate: start, paused: false,
+      id: Date.now().toString(),
+      amount: parseFloat(amount),
+      description: desc || cat.name,
+      category: cat,
+      type,
+      accountId: selectedAccId,
+      frequency: freq,
+      startDate: start,
+      nextDate: start,
+      paused: false,
+      currency: (selectedAccount?.currency as any) || "ARS",
     });
-    setAmount(""); setDesc(""); setCatId(""); setShowForm(false);
+    handleCancelForm();
   };
 
   return (
@@ -54,15 +103,23 @@ export function RecurringManager({
           <h1 className="text-[20px] font-display font-semibold text-foreground">{t("recurring.title")}</h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">{t("recurring.subtitle")}</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
+        <button onClick={() => showForm ? handleCancelForm() : setShowForm(true)}
           className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-          <Plus className="w-4 h-4 text-primary-foreground" />
+          {showForm ? <X className="w-4 h-4 text-primary-foreground" /> : <Plus className="w-4 h-4 text-primary-foreground" />}
         </button>
       </div>
 
       {showForm && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
           className="mx-4 mb-4 p-4 rounded-[16px] bg-card border border-border/50">
+          {editingId && (
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/40">
+              <span className="text-xs font-semibold text-primary">{t("common.edit")}</span>
+              <button onClick={handleCancelForm} className="text-xs text-muted-foreground hover:text-foreground">
+                {t("common.cancel")}
+              </button>
+            </div>
+          )}
           <div className="flex justify-center mb-3">
             <div className="flex bg-secondary rounded-full p-0.5">
               <button onClick={() => { setType("expense"); setCatId(""); }}
@@ -125,7 +182,7 @@ export function RecurringManager({
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
             className="w-full h-10 px-3 rounded-[10px] bg-input border border-border text-foreground text-[14px] mb-3 focus:outline-none" />
 
-          <button onClick={handleAdd} disabled={!catId || !parseFloat(amount)}
+          <button onClick={handleSubmit} disabled={!catId || !parseFloat(amount)}
             className="w-full h-10 rounded-[10px] bg-primary text-primary-foreground text-[14px] font-medium disabled:opacity-40">
             {t("common.save")}
           </button>
@@ -163,13 +220,37 @@ export function RecurringManager({
               <span className="text-[11px] text-muted-foreground">
                 {t("recurring.nextDate")}: {format(new Date(rtx.nextDate), "MMM d, yyyy")}
               </span>
-              <div className="flex gap-1">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleStartEdit(rtx)}
+                  title={t("common.edit")}
+                  className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
                 <button onClick={() => onTogglePause(rtx.id)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
                   {rtx.paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
                 </button>
-                <button onClick={() => onDelete(rtx.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {confirmDeleteId === rtx.id ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="px-2 py-0.5 rounded text-[11px] text-muted-foreground hover:bg-muted transition-colors"
+                    >
+                      {t("common.cancel")}
+                    </button>
+                    <button
+                      onClick={() => { onDelete(rtx.id); setConfirmDeleteId(null); }}
+                      className="px-2 py-0.5 rounded text-[11px] bg-destructive text-destructive-foreground font-medium transition-colors"
+                    >
+                      {t("common.delete")}
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmDeleteId(rtx.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Transaction, Category, TransactionType } from "@/lib/types";
+import { Currency } from "@/lib/settings-types";
 import { Database } from "@/integrations/supabase/types";
 
 type TransactionUpdate = Database["public"]["Tables"]["transactions"]["Update"];
@@ -32,6 +33,7 @@ export async function fetchTransactions(categories: Category[]): Promise<Transac
       date: new Date(row.date),
       type: row.type as TransactionType,
       accountId: row.account_id,
+      currency: (row.currency as Currency) || "ARS",
       isCardPayment: row.is_card_payment || false,
       isTransfer: row.is_transfer || false,
       tags: row.tag_ids || [],
@@ -66,6 +68,7 @@ export async function insertTransaction(
       date: tx.date.toISOString(),
       type: tx.type,
       account_id: tx.accountId,
+      currency: tx.currency || "ARS",
       is_card_payment: tx.isCardPayment || false,
       is_transfer: tx.isTransfer || false,
       tag_ids: tx.tags || [],
@@ -84,6 +87,7 @@ export async function insertTransaction(
   return {
     ...tx,
     id: data.id,
+    currency: (data.currency as Currency) || tx.currency || "ARS",
   };
 }
 
@@ -101,6 +105,7 @@ export async function insertTransactionsBatch(
     date: tx.date.toISOString(),
     type: tx.type,
     account_id: tx.accountId,
+    currency: tx.currency || "ARS",
     is_card_payment: tx.isCardPayment || false,
     is_transfer: tx.isTransfer || false,
     tag_ids: tx.tags || [],
@@ -127,6 +132,7 @@ export async function updateTransactionRemote(
   if (updates.date !== undefined) payload.date = updates.date.toISOString();
   if (updates.type !== undefined) payload.type = updates.type;
   if (updates.accountId !== undefined) payload.account_id = updates.accountId;
+  if (updates.currency !== undefined) payload.currency = updates.currency;
   if (updates.isCardPayment !== undefined) payload.is_card_payment = updates.isCardPayment;
   if (updates.isTransfer !== undefined) payload.is_transfer = updates.isTransfer;
   if (updates.tags !== undefined) payload.tag_ids = updates.tags;

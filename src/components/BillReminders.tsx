@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Plus, Trash2, Check, AlertCircle, Clock } from "lucide-react";
+import { Plus, Trash2, Check, AlertCircle, Clock, Pencil, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { BillReminder, Account, Category, type RecurrenceFrequency } from "@/lib/types";
 import { useSettings } from "@/lib/settings-store";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 interface BillRemindersProps {
   bills: BillReminder[];
@@ -23,6 +24,7 @@ export function BillReminders({
 }: BillRemindersProps) {
   const { formatAmount, t } = useSettings();
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -31,19 +33,56 @@ export function BillReminders({
   const [accId, setAccId] = useState(accounts[0]?.id ?? "");
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payAccId, setPayAccId] = useState(accounts[0]?.id ?? "");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const freqLabel = (f: RecurrenceFrequency) => t(`recurring.${f}` as any);
   const pending = getPendingBills();
 
-  const handleAdd = () => {
+  const handleStartEdit = (bill: BillReminder) => {
+    setEditingId(bill.id);
+    setName(bill.name);
+    setAmount(bill.amount.toString());
+    setDueDate(format(new Date(bill.dueDate), "yyyy-MM-dd"));
+    setFreq(bill.frequency);
+    setCatId(bill.categoryId || "");
+    setAccId(bill.accountId || accounts[0]?.id || "");
+    setShowForm(true);
+  };
+
+  const handleCancelForm = () => {
+    setEditingId(null);
+    setName("");
+    setAmount("");
+    setShowForm(false);
+  };
+
+  const handleSubmit = () => {
     if (!name || !parseFloat(amount)) return;
+    const due = parseLocalDate(dueDate);
+    if (editingId) {
+      onUpdate(editingId, {
+        name,
+        amount: parseFloat(amount),
+        dueDate: due,
+        frequency: freq,
+        categoryId: catId || undefined,
+        accountId: accId,
+      });
+      handleCancelForm();
+      return;
+    }
     onAdd({
-      id: Date.now().toString(), name, amount: parseFloat(amount),
-      dueDate: new Date(dueDate), frequency: freq,
-      categoryId: catId || undefined, accountId: accId,
-      status: "pending", autoPay: false,
+      id: Date.now().toString(),
+      name,
+      amount: parseFloat(amount),
+      dueDate: due,
+      frequency: freq,
+      categoryId: catId || undefined,
+      accountId: accId,
+      status: "pending",
+      autoPay: false,
     });
-    setName(""); setAmount(""); setShowForm(false);
+    handleCancelForm();
   };
 
   const statusIcon = (status: string) => {
@@ -69,15 +108,23 @@ export function BillReminders({
           <h1 className="text-[20px] font-display font-semibold text-foreground">{t("bill.title")}</h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">{t("bill.subtitle")}</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
+        <button onClick={() => showForm ? handleCancelForm() : setShowForm(true)}
           className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-          <Plus className="w-4 h-4 text-primary-foreground" />
+          {showForm ? <X className="w-4 h-4 text-primary-foreground" /> : <Plus className="w-4 h-4 text-primary-foreground" />}
         </button>
       </div>
 
       {showForm && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
           className="mx-4 mb-4 p-4 rounded-[16px] bg-card border border-border/50">
+          {editingId && (
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/40">
+              <span className="text-xs font-semibold text-primary">{t("common.edit")}</span>
+              <button onClick={handleCancelForm} className="text-xs text-muted-foreground hover:text-foreground">
+                {t("common.cancel")}
+              </button>
+            </div>
+          )}
           <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t("bill.namePlaceholder")}
             className="w-full h-10 px-3 rounded-[10px] bg-input border border-border text-foreground text-[14px] mb-3 focus:outline-none focus:ring-1 focus:ring-ring" />
           <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder={t("txedit.amount")}
@@ -96,7 +143,7 @@ export function BillReminders({
               </button>
             ))}
           </div>
-          <button onClick={handleAdd} disabled={!name || !parseFloat(amount)}
+          <button onClick={handleSubmit} disabled={!name || !parseFloat(amount)}
             className="w-full h-10 rounded-[10px] bg-primary text-primary-foreground text-[14px] font-medium disabled:opacity-40">
             {t("common.save")}
           </button>
@@ -148,9 +195,33 @@ export function BillReminders({
                     </button>
                   )
                 )}
-                <button onClick={() => onDelete(bill.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive">
-                  <Trash2 className="w-3.5 h-3.5" />
+                <button
+                  onClick={() => handleStartEdit(bill)}
+                  title={t("common.edit")}
+                  className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
                 </button>
+                {confirmDeleteId === bill.id ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="px-2 py-0.5 rounded text-[11px] text-muted-foreground hover:bg-muted transition-colors"
+                    >
+                      {t("common.cancel")}
+                    </button>
+                    <button
+                      onClick={() => { onDelete(bill.id); setConfirmDeleteId(null); }}
+                      className="px-2 py-0.5 rounded text-[11px] bg-destructive text-destructive-foreground font-medium transition-colors"
+                    >
+                      {t("common.delete")}
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmDeleteId(bill.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>

@@ -54,6 +54,24 @@ vi.mock("@/services/planning.service", () => ({
   insertBill: vi.fn().mockResolvedValue({}),
   updateBillRemote: vi.fn().mockResolvedValue(undefined),
   deleteBillRemote: vi.fn().mockResolvedValue(undefined),
+  fetchRecurringTransactions: vi.fn().mockResolvedValue([]),
+  insertRecurringTransaction: vi.fn().mockResolvedValue({}),
+  updateRecurringTransactionRemote: vi.fn().mockResolvedValue(undefined),
+  deleteRecurringTransactionRemote: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/services/tags.service", () => ({
+  fetchTags: vi.fn().mockResolvedValue([]),
+  insertTag: vi.fn().mockResolvedValue({ id: "test-tag", name: "Test", color: "bg-blue-500" }),
+  updateTagRemote: vi.fn().mockResolvedValue(undefined),
+  deleteTagRemote: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/services/rules.service", () => ({
+  fetchRules: vi.fn().mockResolvedValue([]),
+  insertRule: vi.fn().mockResolvedValue({ id: "test-rule", name: "Rule", isActive: true, priority: 0, conditions: [], actions: {}, createdAt: new Date() }),
+  updateRuleRemote: vi.fn().mockResolvedValue(undefined),
+  deleteRuleRemote: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe("Index Page Smoke & Render Test", () => {

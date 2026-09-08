@@ -17,33 +17,79 @@ Guía operativa y scripts de base de datos local (Docker) para `m3`.
 
 ---
 
-## Comandos Operativos
+## Estructura de Archivos de DB
 
-### 1. Iniciar o verificar entorno local
-```bash
-supabase start
+```
+supabase/
+├── migrations/
+│   ├── 00000000000000_schema_foundation.sql   ← FUENTE DE VERDAD: esquema completo consolidado
+│   ├── delta/                                  ← Deltas para aplicar en cloud (sin borrar datos)
+│   │   └── YYYYMMDD_<nombre>.sql
+│   └── archive/                                ← Histórico de migraciones anteriores (solo referencia)
+├── releases/                                   ← Resúmenes por versión de producto
+└── snippets/                                   ← Queries ad-hoc de Studio (no son migraciones)
 ```
 
-### 2. Reiniciar base de datos local y correr seed
+---
+
+## Flujo Obligatorio para Cambios de Esquema
+
+> [!IMPORTANT]
+> **Ante cualquier cambio de DB (nueva tabla, columna, índice, política RLS):**
+
+### Paso 1 — Modificar la migración base
+
+Editar `supabase/migrations/00000000000000_schema_foundation.sql`:
+- Agregar la nueva columna **directamente en la definición `CREATE TABLE`** (no como `ALTER TABLE` al final).
+- Para nuevas tablas, agregarlas en la sección correspondiente del archivo.
+- Mantener `IF NOT EXISTS` / `OR REPLACE` en todo para idempotencia.
+
+### Paso 2 — Crear el delta para cloud
+
+Crear `supabase/migrations/delta/YYYYMMDD_<nombre>.sql` con:
+- Solo los `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` o `CREATE TABLE IF NOT EXISTS` necesarios.
+- El delta debe ser idempotente (se puede ejecutar múltiples veces sin error).
+- No incluir `DROP` de datos existentes.
+
+### Paso 3 — Validar localmente
+
 ```bash
 supabase db reset
 ```
 
-### 3. Crear nueva migración
-```bash
-supabase migration new <nombre_migracion>
-```
+Esto aplica `00000000000000_schema_foundation.sql` desde cero. Debe completarse sin errores.
 
-### 4. Auditoría obligatoria de seguridad y performance (OBLIGATORIO antes de cerrar tarea de DB)
+### Paso 4 — Auditoría obligatoria (antes de cerrar tarea)
+
 ```bash
 supabase db advisors --local
 ```
 
-### 5. Consolidación por Release Version (Regla de Mantenimiento)
-Mantener siempre sincronizadas las migraciones incrementales en `supabase/migrations/` y generar deltas consolidados por versión en `supabase/releases/`:
-- `supabase/releases/release_v1.0.0_core_foundation.sql`: Inicialización desde cero de tablas base, RLS y Storage.
-- `supabase/releases/release_v1.1.0_ai_whatsapp_and_multicurrency.sql`: Delta con bot de WhatsApp y soporte multi-moneda.
-- Cada nuevo paquete de versión debe contar con su script consolidado e idempotente (`IF NOT EXISTS`) para despliegues limpios.
+### Paso 5 — Aplicar en cloud
+
+Ejecutar el delta en Supabase Studio (SQL Editor) o via psql:
+```bash
+psql postgresql://postgres:<password>@<host>:5432/postgres -f supabase/migrations/delta/YYYYMMDD_<nombre>.sql
+```
+
+---
+
+## Comandos Operativos
+
+### Iniciar o verificar entorno local
+```bash
+supabase start
+```
+
+### Reiniciar base de datos local y correr seed
+```bash
+supabase db reset
+```
+
+### Crear nueva migración incremental (legacy — NO usar, seguir flujo de arriba)
+```bash
+supabase migration new <nombre_migracion>
+```
 
 ---
 

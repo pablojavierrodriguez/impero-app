@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Archive, Pencil, Trash2, ArchiveRestore, X, ArrowLeftRight, ArrowUpDown } from "lucide-react";
+import { Plus, Archive, Pencil, Trash2, ArchiveRestore, X, ArrowLeftRight, ArrowUpDown, RefreshCw, AlertTriangle } from "lucide-react";
 import { Account, CATEGORY_COLORS, ACCOUNT_ICONS, ACCOUNT_TYPES, AccountType, Transaction } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { format } from "date-fns";
@@ -18,6 +18,8 @@ interface AccountManagerProps {
   onArchive: (id: string) => void;
   onUnarchive: (id: string) => void;
   onAdjustBalance: (accountId: string, newBalance: number) => void;
+  onSyncBalance?: (accountId: string) => void;
+  recalculateAccountBalance?: (accountId: string) => number | null;
   onSelectTransaction?: (tx: Transaction) => void;
   initialSelectedAccountId?: string | null;
   onClearInitialAccount?: () => void;
@@ -27,13 +29,15 @@ type ViewMode = "list" | "create" | "edit" | "archived" | "detail" | "adjust";
 
 export function AccountManager({
   accounts, getActiveAccounts, getArchivedAccounts, getTransactionsByAccount,
-  onAdd, onUpdate, onArchive, onUnarchive, onAdjustBalance, onSelectTransaction,
+  onAdd, onUpdate, onArchive, onUnarchive, onAdjustBalance, onSyncBalance,
+  recalculateAccountBalance, onSelectTransaction,
   initialSelectedAccountId, onClearInitialAccount,
 }: AccountManagerProps) {
   const initialAcc = initialSelectedAccountId ? accounts.find(a => a.id === initialSelectedAccountId) : null;
   const [view, setView] = useState<ViewMode>(initialAcc ? "detail" : "list");
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [detailAccount, setDetailAccount] = useState<Account | null>(initialAcc || null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(initialAcc ? initialAcc.id : null);
+  const detailAccount = selectedAccountId ? accounts.find(a => a.id === selectedAccountId) || null : null;
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -72,12 +76,12 @@ export function AccountManager({
   };
 
   const openDetail = (acc: Account) => {
-    setDetailAccount(acc);
+    setSelectedAccountId(acc.id);
     setView("detail");
   };
 
   const openAdjust = (acc: Account) => {
-    setDetailAccount(acc);
+    setSelectedAccountId(acc.id);
     setAdjustBalance(acc.balance.toFixed(2));
     setView("adjust");
   };
@@ -400,18 +404,52 @@ export function AccountManager({
                       </div>
                     </div>
                   </div>
+
+                  {/* Indicador de discrepancia entre balance y transacciones */}
+                  {(() => {
+                    if (!recalculateAccountBalance) return null;
+                    const computed = recalculateAccountBalance(detailAccount.id);
+                    if (computed === null) return null;
+                    const diff = Math.abs(computed - detailAccount.balance);
+                    const accCur = (detailAccount.currency as Currency) || "ARS";
+                    // Mostrar sólo si la diferencia supera 1 unidad de la moneda
+                    if (diff < 1) return null;
+                    return (
+                      <div className="mb-3 p-2.5 rounded-[10px] bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] text-amber-500 font-medium">Inconsistencia detectada</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Balance guardado: <span className="font-mono-data">{formatInCurrency(detailAccount.balance, accCur)}</span>
+                            {" · "}
+                            Derivado de transacciones: <span className="font-mono-data">{formatInCurrency(computed, accCur)}</span>
+                          </p>
+                        </div>
+                        {onSyncBalance && (
+                          <button
+                            onClick={() => { onSyncBalance(detailAccount.id); setView("list"); }}
+                            className="flex-shrink-0 px-2 py-1 rounded-lg bg-amber-500/20 text-amber-500 text-[11px] font-medium hover:bg-amber-500/30 transition-colors flex items-center gap-1"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            Sincronizar
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   <div className="flex gap-2">
                     <button
                       onClick={() => openAdjust(detailAccount)}
                       className="flex-1 h-9 rounded-[10px] bg-primary/10 text-primary text-[13px] font-medium flex items-center justify-center gap-1.5"
                     >
-                      <ArrowUpDown className="w-3.5 h-3.5" /> Adjust
+                      <ArrowUpDown className="w-3.5 h-3.5" /> Ajustar
                     </button>
                     <button
                       onClick={() => openEdit(detailAccount)}
                       className="flex-1 h-9 rounded-[10px] bg-secondary text-foreground text-[13px] font-medium flex items-center justify-center gap-1.5"
                     >
-                      <Pencil className="w-3.5 h-3.5" /> Edit
+                      <Pencil className="w-3.5 h-3.5" /> Editar
                     </button>
                   </div>
                 </div>

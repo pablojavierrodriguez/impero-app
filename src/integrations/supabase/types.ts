@@ -310,6 +310,7 @@ export type Database = {
           type: string
           updated_at: string
           user_id: string
+          currency: string | null
         }
         Insert: {
           account_id: string
@@ -326,6 +327,7 @@ export type Database = {
           type: string
           updated_at?: string
           user_id: string
+          currency?: string | null
         }
         Update: {
           account_id?: string
@@ -342,6 +344,7 @@ export type Database = {
           type?: string
           updated_at?: string
           user_id?: string
+          currency?: string | null
         }
         Relationships: [
           {
@@ -407,6 +410,7 @@ export type Database = {
           type: string
           updated_at: string
           user_id: string
+          currency?: string | null
         }
         Insert: {
           account_id: string
@@ -430,6 +434,7 @@ export type Database = {
           type: string
           updated_at?: string
           user_id: string
+          currency?: string | null
         }
         Update: {
           account_id?: string
@@ -453,6 +458,7 @@ export type Database = {
           type?: string
           updated_at?: string
           user_id?: string
+          currency?: string | null
         }
         Relationships: [
           {

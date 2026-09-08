@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Calendar, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { format, addMonths, subMonths, isSameMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 interface MonthSelectorProps {
   currentDate: Date;
   onChangeDate: (date: Date) => void;
+  onCustomizeDashboard?: () => void;
 }
 
 const MONTH_NAMES = [
@@ -14,7 +15,7 @@ const MONTH_NAMES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
-export function MonthSelector({ currentDate, onChangeDate }: MonthSelectorProps) {
+export function MonthSelector({ currentDate, onChangeDate, onCustomizeDashboard }: MonthSelectorProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const now = useMemo(() => new Date(), []);
   const isCurrentMonth = isSameMonth(currentDate, now);
@@ -81,15 +82,29 @@ export function MonthSelector({ currentDate, onChangeDate }: MonthSelectorProps)
           )}
         </div>
 
-        {/* Flecha derecha (mes siguiente) */}
-        <button
-          type="button"
-          onClick={handleNext}
-          aria-label="Mes siguiente"
-          className="w-8 h-8 theme-pill-btn flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 transition-all"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
+        {/* Flechas y acciones derecha */}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handleNext}
+            aria-label="Mes siguiente"
+            className="w-8 h-8 theme-pill-btn flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 transition-all"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+
+          {onCustomizeDashboard && (
+            <button
+              type="button"
+              onClick={onCustomizeDashboard}
+              title="Personalizar Dashboard"
+              aria-label="Personalizar Dashboard"
+              className="w-8 h-8 theme-pill-btn flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 active:scale-95 transition-all ml-0.5"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Popover cuadrícula de 12 meses */}

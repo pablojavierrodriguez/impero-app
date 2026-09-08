@@ -101,7 +101,7 @@ CREATE TABLE public.transactions (
   account_id UUID REFERENCES public.accounts(id) ON DELETE CASCADE NOT NULL,
   is_card_payment BOOLEAN DEFAULT false,
   is_transfer BOOLEAN DEFAULT false,
-  tag_ids UUID[] DEFAULT '{}',
+  tag_ids text[] DEFAULT '{}',
   note TEXT,
   receipt_url TEXT,
   recurring_id UUID,
@@ -164,7 +164,7 @@ CREATE TABLE public.recurring_transactions (
   start_date TIMESTAMPTZ NOT NULL DEFAULT now(),
   next_date TIMESTAMPTZ NOT NULL DEFAULT now(),
   paused BOOLEAN NOT NULL DEFAULT false,
-  tag_ids UUID[] DEFAULT '{}',
+  tag_ids text[] DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

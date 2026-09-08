@@ -12,7 +12,7 @@ interface NetWorthChartProps {
 }
 
 export function NetWorthChart({ accounts, transactions }: NetWorthChartProps) {
-  const { formatAmount } = useSettings();
+  const { formatAmount, t } = useSettings();
   const { calculateConsolidatedBalance } = useCurrencyConversion();
   const { maskAmount } = usePrivacy();
   const [range, setRange] = useState<"30D" | "90D">("30D");
@@ -65,9 +65,9 @@ export function NetWorthChart({ accounts, transactions }: NetWorthChartProps) {
       <div className="card-inner">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              Evolución Patrimonial
-            </span>
+            <h2 className="text-[13px] text-muted-foreground font-medium font-display">
+              {t("settings.sectionNetWorth") || "Evolución patrimonial"}
+            </h2>
             <div className="flex items-baseline gap-2 mt-0.5">
               <span className="font-mono-data text-[22px] font-semibold text-foreground">
                 {maskAmount(formatAmount(currentNetWorth))}

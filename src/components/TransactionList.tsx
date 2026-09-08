@@ -1,14 +1,17 @@
 import { Transaction, Account, getStatementPeriod, getPaymentDueDate } from "@/lib/types";
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { format } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
 import { CategoryIcon } from "./CategoryIcon";
 import { Trash2, Pencil, ArrowLeftRight, CreditCard, ChevronDown, DollarSign, Calculator } from "lucide-react";
-import { useSettings } from "@/lib/settings-store";
+import { useSettings, Currency } from "@/lib/settings-store";
+import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
 import { usePrivacy } from "@/contexts/PrivacyContext";
 import { EmptyState } from "./EmptyState";
+import { toast } from "sonner";
 
 interface TransactionListProps {
+  title?: string;
   transactions: Transaction[];
   accounts?: Account[];
   onSelect?: (tx: Transaction) => void;
@@ -17,24 +20,91 @@ interface TransactionListProps {
 }
 
 function SwipeableTransaction({
-  tx, onSelect, onDelete, formatAmount,
+  tx,
+  account,
+  currentCurrency,
+  convert,
+  formatInCurrency,
+  onSelect,
+  onDelete,
 }: {
   tx: Transaction;
+  account?: Account;
+  currentCurrency: Currency;
+  convert: (amount: number, from: Currency, to: Currency) => number;
+  formatInCurrency: (amount: number, currency: Currency, opts?: { sign?: string; abs?: boolean }) => string;
   onSelect?: (tx: Transaction) => void;
   onDelete?: (id: string) => void;
-  formatAmount: (n: number, opts?: { sign?: string }) => string;
 }) {
+  const { maskAmount } = usePrivacy();
+  const [isPendingDelete, setIsPendingDelete] = useState(false);
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const executedRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current && !executedRef.current) {
+        clearTimeout(deleteTimerRef.current);
+        executedRef.current = true;
+        onDelete?.(tx.id);
+      }
+    };
+  }, [tx.id, onDelete]);
+
   const x = useMotionValue(0);
   const deleteOpacity = useTransform(x, [-120, -60], [1, 0]);
   const editOpacity = useTransform(x, [60, 120], [0, 1]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.offset.x < -100 && onDelete) {
-      onDelete(tx.id);
+      setIsPendingDelete(true);
+      executedRef.current = false;
+      deleteTimerRef.current = setTimeout(() => {
+        if (!executedRef.current) {
+          executedRef.current = true;
+          onDelete(tx.id);
+        }
+      }, 4000);
+
+      toast(`"${tx.description}" eliminada`, {
+        action: {
+          label: "Deshacer",
+          onClick: () => {
+            executedRef.current = true;
+            if (deleteTimerRef.current) {
+              clearTimeout(deleteTimerRef.current);
+              deleteTimerRef.current = null;
+            }
+            setIsPendingDelete(false);
+          },
+        },
+        duration: 4000,
+        onDismiss: () => {
+          if (!executedRef.current) {
+            executedRef.current = true;
+            if (deleteTimerRef.current) {
+              clearTimeout(deleteTimerRef.current);
+              deleteTimerRef.current = null;
+            }
+            onDelete(tx.id);
+          }
+        },
+      });
     } else if (info.offset.x > 100 && onSelect) {
       onSelect(tx);
     }
   };
+
+  if (isPendingDelete) {
+    return null;
+  }
+
+  // Moneda original de la transacción (o de su cuenta si no la tiene)
+  const txCurrency: Currency = tx.currency || (account?.currency as Currency) || "ARS";
+  const isDifferentCurrency = txCurrency !== currentCurrency;
+  // Monto convertido a la divisa activa de la aplicación
+  const displayedAmount = convert(tx.amount, txCurrency, currentCurrency);
+  const sign = tx.type === "income" ? "+" : "-";
 
   return (
     <div className="relative overflow-hidden">
@@ -65,7 +135,9 @@ function SwipeableTransaction({
           <div className="flex flex-col min-w-0 flex-1">
             <span className="text-[14px] text-foreground font-medium truncate block leading-snug">{tx.description}</span>
             <span className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-              <span className="truncate">{tx.category.name} · {format(tx.date, "h:mm a")}</span>
+              <span className="truncate">
+                {tx.category.name} · {isToday(tx.date) ? format(tx.date, "h:mm a") : isYesterday(tx.date) ? `Ayer ${format(tx.date, "h:mm a")}` : format(tx.date, "MMM d")}
+              </span>
               {tx.installmentInfo && (
                 <span className="text-primary font-medium shrink-0">
                   ({tx.installmentInfo.current}/{tx.installmentInfo.total})
@@ -79,9 +151,16 @@ function SwipeableTransaction({
             </span>
           </div>
         </div>
-        <span className={`font-mono-data text-[14px] tracking-tight shrink-0 font-medium ${tx.type === "income" ? "text-primary" : "text-foreground"}`}>
-          {formatAmount(tx.amount, { sign: tx.type === "income" ? "+" : "-" })}
-        </span>
+        <div className="flex flex-col items-end shrink-0">
+          <span className={`font-mono-data text-[14px] tracking-tight font-medium ${tx.type === "income" ? "text-primary" : "text-foreground"}`}>
+            {maskAmount(formatInCurrency(displayedAmount, currentCurrency, { sign }))}
+          </span>
+          {isDifferentCurrency && (
+            <span className="font-mono-data text-[10px] text-muted-foreground/80 leading-none mt-0.5">
+              orig. {formatInCurrency(tx.amount, txCurrency)}
+            </span>
+          )}
+        </div>
       </motion.div>
     </div>
   );
@@ -205,12 +284,16 @@ type ListItem =
       txs: Transaction[];
     };
 
-export function TransactionList({ transactions, accounts = [], onSelect, onDelete, onPayStatement }: TransactionListProps) {
+export function TransactionList({ title, transactions, accounts = [], onSelect, onDelete, onPayStatement }: TransactionListProps) {
   const { formatAmount: baseFormatAmount, t, settings, updateSettings } = useSettings();
+  const { convert, formatInCurrency, calculateConsolidatedTransactions } = useCurrencyConversion();
   const { maskAmount } = usePrivacy();
   const formatAmount = (n: number, opts?: { sign?: string }) => maskAmount(baseFormatAmount(n, opts));
   const [viewMode, setViewMode] = useState<"detailed" | "grouped">("detailed");
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+
+  const currentCurrency = settings.currency || "ARS";
+  const accountsMap = useMemo(() => new Map<string, Account>(accounts.map(a => [a.id, a])), [accounts]);
 
   const showSubtotals = settings.showDailySubtotals ?? false;
 
@@ -291,7 +374,10 @@ export function TransactionList({ transactions, accounts = [], onSelect, onDelet
         statementGroupsMap.set(statementKey, group);
       }
       group.txs.push(tx);
-      group.total += tx.amount;
+      // Para el total del resumen de tarjeta, consolidar a la divisa activa o de la cuenta
+      const txCurr: Currency = tx.currency || (account.currency as Currency) || "ARS";
+      const accCurr: Currency = (account.currency as Currency) || "ARS";
+      group.total += convert(tx.amount, txCurr, accCurr);
     } else {
       nonCardTransactions.push(tx);
     }
@@ -317,7 +403,7 @@ export function TransactionList({ transactions, accounts = [], onSelect, onDelet
   return (
     <div className="px-4 pb-28 w-full max-w-full">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h2 className="text-[13px] text-muted-foreground font-medium font-display shrink-0">{t("tx.title")}</h2>
+        <h2 className="text-[13px] text-muted-foreground font-medium font-display shrink-0">{title || t("tx.title")}</h2>
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
           {/* Botón opcional de subtotales diarios */}
           <button
@@ -362,8 +448,10 @@ export function TransactionList({ transactions, accounts = [], onSelect, onDelet
       {viewMode === "detailed" ? (
         // Modo desglosado estándar
         Object.entries(detailedGroupedByDate).map(([date, txs]) => {
-          const dayExpenses = txs.filter(t => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
-          const dayIncome = txs.filter(t => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
+          const dayExpensesTxs = txs.filter(t => t.type === "expense");
+          const dayIncomeTxs = txs.filter(t => t.type === "income");
+          const dayExpenses = calculateConsolidatedTransactions(dayExpensesTxs, currentCurrency, accountsMap);
+          const dayIncome = calculateConsolidatedTransactions(dayIncomeTxs, currentCurrency, accountsMap);
 
           return (
             <div key={date} className="mb-4">
@@ -372,10 +460,10 @@ export function TransactionList({ transactions, accounts = [], onSelect, onDelet
                 {showSubtotals && (
                   <div className="flex items-center gap-2 text-[11px] font-mono-data font-semibold">
                     {dayIncome > 0 && (
-                      <span className="text-primary">+{formatAmount(dayIncome)}</span>
+                      <span className="text-primary">+{maskAmount(formatInCurrency(dayIncome, currentCurrency))}</span>
                     )}
                     {dayExpenses > 0 && (
-                      <span className="text-muted-foreground">-{formatAmount(dayExpenses)}</span>
+                      <span className="text-muted-foreground">-{maskAmount(formatInCurrency(dayExpenses, currentCurrency))}</span>
                     )}
                   </div>
                 )}
@@ -390,9 +478,12 @@ export function TransactionList({ transactions, accounts = [], onSelect, onDelet
                   >
                     <SwipeableTransaction
                       tx={tx}
+                      account={accountsMap.get(tx.accountId)}
+                      currentCurrency={currentCurrency}
+                      convert={convert}
+                      formatInCurrency={formatInCurrency}
                       onSelect={onSelect}
                       onDelete={onDelete}
-                      formatAmount={formatAmount}
                     />
                   </motion.div>
                 ))}
@@ -425,9 +516,12 @@ export function TransactionList({ transactions, accounts = [], onSelect, onDelet
                   ) : (
                     <SwipeableTransaction
                       tx={item.tx}
+                      account={accountsMap.get(item.tx.accountId)}
+                      currentCurrency={currentCurrency}
+                      convert={convert}
+                      formatInCurrency={formatInCurrency}
                       onSelect={onSelect}
                       onDelete={onDelete}
-                      formatAmount={formatAmount}
                     />
                   )}
                 </motion.div>

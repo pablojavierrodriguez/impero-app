@@ -267,7 +267,12 @@ export function BudgetSummaryWidget({
           const cat = categories.find(c => c.id === b.categoryId);
           if (!cat) return null;
           const spent = getBudgetSpent(b.categoryId, month, year);
-          const metrics = calculateBudgetMetrics(spent, b.amount, now);
+          const { effectiveAmount } = calculateEffectiveBudgetAmount(
+            b.amount,
+            b.enableRollover,
+            b.accumulatedRollover || 0
+          );
+          const metrics = calculateBudgetMetrics(spent, effectiveAmount, now);
           return (
             <div key={b.id} className="flex items-center gap-3">
               <div className={`w-6 h-6 rounded-[6px] ${cat.color} flex items-center justify-center flex-shrink-0`}>
@@ -276,7 +281,7 @@ export function BudgetSummaryWidget({
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between text-[12px] mb-0.5">
                   <span className="text-foreground truncate">{cat.name}</span>
-                  <span className="text-muted-foreground">{formatAmount(spent)} / {formatAmount(b.amount)}</span>
+                  <span className="text-muted-foreground">{formatAmount(spent)} / {formatAmount(effectiveAmount)}</span>
                 </div>
                 <Progress value={metrics.percentageSpent} className="h-1.5" />
               </div>

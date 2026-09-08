@@ -21,6 +21,8 @@ export type SettingsContextType = {
   settings: AppSettings;
   updateSettings: (updates: Partial<AppSettings>) => void;
   toggleHomeSection: (sectionId: string) => void;
+  reorderHomeSections: (newSections: HomeSection[]) => void;
+  resetHomeSections: () => void;
   resetSettings: () => void;
   currencySymbol: string;
   convertAmount: (arsAmount: number) => number;
@@ -40,13 +42,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem("app-settings");
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Merge with new default sections
-        const savedSections = parsed.homeSections || [];
-        const mergedSections = DEFAULT_HOME_SECTIONS.map(def => {
-          const existing = savedSections.find((s: HomeSection) => s.id === def.id);
-          return existing || def;
-        });
-        return { ...DEFAULT_SETTINGS, ...parsed, homeSections: mergedSections };
+    // Merge with new default sections and preserve custom order & fields
+    const savedSections = (parsed.homeSections || []) as HomeSection[];
+    const mergedSections: HomeSection[] = DEFAULT_HOME_SECTIONS.map((def, defaultIdx) => {
+      const existing = savedSections.find(s => s.id === def.id);
+      if (!existing) return { ...def, order: def.order ?? defaultIdx };
+      return {
+        ...def,
+        ...existing,
+        enabled: typeof existing.enabled === "boolean" ? existing.enabled : def.enabled,
+        order: typeof existing.order === "number" ? existing.order : (def.order ?? defaultIdx),
+        category: def.category,
+        column: def.column,
+      };
+    }).sort((a, b) => a.order - b.order);
+    return { ...DEFAULT_SETTINGS, ...parsed, homeSections: mergedSections };
       }
     } catch {}
     return DEFAULT_SETTINGS;
@@ -112,6 +122,24 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     });
   }, [persistSettings]);
 
+  const reorderHomeSections = useCallback((newSections: HomeSection[]) => {
+    // Normalizar índices de orden
+    const indexed = newSections.map((s, idx) => ({ ...s, order: idx }));
+    setSettings(prev => {
+      const next = { ...prev, homeSections: indexed };
+      persistSettings(next);
+      return next;
+    });
+  }, [persistSettings]);
+
+  const resetHomeSections = useCallback(() => {
+    setSettings(prev => {
+      const next = { ...prev, homeSections: DEFAULT_HOME_SECTIONS };
+      persistSettings(next);
+      return next;
+    });
+  }, [persistSettings]);
+
   const resetSettings = useCallback(() => {
     localStorage.removeItem("app-settings");
     setSettings(DEFAULT_SETTINGS);
@@ -133,7 +161,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<SettingsContextType>(() => {
     const sym = CURRENCIES.find(c => c.value === settings.currency)?.symbol ?? "$";
-    const rates = settings.customExchangeRates || DEFAULT_EXCHANGE_RATES;
+    const rates = {
+      ...DEFAULT_EXCHANGE_RATES,
+      ...(settings.customExchangeRates || {}),
+    };
     const rate = rates[settings.currency] ?? 1;
     const t = createTranslator(settings.language);
 
@@ -153,11 +184,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       settings.homeSections.find(s => s.id === id)?.enabled ?? true;
 
     return {
-      settings, updateSettings, toggleHomeSection, resetSettings,
+      settings, updateSettings, toggleHomeSection, reorderHomeSections, resetHomeSections, resetSettings,
       currencySymbol: sym, convertAmount, formatAmount, t, isSectionEnabled,
       exchangeRates: rates, updateExchangeRate,
     };
-  }, [settings, updateSettings, toggleHomeSection, resetSettings, updateExchangeRate]);
+  }, [settings, updateSettings, toggleHomeSection, reorderHomeSections, resetHomeSections, resetSettings, updateExchangeRate]);
 
   return React.createElement(SettingsContext.Provider, { value }, children);
 }

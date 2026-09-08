@@ -57,6 +57,24 @@ vi.mock("@/services/planning.service", () => ({
   insertBill: vi.fn().mockImplementation((b) => Promise.resolve({ ...b, id: b.id || "bill-test" })),
   updateBillRemote: vi.fn().mockImplementation(() => Promise.resolve()),
   deleteBillRemote: vi.fn().mockImplementation(() => Promise.resolve()),
+  fetchRecurringTransactions: vi.fn().mockImplementation(() => Promise.resolve([])),
+  insertRecurringTransaction: vi.fn().mockImplementation((r) => Promise.resolve({ ...r, id: r.id || "rec-test" })),
+  updateRecurringTransactionRemote: vi.fn().mockImplementation(() => Promise.resolve()),
+  deleteRecurringTransactionRemote: vi.fn().mockImplementation(() => Promise.resolve()),
+}));
+
+vi.mock("@/services/tags.service", () => ({
+  fetchTags: vi.fn().mockImplementation(() => Promise.resolve([])),
+  insertTag: vi.fn().mockImplementation((t) => Promise.resolve({ ...t, id: t.id || "new-tag-id" })),
+  updateTagRemote: vi.fn().mockImplementation(() => Promise.resolve()),
+  deleteTagRemote: vi.fn().mockImplementation(() => Promise.resolve()),
+}));
+
+vi.mock("@/services/rules.service", () => ({
+  fetchRules: vi.fn().mockImplementation(() => Promise.resolve([])),
+  insertRule: vi.fn().mockImplementation((r) => Promise.resolve({ ...r, id: r.id || "new-rule-id" })),
+  updateRuleRemote: vi.fn().mockImplementation(() => Promise.resolve()),
+  deleteRuleRemote: vi.fn().mockImplementation(() => Promise.resolve()),
 }));
 
 describe("useFinanceStore Unit & Integration Tests", () => {

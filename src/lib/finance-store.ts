@@ -1,16 +1,25 @@
 import { useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Transaction, Account, DEFAULT_ACCOUNTS,
-  Category, CATEGORIES, getStatementPeriod, getPreviousStatementPeriod,
+  Category, CATEGORIES, getStatementPeriod, getPreviousStatementPeriod, getOffsetStatementPeriod,
   Budget, Goal, RecurringTransaction, BillReminder, Tag, TransactionRule,
   type RecurrenceFrequency,
 } from "./types";
+import { Currency, DEFAULT_EXCHANGE_RATES } from "./settings-types";
 import { applyRulesToTransaction } from "./rules-engine";
 import { useAuth } from "./auth-context";
 import { fetchAccounts, insertAccount, updateAccountRemote, deleteAccountRemote } from "@/services/accounts.service";
 import { fetchCategories, insertCategory, updateCategoryRemote, deleteCategoryRemote } from "@/services/categories.service";
 import { fetchTransactions, insertTransaction, insertTransactionsBatch, updateTransactionRemote, deleteTransactionRemote, deleteTransactionsByGroupIdRemote } from "@/services/transactions.service";
-import { fetchBudgets, insertBudget, updateBudgetRemote, deleteBudgetRemote, fetchGoals, insertGoal, updateGoalRemote, deleteGoalRemote, fetchBills, insertBill, updateBillRemote, deleteBillRemote } from "@/services/planning.service";
+import {
+  fetchBudgets, insertBudget, updateBudgetRemote, deleteBudgetRemote,
+  fetchGoals, insertGoal, updateGoalRemote, deleteGoalRemote,
+  fetchBills, insertBill, updateBillRemote, deleteBillRemote,
+  fetchRecurringTransactions, insertRecurringTransaction, updateRecurringTransactionRemote, deleteRecurringTransactionRemote
+} from "@/services/planning.service";
+import { fetchTags, insertTag, updateTagRemote, deleteTagRemote } from "@/services/tags.service";
+import { fetchRules, insertRule, updateRuleRemote, deleteRuleRemote } from "@/services/rules.service";
 
 function loadJSON<T>(key: string, fallback: T): T {
   try {
@@ -44,7 +53,7 @@ export function useFinanceStore() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [recurringTxs, setRecurringTxs] = useState<RecurringTransaction[]>(() => loadJSON("recurring", []));
+  const [recurringTxs, setRecurringTxs] = useState<RecurringTransaction[]>([]);
   const [bills, setBills] = useState<BillReminder[]>([]);
   const [tags, setTags] = useState<Tag[]>(() => loadJSON("tags", []));
   const [rules, setRules] = useState<TransactionRule[]>(() => loadJSON("m3-transaction-rules", []));
@@ -62,6 +71,7 @@ export function useFinanceStore() {
       setTransactions([]);
       setBudgets([]);
       setGoals([]);
+      setRecurringTxs([]);
       setBills([]);
       setLoading(false);
       return;
@@ -71,12 +81,20 @@ export function useFinanceStore() {
     async function loadData() {
       try {
         setLoading(true);
-        const [accs, cats, bds, gls, bls] = await Promise.all([
+        const [accs, cats, bds, gls, bls, remoteTags, remoteRules] = await Promise.all([
           fetchAccounts(),
           fetchCategories(),
           fetchBudgets(),
           fetchGoals(),
           fetchBills(),
+          fetchTags().catch((err) => {
+            console.warn("Could not fetch remote tags, using local:", err);
+            return loadJSON<Tag[]>("tags", []);
+          }),
+          fetchRules().catch((err) => {
+            console.warn("Could not fetch remote rules, using local:", err);
+            return loadJSON<TransactionRule[]>("m3-transaction-rules", []);
+          }),
         ]);
 
         if (!isMounted) return;
@@ -86,11 +104,17 @@ export function useFinanceStore() {
         setBudgets(bds);
         setGoals(gls);
         setBills(bls);
+        setTags(remoteTags);
+        setRules(remoteRules);
 
-        // Fetch transactions with resolved categories
-        const txs = await fetchTransactions(cats);
+        // Fetch transactions and recurring transactions with resolved categories
+        const [txs, recTxs] = await Promise.all([
+          fetchTransactions(cats),
+          fetchRecurringTransactions(cats),
+        ]);
         if (!isMounted) return;
         setTransactions(txs);
+        setRecurringTxs(recTxs);
       } catch (err) {
         console.error("Error loading Supabase financial data:", err);
       } finally {
@@ -105,7 +129,6 @@ export function useFinanceStore() {
   // Persist helpers
   const saveBudgets = (b: Budget[]) => { setBudgets(b); saveJSON("budgets", b); };
   const saveGoals = (g: Goal[]) => { setGoals(g); saveJSON("goals", g); };
-  const saveRecurring = (r: RecurringTransaction[]) => { setRecurringTxs(r); saveJSON("recurring", r); };
   const saveBills = (b: BillReminder[]) => { setBills(b); saveJSON("bills", b); };
   const saveTags = (t: Tag[]) => { setTags(t); saveJSON("tags", t); };
 
@@ -113,7 +136,7 @@ export function useFinanceStore() {
   const addTransaction = useCallback((
     amount: number, description: string, category: Category,
     type: "income" | "expense", accountId: string,
-    extras?: { tags?: string[]; note?: string; installments?: number; receiptUrl?: string }
+    extras?: { tags?: string[]; note?: string; installments?: number; receiptUrl?: string; currency?: Currency }
   ) => {
     // Aplicar motor de automatizaciones y reglas (P10)
     const evaluated = applyRulesToTransaction(
@@ -133,11 +156,48 @@ export function useFinanceStore() {
     const effDesc = evaluated.description;
     const effCategory = evaluated.category;
     const effTags = evaluated.tags;
+    const targetAccount = accounts.find(a => a.id === accountId);
+    const txCurrency: Currency = extras?.currency || targetAccount?.currency || "ARS";
+
+    // Calcular impacto en balance (en la moneda de la cuenta)
+    const accCurrency: Currency = targetAccount?.currency || "ARS";
+    let effectiveAmountForAccount = amount;
+    if (txCurrency !== accCurrency) {
+      const rateFrom = DEFAULT_EXCHANGE_RATES[txCurrency] ?? 1;
+      const rateTo = DEFAULT_EXCHANGE_RATES[accCurrency] ?? 1;
+      const amountInArs = rateFrom > 0 ? amount / rateFrom : amount;
+      effectiveAmountForAccount = amountInArs * rateTo;
+    }
+
+    const currentBalance = targetAccount?.balance ?? 0;
+    const balanceDelta = targetAccount?.type === "credit"
+      ? (type === "expense" ? effectiveAmountForAccount : -effectiveAmountForAccount)
+      : (type === "income" ? effectiveAmountForAccount : -effectiveAmountForAccount);
+    const newBalance = currentBalance + balanceDelta;
+
+    // Actualización optimista del balance
+    setAccounts(prev => prev.map(acc => {
+      if (acc.id === accountId) {
+        updateAccountRemote(acc.id, { balance: newBalance }).catch(err => console.error(err));
+        return { ...acc, balance: newBalance };
+      }
+      return acc;
+    }));
+
+    // Rollback automático si la inserción falla — evita divergencia entre balance y transacciones
+    const rollback = () => {
+      setAccounts(prev => prev.map(acc => {
+        if (acc.id === accountId) {
+          updateAccountRemote(acc.id, { balance: currentBalance }).catch(console.error);
+          return { ...acc, balance: currentBalance };
+        }
+        return acc;
+      }));
+    };
 
     if (extras?.installments && extras.installments > 1) {
       const groupId = Date.now().toString();
       const perInstallment = amount / extras.installments;
-      const targetAccount = accounts.find(a => a.id === accountId);
       const isCredit = targetAccount?.type === "credit";
       const closingDay = targetAccount?.closingDay || 15;
 
@@ -154,6 +214,7 @@ export function useFinanceStore() {
           amount: perInstallment,
           description: `${effDesc} (${i + 1}/${extras.installments})`,
           category: effCategory, date: txDate, type, accountId,
+          currency: txCurrency,
           tags: effTags, note: extras?.note, receiptUrl: extras?.receiptUrl,
           installmentInfo: { current: i + 1, total: extras.installments, groupId },
         });
@@ -161,30 +222,43 @@ export function useFinanceStore() {
 
       insertTransactionsBatch(newTxsToInsert)
         .then(() => fetchTransactions(categories).then(setTransactions))
-        .catch(err => console.error("Error inserting installments batch:", err));
+        .catch(err => {
+          console.error("[addTransaction] Error insertando cuotas:", err?.message || err, { accountId, amount, description });
+          toast.error(`Error al guardar cuotas: ${err?.message || "Error desconocido"}`);
+          rollback();
+        });
     } else {
+      // Para tarjetas de crédito: si el resumen ya cerró este mes (día actual > closingDay),
+      // el gasto pertenece al próximo ciclo. Ajustar la fecha para que caiga en el período correcto.
+      const singleTxDate = new Date();
+      if (targetAccount?.type === "credit" && type === "expense") {
+        const closingDay = targetAccount?.closingDay || 15;
+        if (singleTxDate.getDate() > closingDay) {
+          singleTxDate.setMonth(singleTxDate.getMonth() + 1);
+        }
+      }
+
+      if (!accountId) {
+        console.error("[addTransaction] ERROR: accountId vacío, abortando insert", { amount, description, type });
+        rollback();
+        return;
+      }
+
       const newTx: Omit<Transaction, "id"> = {
-        amount, description: effDesc, category: effCategory, date: new Date(), type, accountId,
+        amount, description: effDesc, category: effCategory, date: singleTxDate, type, accountId,
+        currency: txCurrency,
         tags: effTags, note: extras?.note, receiptUrl: extras?.receiptUrl,
       };
 
       insertTransaction(newTx)
         .then((inserted) => setTransactions(prev => [inserted, ...prev]))
-        .catch(err => console.error("Error inserting transaction:", err));
+        .catch(err => {
+          console.error("[addTransaction] Error Supabase:", err?.message || err, { accountId, amount, description });
+          toast.error(`Error al guardar: ${err?.message || "Error desconocido"}`);
+          rollback();
+        });
     }
-
-    // Actualizar balance de la cuenta
-    setAccounts(prev => prev.map(acc => {
-      if (acc.id === accountId) {
-        const newBal = acc.type === "credit"
-          ? (type === "expense" ? acc.balance + amount : acc.balance - amount)
-          : (type === "income" ? acc.balance + amount : acc.balance - amount);
-        updateAccountRemote(acc.id, { balance: newBal }).catch(err => console.error(err));
-        return { ...acc, balance: newBal };
-      }
-      return acc;
-    }));
-  }, [categories]);
+  }, [categories, accounts, rules]);
 
   const updateTransaction = useCallback((id: string, updates: Partial<Transaction>) => {
     updateTransactionRemote(id, updates).catch(err => console.error(err));
@@ -195,7 +269,11 @@ export function useFinanceStore() {
           const diff = updates.amount - t.amount;
           setAccounts(accs => accs.map(acc => {
             if (acc.id === updated.accountId) {
-              const newBal = updated.type === "income" ? acc.balance + diff : acc.balance - diff;
+              // Para tarjetas de crédito: expense aumenta deuda (balance+), income reduce deuda
+              const isCredit = acc.type === "credit";
+              const newBal = isCredit
+                ? (updated.type === "expense" ? acc.balance + diff : acc.balance - diff)
+                : (updated.type === "income" ? acc.balance + diff : acc.balance - diff);
               updateAccountRemote(acc.id, { balance: newBal }).catch(console.error);
               return { ...acc, balance: newBal };
             }
@@ -215,7 +293,12 @@ export function useFinanceStore() {
       if (tx) {
         setAccounts(accs => accs.map(acc => {
           if (acc.id === tx.accountId) {
-            const newBal = tx.type === "income" ? acc.balance - tx.amount : acc.balance + tx.amount;
+            // Para tarjetas de crédito: revertir un expense REDUCE la deuda (balance-)
+            // Para cuentas normales: revertir un expense AUMENTA el saldo (balance+)
+            const isCredit = acc.type === "credit";
+            const newBal = isCredit
+              ? (tx.type === "expense" ? acc.balance - tx.amount : acc.balance + tx.amount)
+              : (tx.type === "income" ? acc.balance - tx.amount : acc.balance + tx.amount);
             updateAccountRemote(acc.id, { balance: newBal }).catch(console.error);
             return { ...acc, balance: newBal };
           }
@@ -232,16 +315,25 @@ export function useFinanceStore() {
       const groupTxs = prev.filter(t => t.installmentInfo?.groupId === groupId);
       if (groupTxs.length > 0) {
         // Calcular total a revertir por cuenta
+        // Para cuentas normales: revertir expense suma saldo (change positivo)
+        // Para tarjetas de crédito: revertir expense REDUCE la deuda (change negativo)
         const deltas = new Map<string, number>();
         for (const tx of groupTxs) {
           const current = deltas.get(tx.accountId) || 0;
+          // change se aplica con acc.balance + delta, así que:
+          // crédito+expense → delta negativo (reduce deuda)
+          // normal+expense → delta positivo (devuelve saldo)
+          // El tipo de cuenta lo resolvemos al aplicar el delta:
           const change = tx.type === "income" ? -tx.amount : tx.amount;
           deltas.set(tx.accountId, current + change);
         }
         setAccounts(accs => accs.map(acc => {
           const delta = deltas.get(acc.id);
           if (delta !== undefined && delta !== 0) {
-            const newBal = acc.balance + delta;
+            // Para tarjetas de crédito: invertir el signo del delta
+            // (revertir expense debe REDUCIR la deuda, no aumentarla)
+            const creditAdjustedDelta = acc.type === "credit" ? -delta : delta;
+            const newBal = acc.balance + creditAdjustedDelta;
             updateAccountRemote(acc.id, { balance: newBal }).catch(console.error);
             return { ...acc, balance: newBal };
           }
@@ -389,24 +481,70 @@ export function useFinanceStore() {
       const card = prev.find(a => a.id === cardId);
       const source = prev.find(a => a.id === fromAccountId);
       if (!card || !source || amount <= 0) return prev;
-      const paymentTx: Transaction = {
-        id: `pay-${Date.now()}`, amount, description: `Card payment: ${card.name}`,
-        category: { id: "card-payment", name: "Card Payment", color: "bg-sky-500", type: "expense", icon: "credit-card" },
-        date: new Date(), type: "expense", accountId: fromAccountId, isCardPayment: true,
-      };
-      const cardTx: Transaction = {
-        id: `pay-recv-${Date.now()}`, amount, description: `Payment from ${source.name}`,
-        category: { id: "card-payment-recv", name: "Card Payment", color: "bg-sky-500", type: "income", icon: "credit-card" },
-        date: new Date(), type: "income", accountId: cardId, isCardPayment: true,
-      };
-      setTransactions(txPrev => [paymentTx, cardTx, ...txPrev]);
+
+      const sourceCurrency: Currency = (source.currency as Currency) || "ARS";
+      const cardCurrency: Currency = (card.currency as Currency) || "ARS";
+
+      // Si la cuenta fuente tiene moneda diferente a la tarjeta, convertir para reducir
+      // la deuda correctamente en la moneda de la tarjeta.
+      let amountInCardCurrency = amount;
+      if (sourceCurrency !== cardCurrency) {
+        const rateFrom = DEFAULT_EXCHANGE_RATES[sourceCurrency] ?? 1;
+        const rateTo = DEFAULT_EXCHANGE_RATES[cardCurrency] ?? 1;
+        const amountInArs = rateFrom > 0 ? amount / rateFrom : amount;
+        amountInCardCurrency = amountInArs * rateTo;
+      }
+
+      const paymentCategory = { id: "card-payment", name: "Card Payment", color: "bg-sky-500", type: "expense" as const, icon: "credit-card" };
+      const now = new Date();
+
+      // Persistir ambas transacciones en Supabase
+      const txsToInsert: Omit<Transaction, "id">[] = [
+        {
+          amount,
+          description: `Pago tarjeta: ${card.name}`,
+          category: paymentCategory,
+          date: now,
+          type: "expense",
+          accountId: fromAccountId,
+          currency: sourceCurrency,
+          isCardPayment: true,
+        },
+        {
+          amount: amountInCardCurrency,
+          description: `Pago recibido desde ${source.name}`,
+          category: { ...paymentCategory, type: "income" as const },
+          date: now,
+          type: "income",
+          accountId: cardId,
+          currency: cardCurrency,
+          isCardPayment: true,
+        },
+      ];
+
+      insertTransactionsBatch(txsToInsert)
+        .then(() => fetchTransactions(categories).then(setTransactions))
+        .catch(err => console.error("Error inserting card payment transactions:", err));
+
+      // Actualizar balances:
+      // - Cuenta fuente: pierde el monto pagado (en su moneda)
+      // - Tarjeta: la deuda se REDUCE (balance - amountInCardCurrency)
       return prev.map(a => {
-        if (a.id === fromAccountId) return { ...a, balance: a.balance - amount };
-        if (a.id === cardId) return { ...a, balance: a.balance + amount };
+        if (a.id === fromAccountId) {
+          const newBal = a.balance - amount;
+          updateAccountRemote(a.id, { balance: newBal }).catch(console.error);
+          return { ...a, balance: newBal };
+        }
+        if (a.id === cardId) {
+          // Para crédito: balance positivo = deuda adeudada. Pagar reduce la deuda.
+          const newBal = a.balance - amountInCardCurrency;
+          updateAccountRemote(a.id, { balance: newBal }).catch(console.error);
+          return { ...a, balance: newBal };
+        }
         return a;
       });
     });
-  }, []);
+  }, [categories]);
 
   const transferBetweenAccounts = useCallback((fromAccountId: string, toAccountId: string, amount: number, targetAmount?: number) => {
     setAccounts(prev => {
@@ -415,30 +553,58 @@ export function useFinanceStore() {
       if (!from || !to || amount <= 0) return prev;
       const creditAmount = (targetAmount !== undefined && targetAmount > 0) ? targetAmount : amount;
       const transferCategory: Category = { id: "transfer", name: "Transfer", color: "bg-sky-500", type: "expense", icon: "arrow-left-right" };
-      const outTx: Transaction = {
-        id: `tf-out-${Date.now()}`, amount, description: `Transfer to ${to.name}`,
-        category: { ...transferCategory, type: "expense" }, date: new Date(), type: "expense",
-        accountId: fromAccountId, isTransfer: true,
-      };
-      const inTx: Transaction = {
-        id: `tf-in-${Date.now()}`, amount: creditAmount, description: `Transfer from ${from.name}`,
-        category: { ...transferCategory, type: "income" }, date: new Date(), type: "income",
-        accountId: toAccountId, isTransfer: true,
-      };
-      setTransactions(txPrev => [outTx, inTx, ...txPrev]);
+      const fromCurrency = (from.currency as Currency) || "ARS";
+      const toCurrency = (to.currency as Currency) || "ARS";
+      const now = new Date();
+
+      const txsToInsert: Omit<Transaction, "id">[] = [
+        {
+          amount,
+          description: `Transfer to ${to.name}`,
+          category: { ...transferCategory, type: "expense" },
+          date: now,
+          type: "expense",
+          accountId: fromAccountId,
+          currency: fromCurrency,
+          isTransfer: true,
+        },
+        {
+          amount: creditAmount,
+          description: `Transfer from ${from.name}`,
+          category: { ...transferCategory, type: "income" },
+          date: now,
+          type: "income",
+          accountId: toAccountId,
+          currency: toCurrency,
+          isTransfer: true,
+        },
+      ];
+
+      insertTransactionsBatch(txsToInsert)
+        .then(() => fetchTransactions(categories).then(setTransactions))
+        .catch(err => console.error("Error inserting transfer transactions:", err));
+
       return prev.map(a => {
-        if (a.id === fromAccountId) return { ...a, balance: a.balance - amount };
-        if (a.id === toAccountId) return { ...a, balance: a.balance + creditAmount };
+        if (a.id === fromAccountId) {
+          const newBal = a.balance - amount;
+          updateAccountRemote(a.id, { balance: newBal }).catch(console.error);
+          return { ...a, balance: newBal };
+        }
+        if (a.id === toAccountId) {
+          const newBal = a.balance + creditAmount;
+          updateAccountRemote(a.id, { balance: newBal }).catch(console.error);
+          return { ...a, balance: newBal };
+        }
         return a;
       });
     });
-  }, []);
+  }, [categories]);
 
-  const getStatementTransactions = useCallback((cardId: string, period: "current" | "previous" = "current") => {
+  const getStatementTransactions = useCallback((cardId: string, period: "current" | "previous" | number = "current") => {
     const card = accounts.find(a => a.id === cardId);
     if (!card || !card.closingDay) return [];
-    const { periodStart, periodEnd } = period === "current"
-      ? getStatementPeriod(card.closingDay) : getPreviousStatementPeriod(card.closingDay);
+    const offset = typeof period === "number" ? period : (period === "previous" ? -1 : 0);
+    const { periodStart, periodEnd } = getOffsetStatementPeriod(card.closingDay, offset);
     return transactions.filter(t =>
       t.accountId === cardId && t.type === "expense" && !t.isCardPayment && t.date >= periodStart && t.date <= periodEnd
     );
@@ -449,6 +615,64 @@ export function useFinanceStore() {
   const getCreditCards = useCallback(() => accounts.filter(a => a.type === "credit" && !a.archived), [accounts]);
   const getTransactionsByAccount = useCallback((accountId: string) => transactions.filter(t => t.accountId === accountId), [transactions]);
   const getNonCardAccounts = useCallback(() => accounts.filter(a => a.type !== "credit" && !a.archived), [accounts]);
+
+  /**
+   * Calcula el balance "real" de una cuenta sumando todas sus transacciones almacenadas,
+   * con conversión de moneda correcta. Sirve para detectar y corregir inconsistencias.
+   * Retorna null si la cuenta no existe.
+   */
+  const recalculateAccountBalance = useCallback((accountId: string): number | null => {
+    const account = accounts.find(a => a.id === accountId);
+    if (!account) return null;
+
+    const accountCurrency = (account.currency as Currency) || "ARS";
+    const accountTxs = transactions.filter(t => t.accountId === accountId);
+
+    let computed = 0;
+    for (const tx of accountTxs) {
+      const txCur = (tx.currency as Currency) || accountCurrency;
+      let amt = tx.amount;
+      if (txCur !== accountCurrency) {
+        const rateFrom = DEFAULT_EXCHANGE_RATES[txCur] ?? 1;
+        const rateTo = DEFAULT_EXCHANGE_RATES[accountCurrency] ?? 1;
+        amt = (rateFrom > 0 ? amt / rateFrom : amt) * rateTo;
+      }
+      if (account.type === "credit") {
+        computed += tx.type === "expense" ? amt : -amt;
+      } else {
+        computed += tx.type === "income" ? amt : -amt;
+      }
+    }
+    return computed;
+  }, [accounts, transactions]);
+
+  /**
+   * Sincroniza el balance almacenado de UNA cuenta con el derivado de sus transacciones.
+   * Útil para reparar inconsistencias históricas.
+   */
+  const syncAccountBalance = useCallback((accountId: string) => {
+    const computed = recalculateAccountBalance(accountId);
+    if (computed === null) return;
+    setAccounts(prev => prev.map(a => {
+      if (a.id === accountId) {
+        updateAccountRemote(a.id, { balance: computed }).catch(console.error);
+        return { ...a, balance: computed };
+      }
+      return a;
+    }));
+  }, [recalculateAccountBalance]);
+
+  /**
+   * Sincroniza el balance de TODAS las cuentas desde sus transacciones.
+   */
+  const syncAllAccountBalances = useCallback(() => {
+    setAccounts(prev => prev.map(a => {
+      const computed = recalculateAccountBalance(a.id);
+      if (computed === null) return a;
+      updateAccountRemote(a.id, { balance: computed }).catch(console.error);
+      return { ...a, balance: computed };
+    }));
+  }, [recalculateAccountBalance]);
 
   // ===== BUDGETS =====
   const addBudget = useCallback((budget: Budget) => {
@@ -573,66 +797,114 @@ export function useFinanceStore() {
 
   const getPendingBills = useCallback(() => {
     const now = new Date();
-    return bills.filter(b => {
-      const due = new Date(b.dueDate);
-      return b.status !== "paid" || due > now;
-    }).map(b => {
-      const due = new Date(b.dueDate);
-      const status = b.status === "paid" ? "paid" : due < now ? "overdue" : "pending";
-      return { ...b, status } as BillReminder;
-    });
+    // Solo mostrar bills NO pagadas (las pagadas van al historial, no a pendientes)
+    return bills
+      .filter(b => b.status !== "paid")
+      .map(b => {
+        const due = new Date(b.dueDate);
+        const status = due < now ? "overdue" : "pending";
+        return { ...b, status } as BillReminder;
+      });
   }, [bills]);
 
   // ===== RECURRING TRANSACTIONS =====
   const addRecurringTx = useCallback((rtx: RecurringTransaction) => {
-    saveRecurring([...recurringTxs, rtx]);
-  }, [recurringTxs]);
+    insertRecurringTransaction(rtx)
+      .then(inserted => setRecurringTxs(prev => [...prev, inserted]))
+      .catch(err => {
+        console.error("Error inserting recurring transaction:", err);
+        toast.error("Error al guardar transacción recurrente");
+      });
+  }, []);
 
   const updateRecurringTx = useCallback((id: string, updates: Partial<RecurringTransaction>) => {
-    saveRecurring(recurringTxs.map(r => r.id === id ? { ...r, ...updates } : r));
-  }, [recurringTxs]);
+    updateRecurringTransactionRemote(id, updates).catch(err => console.error("Error updating recurring transaction:", err));
+    setRecurringTxs(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+  }, []);
 
   const deleteRecurringTx = useCallback((id: string) => {
-    saveRecurring(recurringTxs.filter(r => r.id !== id));
-  }, [recurringTxs]);
+    deleteRecurringTransactionRemote(id).catch(err => console.error("Error deleting recurring transaction:", err));
+    setRecurringTxs(prev => prev.filter(r => r.id !== id));
+  }, []);
 
   const toggleRecurringPause = useCallback((id: string) => {
-    saveRecurring(recurringTxs.map(r => r.id === id ? { ...r, paused: !r.paused } : r));
-  }, [recurringTxs]);
+    setRecurringTxs(prev => {
+      const target = prev.find(r => r.id === id);
+      if (!target) return prev;
+      const nextPaused = !target.paused;
+      updateRecurringTransactionRemote(id, { paused: nextPaused }).catch(err => console.error(err));
+      return prev.map(r => r.id === id ? { ...r, paused: nextPaused } : r);
+    });
+  }, []);
 
   const processRecurring = useCallback(() => {
     const now = new Date();
-    let updated = false;
-    const newRecurring = recurringTxs.map(r => {
-      if (r.paused) return r;
-      const nextDate = new Date(r.nextDate);
-      if (nextDate <= now) {
-        const tx: Transaction = {
-          id: `rec-${Date.now()}-${r.id}`,
-          amount: r.amount,
-          description: r.description,
-          category: r.category,
-          date: new Date(),
-          type: r.type,
-          accountId: r.accountId,
-          recurringId: r.id,
-          tags: r.tags,
-        };
-        addTransaction(tx.amount, tx.description, tx.category, tx.type, tx.accountId, {
-          tags: tx.tags,
-        });
-        updated = true;
-        return { ...r, nextDate: getNextDate(nextDate, r.frequency) };
-      }
-      return r;
+    setRecurringTxs(prev => {
+      let anyUpdated = false;
+      const nextList = prev.map(r => {
+        if (r.paused) return r;
+        let currentDate = new Date(r.nextDate);
+        if (currentDate > now) return r;
+
+        anyUpdated = true;
+        // Avanzar e insertar transacciones hasta que la próxima fecha supere el momento actual
+        // Limitado a un máximo de 24 iteraciones de seguridad para evitar loops infinitos
+        let iterations = 0;
+        while (currentDate <= now && iterations < 24) {
+          addTransaction(r.amount, r.description, r.category, r.type, r.accountId, {
+            tags: r.tags,
+            currency: r.currency,
+          });
+          currentDate = getNextDate(currentDate, r.frequency);
+          iterations++;
+        }
+
+        updateRecurringTransactionRemote(r.id, { nextDate: currentDate }).catch(console.error);
+        return { ...r, nextDate: currentDate };
+      });
+
+      return anyUpdated ? nextList : prev;
     });
-    if (updated) saveRecurring(newRecurring);
-  }, [recurringTxs, addTransaction]);
+  }, [addTransaction]);
 
   // ===== TAGS =====
-  const addTag = useCallback((tag: Tag) => { saveTags([...tags, tag]); }, [tags]);
-  const updateTag = useCallback((id: string, updates: Partial<Tag>) => { saveTags(tags.map(t => t.id === id ? { ...t, ...updates } : t)); }, [tags]);
-  const deleteTag = useCallback((id: string) => { saveTags(tags.filter(t => t.id !== id)); }, [tags]);
+  const addTag = useCallback((tag: Tag) => {
+    insertTag(tag)
+      .then(inserted => {
+        setTags(prev => {
+          const updated = [...prev.filter(t => t.id !== tag.id), inserted];
+          saveJSON("tags", updated);
+          return updated;
+        });
+      })
+      .catch(err => {
+        console.error("Error inserting remote tag:", err);
+        // Fallback local
+        setTags(prev => {
+          const updated = [...prev, tag];
+          saveJSON("tags", updated);
+          return updated;
+        });
+      });
+  }, []);
+
+  const updateTag = useCallback((id: string, updates: Partial<Tag>) => {
+    updateTagRemote(id, updates).catch(err => console.error("Error updating remote tag:", err));
+    setTags(prev => {
+      const updated = prev.map(t => t.id === id ? { ...t, ...updates } : t);
+      saveJSON("tags", updated);
+      return updated;
+    });
+  }, []);
+
+  const deleteTag = useCallback((id: string) => {
+    deleteTagRemote(id).catch(err => console.error("Error deleting remote tag:", err));
+    setTags(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      saveJSON("tags", updated);
+      return updated;
+    });
+  }, []);
 
   const getTransactionCountByTag = useCallback((tagId: string) => {
     return transactions.filter(t => t.tags?.includes(tagId)).length;
@@ -641,21 +913,25 @@ export function useFinanceStore() {
   // ===== COMPUTED =====
   const totalBalance = accounts.filter(a => !a.archived).reduce((sum, acc) => sum + acc.balance, 0);
 
+  // Usar new Date() en cada evaluación para que los valores reflejen el día real
+  // aunque la app quede abierta sobre la medianoche o cambio de mes
+  const _now = new Date();
+
   const monthlyExpenses = transactions
-    .filter(t => t.type === "expense" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === now.getMonth() && t.date.getFullYear() === now.getFullYear())
+    .filter(t => t.type === "expense" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === _now.getMonth() && t.date.getFullYear() === _now.getFullYear())
     .reduce((sum, t) => sum + t.amount, 0);
 
   const monthlyIncome = transactions
-    .filter(t => t.type === "income" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === now.getMonth() && t.date.getFullYear() === now.getFullYear())
+    .filter(t => t.type === "income" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === _now.getMonth() && t.date.getFullYear() === _now.getFullYear())
     .reduce((sum, t) => sum + t.amount, 0);
 
   const todaySpent = transactions
-    .filter(t => t.type === "expense" && !t.isCardPayment && t.date.toDateString() === now.toDateString())
+    .filter(t => t.type === "expense" && !t.isCardPayment && t.date.toDateString() === _now.toDateString())
     .reduce((sum, t) => sum + t.amount, 0);
 
   const weekSpent = (() => {
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay());
+    const weekStart = new Date(_now);
+    weekStart.setDate(_now.getDate() - _now.getDay());
     weekStart.setHours(0, 0, 0, 0);
     return transactions
       .filter(t => t.type === "expense" && !t.isCardPayment && !t.isTransfer && t.date >= weekStart)
@@ -664,9 +940,10 @@ export function useFinanceStore() {
 
   // Monthly data for last 6 months
   const getMonthlyTrend = useCallback(() => {
+    const today = new Date();
     const months: { month: string; income: number; expenses: number }[] = [];
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const m = d.getMonth();
       const y = d.getFullYear();
       const monthTxs = transactions.filter(t => t.date.getMonth() === m && t.date.getFullYear() === y && !t.isCardPayment && !t.isTransfer);
@@ -680,7 +957,8 @@ export function useFinanceStore() {
   }, [transactions]);
 
   const getLastMonthExpenses = useCallback(() => {
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const today = new Date();
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const m = lastMonth.getMonth();
     const y = lastMonth.getFullYear();
     return transactions
@@ -690,20 +968,52 @@ export function useFinanceStore() {
 
   // ===== RULES ENGINE (P10) =====
   const addRule = useCallback((rule: TransactionRule) => {
-    saveRules([...rules, rule]);
-  }, [rules, saveRules]);
+    insertRule(rule)
+      .then(inserted => {
+        setRules(prev => {
+          const updated = [...prev.filter(r => r.id !== rule.id), inserted];
+          saveJSON("m3-transaction-rules", updated);
+          return updated;
+        });
+      })
+      .catch(err => {
+        console.error("Error inserting remote rule:", err);
+        setRules(prev => {
+          const updated = [...prev, rule];
+          saveJSON("m3-transaction-rules", updated);
+          return updated;
+        });
+      });
+  }, []);
 
   const updateRule = useCallback((id: string, updates: Partial<TransactionRule>) => {
-    saveRules(rules.map(r => r.id === id ? { ...r, ...updates } : r));
-  }, [rules, saveRules]);
+    updateRuleRemote(id, updates).catch(err => console.error("Error updating remote rule:", err));
+    setRules(prev => {
+      const updated = prev.map(r => r.id === id ? { ...r, ...updates } : r);
+      saveJSON("m3-transaction-rules", updated);
+      return updated;
+    });
+  }, []);
 
   const deleteRule = useCallback((id: string) => {
-    saveRules(rules.filter(r => r.id !== id));
-  }, [rules, saveRules]);
+    deleteRuleRemote(id).catch(err => console.error("Error deleting remote rule:", err));
+    setRules(prev => {
+      const updated = prev.filter(r => r.id !== id);
+      saveJSON("m3-transaction-rules", updated);
+      return updated;
+    });
+  }, []);
 
   const toggleRule = useCallback((id: string) => {
-    saveRules(rules.map(r => r.id === id ? { ...r, isActive: !r.isActive } : r));
-  }, [rules, saveRules]);
+    setRules(prev => {
+      const target = prev.find(r => r.id === id);
+      const nextActive = target ? !target.isActive : true;
+      updateRuleRemote(id, { isActive: nextActive }).catch(err => console.error("Error toggling remote rule:", err));
+      const updated = prev.map(r => r.id === id ? { ...r, isActive: nextActive } : r);
+      saveJSON("m3-transaction-rules", updated);
+      return updated;
+    });
+  }, []);
 
   const applyRulesRetroactively = useCallback(() => {
     setTransactions(prev => {
@@ -738,6 +1048,7 @@ export function useFinanceStore() {
     addCategory, updateCategory, archiveCategory, unarchiveCategory, deleteCategory, reassignTransactions,
     getTransactionCountByCategory, getRootCategories, getSubcategories, getArchivedCategories, getAllActiveCategories,
     addAccount, updateAccount, archiveAccount, unarchiveAccount, adjustAccountBalance,
+    recalculateAccountBalance, syncAccountBalance, syncAllAccountBalances,
     payCard, transferBetweenAccounts, getStatementTransactions,
     getActiveAccounts, getArchivedAccounts, getCreditCards, getNonCardAccounts, getTransactionsByAccount,
     addBudget, updateBudget, deleteBudget, getBudgetSpent, getCurrentMonthBudgets,

@@ -15,7 +15,7 @@ interface AccountCardsProps {
 export function AccountCards({ accounts, onSelectAccount }: AccountCardsProps) {
   const { formatInCurrency } = useCurrencyConversion();
   const { maskAmount } = usePrivacy();
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, t } = useSettings();
 
   const viewMode = settings.accountViewMode || "list";
 
@@ -27,10 +27,10 @@ export function AccountCards({ accounts, onSelectAccount }: AccountCardsProps) {
     <div className="px-4 w-full">
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] text-muted-foreground font-medium uppercase tracking-wider">
-            Mis Cuentas & Tarjetas
-          </span>
-          <span className="text-[11px] text-muted-foreground">
+          <h2 className="text-[13px] text-muted-foreground font-medium font-display">
+            {t("settings.sectionAccounts") || "Cuentas y tarjetas"}
+          </h2>
+          <span className="text-[11px] text-muted-foreground font-mono-data">
             ({accounts.length})
           </span>
         </div>

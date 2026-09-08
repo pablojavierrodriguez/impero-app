@@ -6,6 +6,7 @@ import { useSettings } from "@/lib/settings-store";
 import { Progress } from "@/components/ui/progress";
 import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/lib/types";
 import { calculateGoalPace } from "@/lib/goal-utils";
+import { parseLocalDate } from "@/lib/utils";
 
 interface GoalsManagerProps {
   goals: Goal[];
@@ -30,6 +31,7 @@ export function GoalsManager({ goals, accounts = [], onAdd, onUpdate, onDelete, 
   const [actionType, setActionType] = useState<"contribute" | "withdraw">("contribute");
   const [actionAmount, setActionAmount] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || "");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const activeGoals = goals.filter(g => !g.completed);
   const completedGoals = goals.filter(g => g.completed);
@@ -38,7 +40,7 @@ export function GoalsManager({ goals, accounts = [], onAdd, onUpdate, onDelete, 
     if (!name || !parseFloat(target)) return;
     onAdd({
       id: Date.now().toString(), name, targetAmount: parseFloat(target),
-      currentAmount: 0, deadline: deadline ? new Date(deadline) : undefined,
+      currentAmount: 0, deadline: deadline ? parseLocalDate(deadline) : undefined,
       color, icon, completed: false, createdAt: new Date(),
     });
     setName(""); setTarget(""); setDeadline(""); setShowForm(false);
@@ -136,9 +138,26 @@ export function GoalsManager({ goals, accounts = [], onAdd, onUpdate, onDelete, 
                     )}
                   </div>
                 </div>
-                <button onClick={() => onDelete(goal.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {confirmDeleteId === goal.id ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="px-2 py-0.5 rounded text-[11px] text-muted-foreground hover:bg-muted transition-colors"
+                    >
+                      {t("common.cancel")}
+                    </button>
+                    <button
+                      onClick={() => { onDelete(goal.id); setConfirmDeleteId(null); }}
+                      className="px-2 py-0.5 rounded text-[11px] bg-destructive text-destructive-foreground font-medium transition-colors"
+                    >
+                      {t("common.delete")}
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmDeleteId(goal.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <Progress value={pace.percentage} className="h-2 mb-2" />

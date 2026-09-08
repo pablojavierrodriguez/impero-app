@@ -38,6 +38,7 @@ export type Transaction = {
   receiptUrl?: string;
   recurringId?: string;
   installmentInfo?: { current: number; total: number; groupId: string };
+  currency?: Currency;
 };
 
 export type Budget = {
@@ -76,6 +77,7 @@ export type RecurringTransaction = {
   nextDate: Date;
   paused: boolean;
   tags?: string[];
+  currency?: Currency;
 };
 
 export type BillReminder = {
@@ -191,22 +193,40 @@ export function getStatementPeriod(closingDay: number, referenceDate: Date = new
 
   if (day <= closingDay) {
     // We're before/on closing day - active statement started last month
-    periodStart = new Date(year, month - 1, closingDay + 1);
-    periodEnd = new Date(year, month, closingDay);
+    periodStart = new Date(year, month - 1, closingDay + 1, 0, 0, 0, 0);
+    periodEnd = new Date(year, month, closingDay, 23, 59, 59, 999);
   } else {
     // We're after closing day - active statement started this month
-    periodStart = new Date(year, month, closingDay + 1);
-    periodEnd = new Date(year, month + 1, closingDay);
+    periodStart = new Date(year, month, closingDay + 1, 0, 0, 0, 0);
+    periodEnd = new Date(year, month + 1, closingDay, 23, 59, 59, 999);
   }
 
   return { periodStart, periodEnd };
 }
 
+export function getOffsetStatementPeriod(closingDay: number, offset: number, referenceDate: Date = new Date()) {
+  let period = getStatementPeriod(closingDay, referenceDate);
+  if (offset === 0) return period;
+
+  if (offset > 0) {
+    for (let i = 0; i < offset; i++) {
+      const nextRef = new Date(period.periodEnd);
+      nextRef.setDate(nextRef.getDate() + 2);
+      period = getStatementPeriod(closingDay, nextRef);
+    }
+  } else {
+    for (let i = 0; i < Math.abs(offset); i++) {
+      const prevRef = new Date(period.periodStart);
+      prevRef.setDate(prevRef.getDate() - 1);
+      period = getStatementPeriod(closingDay, prevRef);
+    }
+  }
+
+  return period;
+}
+
 export function getPreviousStatementPeriod(closingDay: number, referenceDate: Date = new Date()) {
-  const current = getStatementPeriod(closingDay, referenceDate);
-  const prevEnd = new Date(current.periodStart);
-  prevEnd.setDate(prevEnd.getDate() - 1);
-  return getStatementPeriod(closingDay, prevEnd);
+  return getOffsetStatementPeriod(closingDay, -1, referenceDate);
 }
 
 export function getPaymentDueDate(closingDay: number, paymentDay: number, referenceDate: Date = new Date()) {

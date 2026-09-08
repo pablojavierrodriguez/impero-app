@@ -41,4 +41,44 @@ describe("useCurrencyConversion hook", () => {
     const totalUsd = result.current.calculateConsolidatedBalance(accounts, "USD");
     expect(totalUsd).toBe(200);
   });
+
+  it("converts correctly even if customExchangeRates has metadata like __app_theme or missing currency keys", () => {
+    // Simular guardado corrupto/parcial en localStorage
+    localStorage.setItem(
+      "app-settings",
+      JSON.stringify({
+        currency: "USD",
+        customExchangeRates: { __app_theme: "m3" },
+      })
+    );
+
+    const { result } = renderHook(() => useCurrencyConversion(), { wrapper });
+
+    // 2400 ARS a USD con tasa default 1/1200 -> 2 USD
+    const usd = result.current.convert(2400, "ARS", "USD");
+    expect(Math.round(usd * 100) / 100).toBe(2);
+
+    // 2600 ARS a EUR con tasa default 1/1300 -> 2 EUR
+    const eur = result.current.convert(2600, "ARS", "EUR");
+    expect(Math.round(eur * 100) / 100).toBe(2);
+
+    localStorage.removeItem("app-settings");
+  });
+
+  it("calculates consolidated transactions correctly with mixed currencies (e.g. YouTube in USD, local in ARS)", () => {
+    const { result } = renderHook(() => useCurrencyConversion(), { wrapper });
+
+    const mixedTxs = [
+      { amount: 12000, currency: "ARS" as const, accountId: "card-1" },
+      { amount: 10, currency: "USD" as const, accountId: "card-1" }, // 10 USD * 1200 = 12000 ARS
+    ];
+
+    // En ARS: 12000 ARS + (10 * 1200) = 24000 ARS
+    const totalArs = result.current.calculateConsolidatedTransactions(mixedTxs, "ARS");
+    expect(totalArs).toBe(24000);
+
+    // En USD: (12000 / 1200) + 10 = 20 USD
+    const totalUsd = result.current.calculateConsolidatedTransactions(mixedTxs, "USD");
+    expect(totalUsd).toBe(20);
+  });
 });

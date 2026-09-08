@@ -32,7 +32,8 @@ import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { NetWorthChart } from "@/components/NetWorthChart";
 import { PayStatementModal } from "@/components/PayStatementModal";
 import { MonthSelector } from "@/components/MonthSelector";
-import { TrendingDown, TrendingUp, Calendar, Sparkles } from "lucide-react";
+import { DashboardCardPicker } from "@/components/DashboardCardPicker";
+import { TrendingDown, TrendingUp, Calendar, Sparkles, SlidersHorizontal } from "lucide-react";
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -51,6 +52,7 @@ const Index = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [txFilters, setTxFilters] = useState<TransactionFilterValues>(EMPTY_FILTERS);
   const [selectedDetailAccountId, setSelectedDetailAccountId] = useState<string | null>(null);
+  const [isCardPickerOpen, setIsCardPickerOpen] = useState(false);
 
   const handleOpenQuickAdd = (type: "expense" | "income" = "expense") => {
     setQuickAddType(type);
@@ -77,8 +79,14 @@ const Index = () => {
     }
   };
 
+  // Procesar recurrentes vencidas una vez que los datos de Supabase terminen de cargar
+  useEffect(() => {
+    if (!store.loading && store.recurringTxs.length > 0) {
+      store.processRecurring();
+    }
+  }, [store.loading, store.recurringTxs.length, store.processRecurring]);
+
   useEffect(() => { 
-    store.processRecurring(); 
     // Detectar atajo PWA desde pantalla de inicio (?action=quick-add)
     const params = new URLSearchParams(window.location.search);
     if (params.get("action") === "quick-add") {
@@ -94,12 +102,16 @@ const Index = () => {
   const selMonth = selectedDate.getMonth();
   const selYear = selectedDate.getFullYear();
 
-  const selectedMonthExpenses = store.transactions
-    .filter(t => t.type === "expense" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === selMonth && t.date.getFullYear() === selYear)
+  const selectedMonthTxs = store.transactions.filter(
+    t => t.date.getMonth() === selMonth && t.date.getFullYear() === selYear
+  );
+
+  const selectedMonthExpenses = selectedMonthTxs
+    .filter(t => t.type === "expense" && !t.isCardPayment && !t.isTransfer)
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const selectedMonthIncome = store.transactions
-    .filter(t => t.type === "income" && !t.isCardPayment && !t.isTransfer && t.date.getMonth() === selMonth && t.date.getFullYear() === selYear)
+  const selectedMonthIncome = selectedMonthTxs
+    .filter(t => t.type === "income" && !t.isCardPayment && !t.isTransfer)
     .reduce((sum, t) => sum + t.amount, 0);
 
   // Comparativa contra mes anterior
@@ -112,20 +124,17 @@ const Index = () => {
     ? Math.round(((selectedMonthExpenses - prevMonthExpenses) / prevMonthExpenses) * 100)
     : 0;
 
-  // Health score computations
-  const budgets = store.getCurrentMonthBudgets();
-  const avgBudgetUsage = budgets.length > 0
-    ? budgets.reduce((sum, b) => {
+  // Health score computations para el mes seleccionado
+  const selectedBudgets = store.budgets.filter(b => b.month === selMonth && b.year === selYear);
+  const avgBudgetUsage = selectedBudgets.length > 0
+    ? selectedBudgets.reduce((sum, b) => {
         const spent = store.getBudgetSpent(b.categoryId, b.month, b.year);
         return sum + (spent / b.amount) * 100;
-      }, 0) / budgets.length
+      }, 0) / selectedBudgets.length
     : 50;
   const goalsProgress = store.goals.length > 0
     ? store.goals.reduce((sum, g) => sum + (g.currentAmount / g.targetAmount) * 100, 0) / store.goals.length
     : 0;
-
-  // Week spending summary
-  const weekLabel = `${t("dash.weekSpent")}: ${formatAmount(store.weekSpent)}`;
 
   return (
     <div className="min-h-screen md:h-screen md:overflow-hidden bg-background flex w-full overflow-x-hidden" key="app-root">
@@ -142,137 +151,188 @@ const Index = () => {
         <motion.div key={activeTab} variants={pageVariants} initial="initial" animate="animate" exit="exit"
           transition={{ duration: 0.2 }} className="w-full min-w-0">
 
-          {activeTab === "dashboard" && (
-            <div className="md:grid md:grid-cols-2 md:gap-6 md:pt-4">
-              {/* Left column */}
-              <div>
-                {/* Selector de Mes Global (< Mes Año >) */}
-                <div className="px-4 pt-2 pb-2">
-                  <MonthSelector
-                    currentDate={selectedDate}
-                    onChangeDate={setSelectedDate}
-                  />
-                </div>
-
-                {isSectionEnabled("velocity") && (
-                  <VelocityBar spent={store.todaySpent} budget={settings.dailyBudget} />
-                )}
-                {isSectionEnabled("balance") && (
-                  <BalanceHeader
-                    totalBalance={store.totalBalance}
-                    monthlyIncome={selectedMonthIncome}
-                    monthlyExpenses={selectedMonthExpenses}
-                    accounts={store.accounts}
-                  />
-                )}
-
-                <div className="px-4 py-1">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 text-xs text-muted-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    {weekLabel}
-                  </div>
-                </div>
-
-                {isSectionEnabled("accounts") && (
-                  <div className="my-4">
-                    <AccountCards
-                      accounts={store.getActiveAccounts()}
-                      onSelectAccount={handleSelectAccountFromHome}
+          {activeTab === "dashboard" && (() => {
+            // Helper para renderizar cada widget individualmente
+            const renderWidget = (id: string) => {
+              switch (id) {
+                case "velocity":
+                  return (
+                    <VelocityBar
+                      key="velocity"
+                      spent={store.todaySpent}
+                      budget={settings.dailyBudget}
+                      weekSpent={store.weekSpent}
                     />
-                  </div>
-                )}
-                <NetWorthChart accounts={store.getActiveAccounts()} transactions={store.transactions} />
-                {isSectionEnabled("breakdown") && (
-                  <SpendingBreakdown
-                    transactions={store.transactions}
-                    referenceDate={selectedDate}
-                  />
-                )}
-              </div>
-
-              {/* Right column: Panel Lateral de Contexto & Histórico */}
-              <div className="space-y-4 pt-2 md:pt-0">
-                {/* Tarjeta Comparativa contra Mes Anterior (Monthly Insights) */}
-                <div className="px-4">
-                  <div className="card-surface p-3.5 rounded-2xl border border-border/60 bg-gradient-to-br from-secondary/40 via-card to-secondary/20 shadow-xs">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                          <Sparkles className="w-4 h-4" />
-                        </div>
-                        <span className="text-xs font-semibold text-foreground font-display">
-                          Comparativa Mensual
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-muted-foreground font-mono-data">
-                        vs. mes anterior
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      <div className="p-2.5 rounded-xl bg-secondary/40 border border-border/30">
-                        <span className="text-[11px] text-muted-foreground block mb-0.5">Gasto del período</span>
-                        <span className="font-mono-data text-sm font-semibold text-foreground">
-                          {formatAmount(selectedMonthExpenses)}
-                        </span>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-secondary/40 border border-border/30">
-                        <span className="text-[11px] text-muted-foreground block mb-0.5">Variación</span>
-                        <div className="flex items-center gap-1">
-                          {expenseDiffPct <= 0 ? (
-                            <>
-                              <TrendingDown className="w-3.5 h-3.5 text-primary" />
-                              <span className="font-mono-data text-sm font-semibold text-primary">
-                                {expenseDiffPct}%
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingUp className="w-3.5 h-3.5 text-destructive" />
-                              <span className="font-mono-data text-sm font-semibold text-destructive">
-                                +{expenseDiffPct}%
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {isSectionEnabled("budgets") && (
-                  <BudgetSummaryWidget budgets={store.budgets} categories={store.categories}
-                    getBudgetSpent={store.getBudgetSpent} />
-                )}
-                {isSectionEnabled("goals") && (
-                  <GoalsSummaryWidget goals={store.goals} />
-                )}
-                {isSectionEnabled("bills") && (
-                  <BillsSummaryWidget bills={store.getPendingBills()} />
-                )}
-
-                <HealthScore
-                  monthlyIncome={store.monthlyIncome}
-                  monthlyExpenses={store.monthlyExpenses}
-                  budgetsUsedPct={avgBudgetUsage}
-                  goalsProgress={goalsProgress}
-                  pendingBills={pendingBillsCount}
-                />
-
-                {isSectionEnabled("recent") && (
-                  <div className="mt-2">
-                    <TransactionList
-                      transactions={store.transactions.slice(0, 5)}
+                  );
+                case "balance":
+                  return (
+                    <BalanceHeader
+                      key="balance"
+                      totalBalance={store.totalBalance}
+                      monthlyIncome={selectedMonthIncome}
+                      monthlyExpenses={selectedMonthExpenses}
                       accounts={store.accounts}
-                      onSelect={setEditingTx}
-                      onDelete={store.deleteTransaction}
-                      onPayStatement={handleOpenPayStatement}
+                      transactions={selectedMonthTxs}
                     />
+                  );
+                case "accounts":
+                  return (
+                    <div key="accounts" className="my-4">
+                      <AccountCards
+                        accounts={store.getActiveAccounts()}
+                        onSelectAccount={handleSelectAccountFromHome}
+                      />
+                    </div>
+                  );
+                case "net_worth":
+                  return (
+                    <NetWorthChart
+                      key="net_worth"
+                      accounts={store.getActiveAccounts()}
+                      transactions={store.transactions}
+                    />
+                  );
+                case "breakdown":
+                  return (
+                    <SpendingBreakdown
+                      key="breakdown"
+                      transactions={selectedMonthTxs}
+                      categories={store.categories}
+                      referenceDate={selectedDate}
+                    />
+                  );
+                case "monthly_comparison":
+                  return (
+                    <div key="monthly_comparison" className="px-4">
+                      <div className="card-surface p-3.5 rounded-2xl border border-border/60 bg-gradient-to-br from-secondary/40 via-card to-secondary/20 shadow-xs">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                              <Sparkles className="w-4 h-4" />
+                            </div>
+                            <span className="text-xs font-semibold text-foreground font-display">
+                              {t("settings.sectionMonthlyComparison") || "Comparativa mensual"}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-muted-foreground font-mono-data">
+                            vs. mes anterior
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div className="p-2.5 rounded-xl bg-secondary/40 border border-border/30">
+                            <span className="text-[11px] text-muted-foreground block mb-0.5">Gasto del período</span>
+                            <span className="font-mono-data text-sm font-semibold text-foreground">
+                              {formatAmount(selectedMonthExpenses)}
+                            </span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-secondary/40 border border-border/30">
+                            <span className="text-[11px] text-muted-foreground block mb-0.5">Variación</span>
+                            <div className="flex items-center gap-1">
+                              {expenseDiffPct <= 0 ? (
+                                <>
+                                  <TrendingDown className="w-3.5 h-3.5 text-primary" />
+                                  <span className="font-mono-data text-sm font-semibold text-primary">
+                                    {expenseDiffPct}%
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <TrendingUp className="w-3.5 h-3.5 text-destructive" />
+                                  <span className="font-mono-data text-sm font-semibold text-destructive">
+                                    +{expenseDiffPct}%
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                case "budgets":
+                  return (
+                    <BudgetSummaryWidget
+                      key="budgets"
+                      budgets={store.budgets}
+                      categories={store.categories}
+                      getBudgetSpent={store.getBudgetSpent}
+                    />
+                  );
+                case "goals":
+                  return <GoalsSummaryWidget key="goals" goals={store.goals} />;
+                case "bills":
+                  return <BillsSummaryWidget key="bills" bills={store.getPendingBills()} />;
+                case "health_score":
+                  return (
+                    <HealthScore
+                      key="health_score"
+                      monthlyIncome={selectedMonthIncome}
+                      monthlyExpenses={selectedMonthExpenses}
+                      budgetsUsedPct={avgBudgetUsage}
+                      goalsProgress={goalsProgress}
+                      pendingBills={pendingBillsCount}
+                    />
+                  );
+                case "recent":
+                  return (
+                    <div key="recent" className="mt-2">
+                      <TransactionList
+                        title={t("settings.sectionRecent")}
+                        transactions={store.transactions.slice(0, 5)}
+                        accounts={store.accounts}
+                        onSelect={setEditingTx}
+                        onDelete={store.deleteTransaction}
+                        onPayStatement={handleOpenPayStatement}
+                      />
+                    </div>
+                  );
+                default:
+                  return null;
+              }
+            };
+
+            const sections = settings.homeSections || [];
+            const leftSections = sections.filter(s => s.enabled && s.column !== "right");
+            const rightSections = sections.filter(s => s.enabled && s.column === "right");
+
+            return (
+              <div className="space-y-4">
+                <div className="md:grid md:grid-cols-2 md:gap-6 md:pt-4">
+                  {/* Columna Izquierda / Principal */}
+                  <div className="space-y-4">
+                    {/* Selector de Mes Global (< Mes Año >) */}
+                    <div className="px-4 pt-2 pb-2">
+                      <MonthSelector
+                        currentDate={selectedDate}
+                        onChangeDate={setSelectedDate}
+                        onCustomizeDashboard={() => setIsCardPickerOpen(true)}
+                      />
+                    </div>
+
+                    {leftSections.map(s => renderWidget(s.id))}
                   </div>
-                )}
+
+                  {/* Columna Derecha / Métricas e Insights */}
+                  <div className="space-y-4 pt-2 md:pt-0">
+                    {rightSections.map(s => renderWidget(s.id))}
+                  </div>
+                </div>
+
+                {/* Botón flotante/al pie para Personalizar Dashboard */}
+                <div className="px-4 pt-4 pb-2 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsCardPickerOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/60 hover:bg-secondary border border-border/50 text-xs font-semibold text-muted-foreground hover:text-foreground active:scale-95 transition-all shadow-xs group"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-primary group-hover:rotate-12 transition-transform" />
+                    <span>{t("picker.title") || "Personalizar Dashboard"}</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {activeTab === "transactions" && (
             <div className="pt-4">
@@ -342,7 +402,7 @@ const Index = () => {
           )}
 
           {activeTab === "accounts" && (
-            <AccountManager
+          <AccountManager
               accounts={store.accounts}
               getActiveAccounts={store.getActiveAccounts}
               getArchivedAccounts={store.getArchivedAccounts}
@@ -352,6 +412,8 @@ const Index = () => {
               onArchive={store.archiveAccount}
               onUnarchive={store.unarchiveAccount}
               onAdjustBalance={store.adjustAccountBalance}
+              onSyncBalance={store.syncAccountBalance}
+              recalculateAccountBalance={store.recalculateAccountBalance}
               onSelectTransaction={setEditingTx}
               initialSelectedAccountId={selectedDetailAccountId}
               onClearInitialAccount={() => setSelectedDetailAccountId(null)}
@@ -386,6 +448,7 @@ const Index = () => {
           {activeTab === "reports" && (
             <ReportsPage
               transactions={store.transactions}
+              categories={store.categories}
               accounts={store.accounts}
               monthlyExpenses={store.monthlyExpenses}
               monthlyIncome={store.monthlyIncome}
@@ -444,7 +507,8 @@ const Index = () => {
       <QuickAddSheet open={quickAddOpen} onClose={() => setQuickAddOpen(false)}
         onSubmit={store.addTransaction} accounts={store.getActiveAccounts()}
         categories={store.getAllActiveCategories()} tags={store.tags}
-        initialType={quickAddType} />
+        initialType={quickAddType}
+        getTransactionCountByCategory={store.getTransactionCountByCategory} />
 
       <CsvImportSheet open={csvImportOpen} onClose={() => setCsvImportOpen(false)}
         onImport={store.importTransactions} accounts={store.getActiveAccounts()}
@@ -468,6 +532,11 @@ const Index = () => {
         onConfirmPay={(cardId, fromAccountId, amount) => {
           store.payCard(cardId, fromAccountId, amount);
         }}
+      />
+
+      <DashboardCardPicker
+        open={isCardPickerOpen}
+        onClose={() => setIsCardPickerOpen(false)}
       />
 
       <div className="md:hidden">

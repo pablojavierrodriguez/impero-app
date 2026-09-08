@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowDownLeft, ArrowUpRight, Delete, Paperclip, Loader2, FileText, X } from "lucide-react";
 import { Category, Account, Tag } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
-import { useSettings } from "@/lib/settings-store";
+import { useSettings, CURRENCIES, Currency } from "@/lib/settings-store";
 import { ResponsiveSheet } from "./ResponsiveSheet";
 import { uploadReceipt } from "@/services/storage.service";
 
@@ -16,38 +16,68 @@ interface QuickAddSheetProps {
     category: Category,
     type: "income" | "expense",
     accountId: string,
-    extras?: { tags?: string[]; note?: string; installments?: number; receiptUrl?: string }
+    extras?: { tags?: string[]; note?: string; installments?: number; receiptUrl?: string; currency?: Currency }
   ) => void;
   accounts: Account[];
   categories: Category[];
   tags?: Tag[];
   initialType?: "expense" | "income";
+  getTransactionCountByCategory?: (categoryId: string) => number;
 }
 
-export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, tags = [], initialType = "expense" }: QuickAddSheetProps) {
-  const { currencySymbol, t } = useSettings();
+export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, tags = [], initialType = "expense", getTransactionCountByCategory }: QuickAddSheetProps) {
+  const { currencySymbol, settings, t } = useSettings();
   const [amount, setAmount] = useState("0");
   const [type, setType] = useState<"income" | "expense">(initialType);
   const [step, setStep] = useState<"amount" | "details">("amount");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [selectedAccount, setSelectedAccount] = useState(accounts[0]?.id ?? "");
+  const [selectedAccount, setSelectedAccount] = useState(() => accounts[0]?.id ?? "");
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(() => {
+    const acc = accounts.find(a => a.id === accounts[0]?.id);
+    return (acc?.currency as Currency) || settings.currency || "ARS";
+  });
   const [description, setDescription] = useState("");
   const [installments, setInstallments] = useState(1);
   const [receiptUrl, setReceiptUrl] = useState<string | undefined>(undefined);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
+  // Sincronizar cuenta seleccionada si aún no hay una válida o la actual fue archivada
+  useEffect(() => {
+    const valid = accounts.find(a => a.id === selectedAccount);
+    if (!valid && accounts.length > 0) {
+      setSelectedAccount(accounts[0].id);
+    }
+  }, [accounts, selectedAccount]);
+
+  // Sincronizar moneda por defecto si el usuario cambia de cuenta
+  useEffect(() => {
+    const acc = accounts.find(a => a.id === selectedAccount);
+    if (acc?.currency) {
+      setSelectedCurrency(acc.currency as Currency);
+    }
+  }, [selectedAccount, accounts]);
+
   // Sincronizar con el tipo inicial al abrirse desde el Speed Dial
-  useState(() => {
+  useEffect(() => {
     if (initialType) setType(initialType);
-  });
+  }, [initialType]);
 
   const selectedAccObj = accounts.find(a => a.id === selectedAccount);
   const isCreditCard = selectedAccObj?.type === "credit";
+  const activeCurrencySymbol = CURRENCIES.find(c => c.value === selectedCurrency)?.symbol || currencySymbol;
 
-  const filteredCats = categories.filter(c => c.type === type && !c.archived);
+  const filteredCats = useMemo(() => {
+    const cats = categories.filter(c => c.type === type && !c.archived);
+    if (!getTransactionCountByCategory) return cats;
+    return [...cats].sort((a, b) => {
+      const countA = getTransactionCountByCategory(a.id);
+      const countB = getTransactionCountByCategory(b.id);
+      return countB - countA;
+    });
+  }, [categories, type, getTransactionCountByCategory]);
 
   // Smart chips: las 4 categorías más populares para selección instantánea
-  const topCategories = filteredCats.slice(0, 4);
+  const topCategories = useMemo(() => filteredCats.slice(0, 4), [filteredCats]);
 
   const triggerHaptic = (duration = 10) => {
     try {
@@ -100,9 +130,17 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
   const handleQuickCategorySubmit = (cat: Category) => {
     const finalAmount = parseFloat(evaluateExpression(amount));
     if (isNaN(finalAmount) || finalAmount <= 0) return;
+    // Leer la cuenta directamente de props para evitar stale closures del estado
+    const effectiveAccountId =
+      (selectedAccount && accounts.find(a => a.id === selectedAccount)?.id) ||
+      accounts[0]?.id;
+    if (!effectiveAccountId) return;
     triggerHaptic(15);
-    onSubmit(finalAmount, cat.name, cat, type, selectedAccount, {});
-    resetAndClose();
+    // Capturar la moneda antes de resetear
+    const currencySnapshot = selectedCurrency;
+    onSubmit(finalAmount, cat.name, cat, type, effectiveAccountId, { currency: currencySnapshot });
+    // Resetear en microtask para no interferir con la llamada async de onSubmit
+    Promise.resolve().then(() => resetAndClose());
   };
 
   const handleNext = () => {
@@ -117,6 +155,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
       setUploadingReceipt(true);
       const url = await uploadReceipt(file);
       setReceiptUrl(url);
+      triggerHaptic(15);
     } catch (err) {
       console.error("Error al subir comprobante:", err);
     } finally {
@@ -126,7 +165,11 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
 
   const handleSubmit = () => {
     if (!selectedCategory) return;
-    const extras: { installments?: number; receiptUrl?: string } = {};
+    const effectiveAccountId = selectedAccount || accounts[0]?.id;
+    if (!effectiveAccountId) return;
+    const extras: { installments?: number; receiptUrl?: string; currency?: Currency } = {
+      currency: selectedCurrency,
+    };
     if (type === "expense" && installments > 1) {
       extras.installments = installments;
     }
@@ -134,13 +177,13 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
       extras.receiptUrl = receiptUrl;
     }
     triggerHaptic(25);
-    onSubmit(parseFloat(amount), description || selectedCategory.name, selectedCategory, type, selectedAccount, extras);
+    onSubmit(parseFloat(amount), description || selectedCategory.name, selectedCategory, type, effectiveAccountId, extras);
     resetAndClose();
   };
 
   const resetAndClose = () => {
     setAmount("0");
-    setType("expense");
+    setType(initialType);  // Respetar el tipo del contexto (income/expense) al resetear
     setStep("amount");
     setSelectedCategory(null);
     setDescription("");
@@ -179,25 +222,49 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
       <AnimatePresence mode="wait">
         {step === "amount" ? (
           <motion.div key="amount" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {/* Amount display */}
-            <div className={`text-center pt-2 pb-3 mb-2 rounded-2xl mx-4 border transition-colors ${
+            {/* Amount display con selector de moneda */}
+            <div className={`pt-2 pb-3 mb-2 rounded-2xl mx-4 border transition-colors ${
               type === "expense"
                 ? "bg-destructive/10 border-destructive/20"
                 : "bg-primary/10 border-primary/20"
             }`}>
+              <div className="flex items-center justify-between px-3 mb-1">
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                  {type === "expense" ? "Salida de dinero" : "Entrada de dinero"}
+                </span>
+                {/* Selector táctil de divisa para el gasto */}
+                <div className="flex items-center gap-0.5 bg-background/60 p-0.5 rounded-full border border-border/40">
+                  {CURRENCIES.map(c => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(8);
+                        setSelectedCurrency(c.value);
+                      }}
+                      className={`min-w-[32px] h-6 px-1.5 flex items-center justify-center text-[10px] font-mono-data font-bold rounded-full transition-all active:scale-95 ${
+                        selectedCurrency === c.value
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title={`Registrar en ${c.value}`}
+                    >
+                      {c.value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex items-center justify-center gap-1.5">
                 {type === "expense" ? (
-                  <ArrowUpRight className="w-6 h-6 text-destructive" />
+                  <ArrowUpRight className="w-6 h-6 text-destructive shrink-0" />
                 ) : (
-                  <ArrowDownLeft className="w-6 h-6 text-primary" />
+                  <ArrowDownLeft className="w-6 h-6 text-primary shrink-0" />
                 )}
                 <span className={`font-mono-data text-[40px] font-semibold tracking-tight ${type === "expense" ? "text-destructive" : "text-primary"}`}>
-                  {type === "expense" ? "-" : "+"}{currencySymbol}{amount}
+                  {type === "expense" ? "-" : "+"}{activeCurrencySymbol}{amount}
                 </span>
               </div>
-              <span className="text-[11px] font-medium text-muted-foreground block mt-0.5 uppercase tracking-wider">
-                {type === "expense" ? "Salida de dinero" : "Entrada de dinero"}
-              </span>
             </div>
 
             {/* Smart Chips: Guardado en 1 toque para categorías frecuentes */}
@@ -241,7 +308,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
             <div className="px-4 pb-6">
               <button
                 onClick={handleNext}
-                disabled={parseFloat(amount) <= 0 && !/[0-9]/.test(amount)}
+                disabled={isNaN(parseFloat(amount)) || parseFloat(amount) <= 0}
                 className="w-full h-12 rounded-[12px] bg-primary text-primary-foreground font-medium text-[15px] disabled:opacity-40 transition-opacity active:scale-[0.98]"
               >
                 {t("quickadd.next")}
@@ -252,7 +319,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
           <motion.div key="details" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="px-4 pb-6">
             <div className="text-center py-3">
               <span className={`font-mono-data text-[28px] ${type === "income" ? "text-primary" : "text-foreground"}`}>
-                {type === "expense" ? "-" : "+"}{currencySymbol}{amount}
+                {type === "expense" ? "-" : "+"}{activeCurrencySymbol}{amount}
               </span>
             </div>
             <input
@@ -263,29 +330,31 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
               className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
             />
             <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.category")}</span>
-            <div className="grid grid-cols-4 gap-2.5 mb-5 max-h-48 overflow-y-auto pr-1">
-              {filteredCats.map(cat => {
-                const isSelected = selectedCategory?.id === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`flex flex-col items-center justify-center p-2 rounded-2xl transition-all ${
-                      isSelected
-                        ? "bg-secondary ring-2 ring-primary scale-102 shadow-sm"
-                        : "bg-secondary/30 hover:bg-secondary/60 active:scale-95"
-                    }`}
-                  >
-                    <div className={`w-11 h-11 rounded-full ${cat.color} flex items-center justify-center text-white mb-1.5 shadow-sm`}>
-                      <CategoryIcon name={cat.icon || "circle-dot"} className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="text-[11px] font-medium text-foreground text-center truncate w-full px-1">
-                      {cat.name}
-                    </span>
-                  </button>
-                );
-              })}
+            <div className="max-h-52 overflow-y-auto pr-1 mb-5 touch-pan-y overscroll-contain">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(72px,1fr))] gap-2">
+                {filteredCats.map(cat => {
+                  const isSelected = selectedCategory?.id === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all border text-left active:scale-95 ${
+                        isSelected
+                          ? "bg-secondary text-foreground border-primary/50 shadow-sm ring-1 ring-primary/40"
+                          : "bg-secondary/40 hover:bg-secondary/70 text-muted-foreground hover:text-foreground border-border/40"
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-full ${cat.color} flex items-center justify-center text-white mb-1.5 shadow-sm shrink-0`}>
+                        <CategoryIcon name={cat.icon || "circle-dot"} className="w-5 h-5 text-white stroke-[2.2]" />
+                      </div>
+                      <span className={`text-[11px] leading-tight text-center line-clamp-2 w-full px-0.5 ${isSelected ? "font-semibold text-foreground" : "font-medium"}`}>
+                        {cat.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.account")}</span>
             <div className="flex flex-wrap gap-2 mb-4">

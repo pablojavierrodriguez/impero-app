@@ -1,6 +1,4 @@
-# Gestión de Migraciones y Releases de Base de Datos
-
-Este directorio contiene las migraciones individuales de Supabase y los deltas consolidados por versión de release para despliegues limpios y reproducibles.
+# Gestión de Migraciones y Base de Datos — m3
 
 ---
 
@@ -8,36 +6,66 @@ Este directorio contiene las migraciones individuales de Supabase y los deltas c
 
 ```
 supabase/
-├── migrations/          # Migraciones incrementales numeradas (ejecutadas por `supabase migration up`)
-│   ├── 20260406215403_c2aaec7d-762a-4c25-bea2-1d773e8f6c13.sql
-│   ├── 20260406220000_storage_and_user_defaults.sql
-│   ├── 20260406221000_grant_permissions.sql
-│   ├── 20260904180845_whatsapp_bot_persistence.sql
-│   └── 20260905000000_account_currency.sql
-└── releases/            # Deltas consolidados por version de release del producto
-    ├── release_v1.0.0_core_foundation.sql
-    └── release_v1.1.0_ai_whatsapp_and_multicurrency.sql
+├── migrations/
+│   ├── 00000000000000_schema_foundation.sql   ← FUENTE DE VERDAD: esquema completo actual
+│   ├── delta/                                  ← Deltas idempotentes para aplicar en cloud
+│   │   └── 20260908_consolidation_delta.sql    ← Estado actual desde v1.1.0
+│   └── archive/                                ← Historial de migraciones anteriores (solo referencia)
+│       ├── 20260406215403_c2aaec7d.sql
+│       ├── 20260406220000_storage_and_user_defaults.sql
+│       ├── 20260406221000_grant_permissions.sql
+│       ├── 20260904180845_whatsapp_bot_persistence.sql
+│       ├── 20260905000000_account_currency.sql
+│       ├── 20260906000000_shopping_lists.sql
+│       ├── 20260907220000_transaction_currency.sql
+│       └── 20260908000000_transaction_rules.sql
+├── releases/                                   ← Resúmenes consolidados por versión de producto
+│   ├── release_v1.0.0_core_foundation.sql
+│   └── release_v1.1.0_ai_whatsapp_and_multicurrency.sql
+└── snippets/                                   ← Queries ad-hoc de Studio (no son migraciones)
+    └── deltas/                                 ← Deltas históricos aplicados manualmente (referencia)
 ```
 
 ---
 
-## 🚀 Releases Consolidadas
+## 🚀 Inicialización local (desde cero)
 
-### `release_v1.0.0_core_foundation.sql`
-- **Contenido:** Esquema base completo (`profiles`, `accounts`, `categories`, `transactions`, `budgets`, `goals`, `recurring_transactions`, `bill_reminders`), políticas RLS, Storage bucket `receipts` y permisos de base de datos.
-- **Uso:** Inicialización desde cero de una base de datos nueva en producción o staging.
+```bash
+supabase db reset
+```
 
-### `release_v1.1.0_ai_whatsapp_and_multicurrency.sql`
-- **Contenido:** Tablas para ingesta y persistencia del bot de WhatsApp (`whatsapp_audit_logs`, `whatsapp_message_queue`), webhooks, funciones auxiliares y columna `currency` en `public.accounts` para balances multi-moneda.
-- **Uso:** Delta consolidado para actualizar cualquier base de datos que ya esté en `v1.0.0`.
+Aplica **solo** `migrations/00000000000000_schema_foundation.sql`. Todo el esquema en un paso, sin errores de migraciones faltantes.
 
 ---
 
-## 🛠️ Reglas Operativas para el Equipo
+## ☁️ Actualización en cloud (sin perder datos)
 
-1. **Cada cambio de esquema requiere migración incremental:**
-   - Crear archivo con timestamp en `supabase/migrations/YYYYMMDDHHMMSS_<nombre>.sql`.
-   - Aplicar localmente con `npx supabase migration up --local` y validar con `supabase db advisors --local`.
-2. **Consolidación por Release:**
-   - Al cerrar un paquete de features o versión de release, generar el script consolidado correspondiente en `supabase/releases/`.
-   - Garantizar idempotencia (`IF NOT EXISTS`, `OR REPLACE`).
+Ejecutar el delta correspondiente desde Supabase Studio → SQL Editor:
+
+```
+migrations/delta/20260908_consolidation_delta.sql
+```
+
+---
+
+## 🛠️ Reglas para nuevos cambios de esquema
+
+> Seguir el flujo completo documentado en `.agents/skills/db-ops/SKILL.md`
+
+1. **Editar `00000000000000_schema_foundation.sql`** — integrar el cambio directamente en la definición de la tabla (no como ALTER TABLE al final).
+2. **Crear `migrations/delta/YYYYMMDD_<nombre>.sql`** — delta idempotente para aplicar en cloud.
+3. **Validar localmente** con `supabase db reset` → debe completar sin errores.
+4. **Auditoría** con `supabase db advisors --local` → sin warnings.
+5. **Aplicar el delta en cloud** manualmente.
+
+---
+
+## 📋 Releases de Producto
+
+### `release_v1.0.0_core_foundation.sql`
+- **Contenido:** Esquema base completo (`profiles`, `accounts`, `categories`, `transactions`, `budgets`, `goals`, `recurring_transactions`, `bill_reminders`), políticas RLS, Storage bucket `receipts` y permisos.
+- **Uso:** Referencia histórica. Para inicialización usar `00000000000000_schema_foundation.sql`.
+
+### `release_v1.1.0_ai_whatsapp_and_multicurrency.sql`
+- **Contenido:** Tablas WhatsApp (`whatsapp_integrations`, `whatsapp_messages`), columna `currency` en `accounts`.
+- **Uso:** Referencia histórica del delta v1.1.0.

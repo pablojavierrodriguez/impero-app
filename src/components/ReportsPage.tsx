@@ -1,18 +1,20 @@
 import { useState, useMemo } from "react";
 import { useSettings } from "@/lib/settings-store";
 import { Transaction, Account } from "@/lib/types";
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { TrendingUp, TrendingDown, Download, PiggyBank, Calendar } from "lucide-react";
 import { generateTransactionsCsv, downloadCsvFile } from "@/lib/export-utils";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CashFlowForecast } from "./CashFlowForecast";
 import { RecurringTransaction, BillReminder } from "@/lib/types";
+import { CategoryExpensePieCard } from "./CategoryExpensePieCard";
 
 type DateRangePreset = "this_month" | "last_month" | "last_3_months" | "this_year" | "all";
 
 interface ReportsPageProps {
   transactions: Transaction[];
+  categories?: Category[];
   accounts?: Account[];
   monthlyExpenses: number;
   monthlyIncome: number;
@@ -24,6 +26,7 @@ interface ReportsPageProps {
 
 export function ReportsPage({
   transactions,
+  categories = [],
   accounts = [],
   monthlyExpenses,
   monthlyIncome,
@@ -79,39 +82,6 @@ export function ReportsPage({
 
   // Tasa de ahorro: ((Ingresos - Gastos) / Ingresos) * 100 (solo si ingresos > 0)
   const savingsRate = rangeIncome > 0 ? Math.max(-100, Math.min(100, ((rangeIncome - rangeExpenses) / rangeIncome) * 100)) : 0;
-
-  // Agrupación por categoría para el período seleccionado
-  const { topCats, totalExpRange, pieData } = useMemo(() => {
-    const expenses = filteredTransactions.filter(
-      (t) => t.type === "expense" && !t.isCardPayment && !t.isTransfer
-    );
-    const byCat = expenses.reduce<Record<string, { name: string; amount: number; color: string }>>((acc, tx) => {
-      if (!acc[tx.category.id]) {
-        acc[tx.category.id] = { name: tx.category.name, amount: 0, color: tx.category.color };
-      }
-      acc[tx.category.id].amount += tx.amount;
-      return acc;
-    }, {});
-
-    const sorted = Object.values(byCat).sort((a, b) => b.amount - a.amount);
-    const totalExp = expenses.reduce((s, t) => s + t.amount, 0);
-
-    const colorHexMap: Record<string, string> = {
-      "bg-emerald-500": "#10b981", "bg-sky-500": "#0ea5e9", "bg-orange-500": "#f97316",
-      "bg-red-400": "#f87171", "bg-pink-500": "#ec4899", "bg-violet-500": "#8b5cf6",
-      "bg-amber-500": "#f59e0b", "bg-zinc-500": "#71717a", "bg-emerald-400": "#34d399",
-      "bg-teal-400": "#2dd4bf", "bg-cyan-400": "#22d3ee", "bg-rose-500": "#f43f5e",
-      "bg-indigo-500": "#6366f1", "bg-lime-500": "#84cc16", "bg-fuchsia-500": "#d946ef",
-    };
-
-    const pie = sorted.slice(0, 6).map((c) => ({
-      name: c.name,
-      value: c.amount,
-      color: colorHexMap[c.color] || "#71717a",
-    }));
-
-    return { topCats: sorted.slice(0, 5), totalExpRange: totalExp, pieData: pie };
-  }, [filteredTransactions]);
 
   const chartData = trend.map((m) => ({
     ...m,
@@ -315,78 +285,11 @@ export function ReportsPage({
         </ResponsiveContainer>
       </div>
 
-      {/* Donut & Top categories */}
-      <div className="mx-4 mb-4 p-4 rounded-[16px] bg-card border border-border/50 shadow-sm">
-        <h3 className="text-[13px] font-medium text-foreground mb-3">{t("report.topCategories")}</h3>
-
-        {topCats.length === 0 ? (
-          <p className="text-[13px] text-muted-foreground">{t("common.noData")}</p>
-        ) : (
-          <div>
-            {/* Donut Chart representation */}
-            {pieData.length > 0 && (
-              <div className="h-44 mb-3 flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Tooltip
-                      contentStyle={{
-                        background: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: 8,
-                        fontSize: 12,
-                      }}
-                      formatter={(value: number) => [formatAmount(value), ""]}
-                    />
-                    <Pie
-                      data={pieData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={68}
-                      paddingAngle={3}
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* List with progress bars */}
-            <div className="space-y-3">
-              {topCats.map((cat, i) => {
-                const pct = totalExpRange > 0 ? (cat.amount / totalExpRange) * 100 : 0;
-                return (
-                  <div key={cat.name}>
-                    <div className="flex items-center justify-between text-[13px] mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground text-[11px] w-4">{i + 1}</span>
-                        <div className={`w-3 h-3 rounded-full ${cat.color}`} />
-                        <span className="text-foreground">{cat.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground font-mono-data">
-                          {pct.toFixed(0)}%
-                        </span>
-                        <span className="font-mono-data text-foreground font-medium">
-                          {formatAmount(cat.amount)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="ml-6 h-1.5 bg-secondary rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${cat.color}`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Gráfico de Gastos por Categoría y Subcategoría (Estilo Mobills / Wallet) */}
+      <CategoryExpensePieCard
+        transactions={filteredTransactions}
+        categories={categories}
+      />
     </div>
   );
 }

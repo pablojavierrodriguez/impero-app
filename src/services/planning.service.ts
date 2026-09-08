@@ -198,3 +198,113 @@ export async function deleteBillRemote(id: string): Promise<void> {
   const { error } = await supabase.from("bill_reminders").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ===== RECURRING TRANSACTIONS =====
+type RecurringTransactionUpdate = Database["public"]["Tables"]["recurring_transactions"]["Update"];
+
+export async function fetchRecurringTransactions(categories: Category[]): Promise<RecurringTransaction[]> {
+  const { data, error } = await supabase
+    .from("recurring_transactions")
+    .select("*")
+    .order("next_date", { ascending: true });
+
+  if (error) throw error;
+
+  const catMap = new Map<string, Category>(categories.map((c) => [c.id, c]));
+
+  return (data || []).map((row) => {
+    const matchedCategory = row.category_id ? catMap.get(row.category_id) : undefined;
+    const category: Category = matchedCategory || {
+      id: row.category_id || "uncategorized",
+      name: "Sin Categoría",
+      color: "bg-zinc-500",
+      type: row.type as TransactionType,
+      icon: "circle-dot",
+    };
+
+    return {
+      id: row.id,
+      amount: Number(row.amount),
+      description: row.description,
+      category,
+      type: row.type as TransactionType,
+      accountId: row.account_id,
+      frequency: row.frequency as RecurrenceFrequency,
+      startDate: new Date(row.start_date),
+      nextDate: new Date(row.next_date),
+      paused: row.paused,
+      tags: row.tag_ids || undefined,
+      currency: (row.currency as any) || "ARS",
+    };
+  });
+}
+
+export async function insertRecurringTransaction(
+  rtx: Omit<RecurringTransaction, "id">
+): Promise<RecurringTransaction> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No user");
+
+  const { data, error } = await supabase
+    .from("recurring_transactions")
+    .insert({
+      user_id: user.id,
+      amount: rtx.amount,
+      description: rtx.description,
+      category_id: rtx.category.id !== "uncategorized" ? rtx.category.id : null,
+      type: rtx.type,
+      account_id: rtx.accountId,
+      frequency: rtx.frequency,
+      start_date: rtx.startDate.toISOString(),
+      next_date: rtx.nextDate.toISOString(),
+      paused: rtx.paused,
+      tag_ids: rtx.tags || [],
+      currency: rtx.currency || "ARS",
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    amount: Number(data.amount),
+    description: data.description,
+    category: rtx.category,
+    type: data.type as TransactionType,
+    accountId: data.account_id,
+    frequency: data.frequency as RecurrenceFrequency,
+    startDate: new Date(data.start_date),
+    nextDate: new Date(data.next_date),
+    paused: data.paused,
+    tags: data.tag_ids || undefined,
+    currency: (data.currency as any) || "ARS",
+  };
+}
+
+export async function updateRecurringTransactionRemote(
+  id: string,
+  updates: Partial<RecurringTransaction>
+): Promise<void> {
+  const payload: RecurringTransactionUpdate = {};
+  if (updates.amount !== undefined) payload.amount = updates.amount;
+  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.category !== undefined) payload.category_id = updates.category.id !== "uncategorized" ? updates.category.id : null;
+  if (updates.type !== undefined) payload.type = updates.type;
+  if (updates.accountId !== undefined) payload.account_id = updates.accountId;
+  if (updates.frequency !== undefined) payload.frequency = updates.frequency;
+  if (updates.startDate !== undefined) payload.start_date = updates.startDate.toISOString();
+  if (updates.nextDate !== undefined) payload.next_date = updates.nextDate.toISOString();
+  if (updates.paused !== undefined) payload.paused = updates.paused;
+  if (updates.tags !== undefined) payload.tag_ids = updates.tags;
+  if (updates.currency !== undefined) payload.currency = updates.currency;
+
+  const { error } = await supabase.from("recurring_transactions").update(payload).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteRecurringTransactionRemote(id: string): Promise<void> {
+  const { error } = await supabase.from("recurring_transactions").delete().eq("id", id);
+  if (error) throw error;
+}
+

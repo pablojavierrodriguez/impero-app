@@ -1,9 +1,11 @@
-import { ChevronRight, RotateCcw, DollarSign, Languages, BarChart3, LayoutGrid, Hash, Eye, Sun, Moon, Monitor, Smartphone, Shield, EyeOff, Palette, Check, LayoutList, Calculator } from "lucide-react";
+import { useState } from "react";
+import { ChevronRight, RotateCcw, DollarSign, Languages, BarChart3, LayoutGrid, Hash, Eye, Sun, Moon, Monitor, Smartphone, Shield, EyeOff, Palette, Check, LayoutList, Calculator, SlidersHorizontal } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WhatsAppIntegrationModal } from "@/components/WhatsAppIntegrationModal";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
-import { useSettings, CURRENCIES, type Currency, type ChartType, type ThemeMode, type AppTheme } from "@/lib/settings-store";
+import { DashboardCardPicker } from "@/components/DashboardCardPicker";
+import { useSettings, CURRENCIES, DEFAULT_EXCHANGE_RATES, type Currency, type ChartType, type ThemeMode, type AppTheme } from "@/lib/settings-store";
 import { usePrivacy } from "@/contexts/PrivacyContext";
 import type { Language } from "@/lib/i18n";
 
@@ -83,6 +85,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export function SettingsPage({ onImportCsv }: SettingsPageProps) {
   const { settings, updateSettings, toggleHomeSection, resetSettings, currencySymbol, t } = useSettings();
   const { isPrivacyMode, setPrivacyMode } = usePrivacy();
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   return (
     <div className="pt-4 pb-4">
@@ -146,12 +149,13 @@ export function SettingsPage({ onImportCsv }: SettingsPageProps) {
                   <span className="text-xs text-muted-foreground">$</span>
                   <input
                     type="number"
-                    value={Math.round(1 / ((settings.customExchangeRates?.USD) || (1 / 1200)))}
+                    value={Math.round(1 / ((settings.customExchangeRates?.USD) || DEFAULT_EXCHANGE_RATES.USD))}
                     onChange={(e) => {
                       const val = Number(e.target.value) || 1200;
                       updateSettings({
                         customExchangeRates: {
-                          ...(settings.customExchangeRates || { ARS: 1, USD: 1 / 1200, EUR: 1 / 1300 }),
+                          ...DEFAULT_EXCHANGE_RATES,
+                          ...(settings.customExchangeRates || {}),
                           USD: 1 / val,
                         },
                       });
@@ -166,12 +170,13 @@ export function SettingsPage({ onImportCsv }: SettingsPageProps) {
                   <span className="text-xs text-muted-foreground">$</span>
                   <input
                     type="number"
-                    value={Math.round(1 / ((settings.customExchangeRates?.EUR) || (1 / 1300)))}
+                    value={Math.round(1 / ((settings.customExchangeRates?.EUR) || DEFAULT_EXCHANGE_RATES.EUR))}
                     onChange={(e) => {
                       const val = Number(e.target.value) || 1300;
                       updateSettings({
                         customExchangeRates: {
-                          ...(settings.customExchangeRates || { ARS: 1, USD: 1 / 1200, EUR: 1 / 1300 }),
+                          ...DEFAULT_EXCHANGE_RATES,
+                          ...(settings.customExchangeRates || {}),
                           EUR: 1 / val,
                         },
                       });
@@ -270,6 +275,7 @@ export function SettingsPage({ onImportCsv }: SettingsPageProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="donut" className="text-xs">{t("settings.chartDonut")}</SelectItem>
                 <SelectItem value="bar" className="text-xs">{t("settings.chartBar")}</SelectItem>
                 <SelectItem value="area" className="text-xs">{t("settings.chartArea")}</SelectItem>
                 <SelectItem value="none" className="text-xs">{t("settings.chartNone")}</SelectItem>
@@ -310,15 +316,55 @@ export function SettingsPage({ onImportCsv }: SettingsPageProps) {
 
           <SectionTitle>{t("settings.homeSections")}</SectionTitle>
 
-          {settings.homeSections.map(section => (
-            <div key={section.id} className="flex items-center justify-between py-3 px-4">
-              <div className="flex items-center gap-3">
-                <LayoutGrid className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-foreground">{t(section.labelKey)}</span>
+          {/* Launcher interactivo del Dashboard Card Picker */}
+          <div className="p-4 bg-secondary/20 rounded-2xl mx-4 my-2 border border-border/40">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <SlidersHorizontal className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-sm font-semibold text-foreground block font-display">
+                    {t("settings.customizeHome") || "Personalizar Inicio"}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {settings.homeSections.filter(s => s.enabled).length} de {settings.homeSections.length} widgets activos
+                  </span>
+                </div>
               </div>
-              <Switch checked={section.enabled} onCheckedChange={() => toggleHomeSection(section.id)} />
+
+              <button
+                type="button"
+                onClick={() => setIsPickerOpen(true)}
+                className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all active:scale-95 flex items-center gap-1.5 shadow-xs"
+              >
+                <span>Editar</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-          ))}
+
+            <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
+              {t("settings.customizeHomeSubtitle") || "Elegí y organizá qué widgets, gráficos y datos ver en la pantalla principal."}
+            </p>
+
+            {/* Mini pills de widgets activos */}
+            <div className="flex flex-wrap gap-1.5">
+              {settings.homeSections.filter(s => s.enabled).map(section => (
+                <span
+                  key={section.id}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/80 border border-border/50 text-muted-foreground flex items-center gap-1"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  {t(section.labelKey)}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <DashboardCardPicker
+            open={isPickerOpen}
+            onClose={() => setIsPickerOpen(false)}
+          />
 
           <SectionTitle>Integraciones & Automatización</SectionTitle>
           <WhatsAppIntegrationModal />

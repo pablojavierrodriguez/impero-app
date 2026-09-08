@@ -24,10 +24,34 @@ export async function fetchRemoteSettings(): Promise<AppSettings | null> {
 
   // Reconciliar secciones de home para asegurar que contengan todas las secciones válidas
   const savedSections = (Array.isArray(data.home_sections) ? data.home_sections : []) as HomeSection[];
-  const mergedSections = DEFAULT_HOME_SECTIONS.map(def => {
+  // Backfill y enriquecer con defaults para nuevos campos (category, column, order)
+  const mergedSections: HomeSection[] = DEFAULT_HOME_SECTIONS.map((def, defaultIdx) => {
     const existing = savedSections.find(s => s.id === def.id);
-    return existing || def;
-  });
+    if (!existing) return { ...def, order: def.order ?? defaultIdx };
+    return {
+      ...def,
+      ...existing,
+      enabled: typeof existing.enabled === "boolean" ? existing.enabled : def.enabled,
+      order: typeof existing.order === "number" ? existing.order : (def.order ?? defaultIdx),
+      category: def.category,
+      column: def.column,
+    };
+  }).sort((a, b) => a.order - b.order);
+
+  // Sanitizar custom_exchange_rates eliminando campos internos como __app_theme
+  let customExchangeRates: Record<Currency, number> | undefined = undefined;
+  if (data.custom_exchange_rates && typeof data.custom_exchange_rates === "object") {
+    const rawRates = data.custom_exchange_rates as Record<string, unknown>;
+    const cleanRates: Partial<Record<Currency, number>> = {};
+    for (const key of ["ARS", "USD", "EUR"] as Currency[]) {
+      if (typeof rawRates[key] === "number" && !isNaN(rawRates[key] as number) && (rawRates[key] as number) > 0) {
+        cleanRates[key] = rawRates[key] as number;
+      }
+    }
+    if (Object.keys(cleanRates).length > 0) {
+      customExchangeRates = cleanRates as Record<Currency, number>;
+    }
+  }
 
   return {
     currency: (data.currency as Currency) || DEFAULT_SETTINGS.currency,
@@ -38,7 +62,7 @@ export async function fetchRemoteSettings(): Promise<AppSettings | null> {
     theme: (data.theme as ThemeMode) || DEFAULT_SETTINGS.theme,
     appTheme: ((data as any).app_theme as any) || DEFAULT_SETTINGS.appTheme,
     homeSections: mergedSections,
-    customExchangeRates: (data.custom_exchange_rates as Record<Currency, number>) || undefined,
+    customExchangeRates,
   };
 }
 

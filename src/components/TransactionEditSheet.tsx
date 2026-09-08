@@ -4,7 +4,7 @@ import { Trash2, Save, Copy, Paperclip, FileText, Loader2, X, CreditCard, Calend
 import { Transaction, Category, Account, Tag } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { format } from "date-fns";
-import { useSettings } from "@/lib/settings-store";
+import { useSettings, CURRENCIES, type Currency } from "@/lib/settings-store";
 import { ResponsiveSheet } from "./ResponsiveSheet";
 import { uploadReceipt } from "@/services/storage.service";
 
@@ -38,6 +38,7 @@ export function TransactionEditSheet({
   const [type, setType] = useState<"income" | "expense">("expense");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedAccount, setSelectedAccount] = useState("");
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>("ARS");
   const [date, setDate] = useState("");
   const [receiptUrl, setReceiptUrl] = useState<string | undefined>(undefined);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
@@ -50,11 +51,13 @@ export function TransactionEditSheet({
       setType(transaction.type);
       setSelectedCategory(transaction.category);
       setSelectedAccount(transaction.accountId);
+      const acc = accounts.find(a => a.id === transaction.accountId);
+      setSelectedCurrency(transaction.currency || (acc?.currency as Currency) || "ARS");
       setDate(format(transaction.date, "yyyy-MM-dd'T'HH:mm"));
       setReceiptUrl(transaction.receiptUrl);
       setConfirmDelete(false);
     }
-  }, [transaction]);
+  }, [transaction, accounts]);
 
   const filteredCats = categories.filter((c) => c.type === type && !c.archived);
   const currentAccount = accounts.find((a) => a.id === selectedAccount);
@@ -92,6 +95,7 @@ export function TransactionEditSheet({
       type,
       category: selectedCategory,
       accountId: selectedAccount,
+      currency: selectedCurrency,
       date: new Date(date),
       receiptUrl,
     });
@@ -230,48 +234,72 @@ export function TransactionEditSheet({
 
             {/* HERO AMOUNT DISPLAY & TIPO */}
             <div className="hero-balance-surface p-4 rounded-2xl relative overflow-hidden flex flex-col items-center">
-              {/* Type toggle pill */}
-              <div className="inline-flex p-1 rounded-full bg-secondary/60 border border-border/40 mb-3 relative z-10 shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic(8);
-                    setType("expense");
-                    if (selectedCategory?.type !== "expense") {
-                      setSelectedCategory(null);
-                    }
-                  }}
-                  className={`px-4 py-1 rounded-full text-xs font-semibold tracking-wide transition-all ${
-                    type === "expense"
-                      ? "bg-card text-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {t("quickadd.expense")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic(8);
-                    setType("income");
-                    if (selectedCategory?.type !== "income") {
-                      setSelectedCategory(null);
-                    }
-                  }}
-                  className={`px-4 py-1 rounded-full text-xs font-semibold tracking-wide transition-all ${
-                    type === "income"
-                      ? "bg-card text-emerald-500 shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {t("quickadd.income")}
-                </button>
+              {/* Type toggle pill & Currency selector */}
+              <div className="flex items-center justify-between w-full mb-3 relative z-10 px-1">
+                <div className="inline-flex p-1 rounded-full bg-secondary/60 border border-border/40 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(8);
+                      setType("expense");
+                      if (selectedCategory?.type !== "expense") {
+                        setSelectedCategory(null);
+                      }
+                    }}
+                    className={`px-4 py-1 rounded-full text-xs font-semibold tracking-wide transition-all ${
+                      type === "expense"
+                        ? "bg-card text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t("quickadd.expense")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(8);
+                      setType("income");
+                      if (selectedCategory?.type !== "income") {
+                        setSelectedCategory(null);
+                      }
+                    }}
+                    className={`px-4 py-1 rounded-full text-xs font-semibold tracking-wide transition-all ${
+                      type === "income"
+                        ? "bg-card text-emerald-500 shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t("quickadd.income")}
+                  </button>
+                </div>
+
+                {/* Selector táctil de divisa para la transacción */}
+                <div className="flex items-center gap-0.5 bg-secondary/60 p-0.5 rounded-full border border-border/40 shadow-2xs">
+                  {CURRENCIES.map(c => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(8);
+                        setSelectedCurrency(c.value);
+                      }}
+                      className={`min-w-[32px] h-6 px-1.5 flex items-center justify-center text-[10px] font-mono-data font-bold rounded-full transition-all active:scale-95 ${
+                        selectedCurrency === c.value
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title={`Moneda: ${c.value}`}
+                    >
+                      {c.value}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Amount hero input */}
               <div className="flex items-center justify-center w-full relative z-10 gap-1.5">
                 <span className="text-2xl sm:text-3xl font-mono-data font-semibold text-muted-foreground select-none">
-                  {type === "expense" ? "-" : "+"} {currencySymbol}
+                  {type === "expense" ? "-" : "+"} {CURRENCIES.find(c => c.value === selectedCurrency)?.symbol || currencySymbol}
                 </span>
                 <input
                   type="number"
@@ -287,7 +315,7 @@ export function TransactionEditSheet({
               {currentAccount && (
                 <span className="text-[11px] font-mono-data text-muted-foreground mt-1.5 flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${currentAccount.color}`} />
-                  {currentAccount.name} ({currentAccount.currency})
+                  Cuenta: {currentAccount.name} ({currentAccount.currency || "ARS"})
                 </span>
               )}
             </div>

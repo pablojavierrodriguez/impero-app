@@ -4,7 +4,7 @@ import { useSettings } from "@/lib/settings-store";
 import { Currency, CURRENCIES } from "@/lib/settings-types";
 import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
 import { usePrivacy } from "@/contexts/PrivacyContext";
-import { Account } from "@/lib/types";
+import { Account, Transaction } from "@/lib/types";
 import { AnimatedNumber } from "./AnimatedNumber";
 
 interface BalanceHeaderProps {
@@ -12,17 +12,19 @@ interface BalanceHeaderProps {
   monthlyIncome: number;
   monthlyExpenses: number;
   accounts?: Account[];
+  transactions?: Transaction[];
 }
 
 const HIDDEN = "$ ••••••";
 
-export function BalanceHeader({ totalBalance, monthlyIncome, monthlyExpenses, accounts = [] }: BalanceHeaderProps) {
+export function BalanceHeader({ totalBalance, monthlyIncome, monthlyExpenses, accounts = [], transactions = [] }: BalanceHeaderProps) {
   const { settings, updateSettings, t } = useSettings();
-  const { calculateConsolidatedBalance, formatInCurrency, convert } = useCurrencyConversion();
+  const { calculateConsolidatedBalance, calculateConsolidatedTransactions, formatInCurrency, convert } = useCurrencyConversion();
   const { isPrivacyMode, togglePrivacyMode } = usePrivacy();
 
   // Moneda activa de consolidación (ARS, USD, EUR)
   const currentCurrency = settings.currency || "ARS";
+  const accountsMap = useMemo(() => new Map<string, Account>(accounts.map(a => [a.id, a])), [accounts]);
 
   // Balance patrimonial consolidado según las divisas nativas de cada cuenta
   const effectiveTotal = useMemo(() => {
@@ -33,8 +35,22 @@ export function BalanceHeader({ totalBalance, monthlyIncome, monthlyExpenses, ac
     return convert(totalBalance, "ARS", currentCurrency);
   }, [accounts, calculateConsolidatedBalance, currentCurrency, convert, totalBalance]);
 
-  const effectiveIncome = useMemo(() => convert(monthlyIncome, "ARS", currentCurrency), [monthlyIncome, convert, currentCurrency]);
-  const effectiveExpenses = useMemo(() => convert(monthlyExpenses, "ARS", currentCurrency), [monthlyExpenses, convert, currentCurrency]);
+  const effectiveIncome = useMemo(() => {
+    if (transactions.length > 0) {
+      const incTxs = transactions.filter(t => t.type === "income" && !t.isCardPayment && !t.isTransfer);
+      return calculateConsolidatedTransactions(incTxs, currentCurrency, accountsMap);
+    }
+    return convert(monthlyIncome, "ARS", currentCurrency);
+  }, [transactions, calculateConsolidatedTransactions, currentCurrency, accountsMap, monthlyIncome, convert]);
+
+  const effectiveExpenses = useMemo(() => {
+    if (transactions.length > 0) {
+      const expTxs = transactions.filter(t => t.type === "expense" && !t.isCardPayment && !t.isTransfer);
+      return calculateConsolidatedTransactions(expTxs, currentCurrency, accountsMap);
+    }
+    return convert(monthlyExpenses, "ARS", currentCurrency);
+  }, [transactions, calculateConsolidatedTransactions, currentCurrency, accountsMap, monthlyExpenses, convert]);
+
   const delta = effectiveIncome - effectiveExpenses;
 
   const fmt = useCallback(
@@ -55,9 +71,9 @@ export function BalanceHeader({ totalBalance, monthlyIncome, monthlyExpenses, ac
         {/* Fila superior: Título del balance + Selector de divisas + Botón Privacidad */}
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-2">
-            <span className="text-[12px] text-muted-foreground font-semibold uppercase tracking-wider font-display">
+            <h2 className="text-[13px] text-muted-foreground font-medium font-display">
               {t("balance.title")}
-            </span>
+            </h2>
             <div className="flex items-center gap-0.5 bg-secondary/80 p-0.5 theme-pill-btn border border-border/40">
               {CURRENCIES.map((c) => (
                 <button

@@ -9,6 +9,12 @@ export interface CurrencyConversionResult {
   formatInCurrency: (amount: number, currency: Currency, opts?: { sign?: string; abs?: boolean }) => string;
   /** Calcula el balance total consolidado de una lista de cuentas en una divisa objetivo */
   calculateConsolidatedBalance: (accounts: Account[], targetCurrency: Currency) => number;
+  /** Calcula el total consolidado de una lista de transacciones en una divisa objetivo */
+  calculateConsolidatedTransactions: (
+    transactions: { amount: number; currency?: Currency; accountId: string }[],
+    targetCurrency: Currency,
+    accountsMap?: Map<string, Account>
+  ) => number;
   /** Retorna el símbolo de la moneda */
   getCurrencySymbol: (currency: Currency) => string;
 }
@@ -17,7 +23,11 @@ export function useCurrencyConversion(): CurrencyConversionResult {
   const { exchangeRates, settings } = useSettings();
 
   const rates = useMemo(() => {
-    return settings.customExchangeRates || exchangeRates || DEFAULT_EXCHANGE_RATES;
+    return {
+      ...DEFAULT_EXCHANGE_RATES,
+      ...(exchangeRates || {}),
+      ...(settings.customExchangeRates || {}),
+    };
   }, [settings.customExchangeRates, exchangeRates]);
 
   const convert = useCallback(
@@ -68,10 +78,26 @@ export function useCurrencyConversion(): CurrencyConversionResult {
     [convert]
   );
 
+  const calculateConsolidatedTransactions = useCallback(
+    (
+      txs: { amount: number; currency?: Currency; accountId: string }[],
+      targetCurrency: Currency,
+      accountsMap?: Map<string, Account>
+    ): number => {
+      return txs.reduce((sum, tx) => {
+        const txCurrency = tx.currency || (accountsMap?.get(tx.accountId)?.currency as Currency) || "ARS";
+        const converted = convert(tx.amount, txCurrency, targetCurrency);
+        return sum + converted;
+      }, 0);
+    },
+    [convert]
+  );
+
   return {
     convert,
     formatInCurrency,
     calculateConsolidatedBalance,
+    calculateConsolidatedTransactions,
     getCurrencySymbol,
   };
 }
