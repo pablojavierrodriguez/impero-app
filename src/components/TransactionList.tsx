@@ -1,9 +1,9 @@
 import { Transaction, Account, getStatementPeriod, getPaymentDueDate } from "@/lib/types";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { format, isToday, isYesterday } from "date-fns";
+import { format, isToday, isYesterday, isFuture, differenceInCalendarDays } from "date-fns";
 import { CategoryIcon } from "./CategoryIcon";
-import { Trash2, Pencil, ArrowLeftRight, CreditCard, ChevronDown, DollarSign, Calculator } from "lucide-react";
+import { Trash2, Pencil, ArrowLeftRight, CreditCard, ChevronDown, DollarSign, Calculator, Clock } from "lucide-react";
 import { useSettings, Currency } from "@/lib/settings-store";
 import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
 import { usePrivacy } from "@/contexts/PrivacyContext";
@@ -138,6 +138,16 @@ function SwipeableTransaction({
               <span className="truncate">
                 {tx.category.name} · {isToday(tx.date) ? format(tx.date, "h:mm a") : isYesterday(tx.date) ? `Ayer ${format(tx.date, "h:mm a")}` : format(tx.date, "MMM d")}
               </span>
+              {isFuture(tx.date) && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-500 font-semibold text-[10px] tracking-tight shrink-0">
+                  <Clock className="w-2.5 h-2.5 shrink-0" />
+                  {differenceInCalendarDays(tx.date, new Date()) === 1
+                    ? "Mañana"
+                    : differenceInCalendarDays(tx.date, new Date()) > 1
+                    ? `en ${differenceInCalendarDays(tx.date, new Date())}d`
+                    : "Programado"}
+                </span>
+              )}
               {tx.installmentInfo && (
                 <span className="text-primary font-medium shrink-0">
                   ({tx.installmentInfo.current}/{tx.installmentInfo.total})

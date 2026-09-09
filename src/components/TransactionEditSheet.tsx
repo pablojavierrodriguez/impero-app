@@ -47,7 +47,7 @@ export function TransactionEditSheet({
 
   useEffect(() => {
     if (transaction) {
-      setAmount(transaction.amount.toString());
+      setAmount(formatThousandsInput(transaction.amount));
       setDescription(transaction.description || "");
       setType(transaction.type);
       setSelectedCategory(transaction.category);
@@ -87,7 +87,7 @@ export function TransactionEditSheet({
   };
 
   const handleSave = () => {
-    const parsedAmount = parseFloat(amount);
+    const parsedAmount = parseThousandsInput(amount);
     if (!transaction || !selectedCategory || isNaN(parsedAmount) || parsedAmount <= 0) return;
     triggerHaptic(12);
     onUpdate(transaction.id, {
@@ -132,7 +132,7 @@ export function TransactionEditSheet({
   };
 
   const isInstallment = !!transaction?.installmentInfo?.groupId;
-  const isFormValid = !!selectedCategory && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0;
+  const isFormValid = !!selectedCategory && !isNaN(parseThousandsInput(amount)) && parseThousandsInput(amount) > 0;
 
   const titleRight = (
     <div className="flex items-center gap-1">
@@ -303,12 +303,11 @@ export function TransactionEditSheet({
                   {type === "expense" ? "-" : "+"} {CURRENCIES.find(c => c.value === selectedCurrency)?.symbol || currencySymbol}
                 </span>
                 <input
-                  type="number"
-                  step="any"
+                  type="text"
                   inputMode="decimal"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
+                  onChange={(e) => setAmount(formatThousandsInput(e.target.value))}
+                  placeholder="0,00"
                   className="w-full max-w-[240px] text-3xl sm:text-4xl font-mono-data font-bold text-foreground bg-transparent text-center border-none outline-none placeholder:text-muted-foreground/30 focus:ring-0 tracking-tight"
                 />
               </div>

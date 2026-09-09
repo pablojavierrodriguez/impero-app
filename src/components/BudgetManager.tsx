@@ -180,20 +180,28 @@ export function BudgetManager({
           return (
             <motion.div key={budget.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               className="p-4 rounded-[16px] bg-card border border-border/50">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className={`w-7 h-7 rounded-[8px] ${cat.color} flex items-center justify-center`}>
-                    <CategoryIcon name={cat.icon || "circle-dot"} className="w-3.5 h-3.5 text-white" />
+              <div className="flex items-start justify-between gap-2 mb-2.5">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className={`w-8 h-8 rounded-[10px] ${cat.color} flex items-center justify-center shrink-0 shadow-xs`}>
+                    <CategoryIcon name={cat.icon || "circle-dot"} className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-[14px] font-medium text-foreground">{cat.name}</span>
-                  {budget.enableRollover && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                      <ArrowRightLeft className="w-2.5 h-2.5" />
-                      Rollover {rolloverAmount > 0 && `(+${formatAmount(rolloverAmount)})`}
-                    </span>
-                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[14px] font-semibold text-foreground truncate block leading-snug">{cat.name}</span>
+                      {budget.enableRollover && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
+                          <ArrowRightLeft className="w-2.5 h-2.5" />
+                          Rollover {rolloverAmount > 0 && `(+${formatAmount(rolloverAmount)})`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <button onClick={() => onDelete(budget.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors">
+                <button
+                  onClick={() => onDelete(budget.id)}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0 active:scale-95"
+                  title="Eliminar presupuesto"
+                >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>

@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownLeft, ArrowUpRight, Delete, Paperclip, Loader2, FileText, X } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Delete, Paperclip, Loader2, FileText, X, Calendar } from "lucide-react";
+import { format, addDays } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { Category, Account, Tag } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { useSettings, CURRENCIES, Currency } from "@/lib/settings-store";
@@ -16,7 +18,7 @@ interface QuickAddSheetProps {
     category: Category,
     type: "income" | "expense",
     accountId: string,
-    extras?: { tags?: string[]; note?: string; installments?: number; receiptUrl?: string; currency?: Currency }
+    extras?: { tags?: string[]; note?: string; installments?: number; receiptUrl?: string; currency?: Currency; date?: Date }
   ) => void;
   accounts: Account[];
   categories: Category[];
@@ -37,6 +39,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
     return (acc?.currency as Currency) || settings.currency || "ARS";
   });
   const [description, setDescription] = useState("");
+  const [formDate, setFormDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [installments, setInstallments] = useState(1);
   const [receiptUrl, setReceiptUrl] = useState<string | undefined>(undefined);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
@@ -167,8 +170,10 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
     if (!selectedCategory) return;
     const effectiveAccountId = selectedAccount || accounts[0]?.id;
     if (!effectiveAccountId) return;
-    const extras: { installments?: number; receiptUrl?: string; currency?: Currency } = {
+    const parsedDate = parseLocalDate(formDate);
+    const extras: { installments?: number; receiptUrl?: string; currency?: Currency; date?: Date } = {
       currency: selectedCurrency,
+      date: parsedDate,
     };
     if (type === "expense" && installments > 1) {
       extras.installments = installments;
@@ -187,6 +192,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
     setStep("amount");
     setSelectedCategory(null);
     setDescription("");
+    setFormDate(format(new Date(), "yyyy-MM-dd"));
     setInstallments(1);
     setReceiptUrl(undefined);
     setUploadingReceipt(false);
@@ -327,28 +333,101 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
               placeholder={t("quickadd.descPlaceholder")}
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
+              className="w-full h-12 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-3"
             />
-            <span className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("quickadd.category")}</span>
-            <div className="max-h-52 overflow-y-auto pr-1 mb-5 touch-pan-y overscroll-contain">
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(72px,1fr))] gap-2">
+
+            {/* Selector de fecha rápido y táctil (Hoy, Mañana, Otra fecha) */}
+            <div className="mb-4 bg-secondary/30 p-2.5 rounded-[12px] border border-border/50">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[12px] text-muted-foreground font-medium flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-primary" />
+                  Fecha del {type === "expense" ? "gasto" : "ingreso"}
+                </span>
+                <span className="text-[11px] font-mono-data text-muted-foreground">
+                  {formDate === format(new Date(), "yyyy-MM-dd")
+                    ? "Hoy"
+                    : formDate === format(addDays(new Date(), 1), "yyyy-MM-dd")
+                    ? "Mañana (Programado)"
+                    : formDate > format(new Date(), "yyyy-MM-dd")
+                    ? "Programado"
+                    : "Fecha pasada"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(6);
+                    setFormDate(format(new Date(), "yyyy-MM-dd"));
+                  }}
+                  className={`px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
+                    formDate === format(new Date(), "yyyy-MM-dd")
+                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                      : "bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
+                >
+                  Hoy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(6);
+                    setFormDate(format(addDays(new Date(), 1), "yyyy-MM-dd"));
+                  }}
+                  className={`px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
+                    formDate === format(addDays(new Date(), 1), "yyyy-MM-dd")
+                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                      : "bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
+                >
+                  Mañana
+                </button>
+                <div className="relative flex-1 min-w-[130px]">
+                  <input
+                    type="date"
+                    value={formDate}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        triggerHaptic(6);
+                        setFormDate(e.target.value);
+                      }
+                    }}
+                    className="w-full h-8 px-2.5 rounded-[8px] bg-secondary/80 border border-border/70 text-foreground text-[12px] font-mono-data outline-none focus:border-primary transition-colors cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[12px] text-muted-foreground font-medium">{t("quickadd.category")}</span>
+              {selectedCategory && (
+                <span className="text-[12px] font-semibold text-primary flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${selectedCategory.color}`} />
+                  {selectedCategory.name}
+                </span>
+              )}
+            </div>
+            <div className="max-h-64 overflow-y-auto pr-1 mb-5 touch-pan-y overscroll-contain">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-2.5">
                 {filteredCats.map(cat => {
                   const isSelected = selectedCategory?.id === cat.id;
                   return (
                     <button
                       key={cat.id}
                       type="button"
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all border text-left active:scale-95 ${
+                      onClick={() => {
+                        triggerHaptic(8);
+                        setSelectedCategory(cat);
+                      }}
+                      className={`flex flex-col items-center justify-center p-2.5 rounded-2xl transition-all border text-center active:scale-95 ${
                         isSelected
-                          ? "bg-secondary text-foreground border-primary/50 shadow-sm ring-1 ring-primary/40"
-                          : "bg-secondary/40 hover:bg-secondary/70 text-muted-foreground hover:text-foreground border-border/40"
+                          ? "bg-secondary text-foreground border-primary ring-2 ring-primary/40 shadow-md scale-[1.02]"
+                          : "bg-secondary/60 hover:bg-secondary/90 text-foreground/80 hover:text-foreground border-border/70 hover:border-border"
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-full ${cat.color} flex items-center justify-center text-white mb-1.5 shadow-sm shrink-0`}>
-                        <CategoryIcon name={cat.icon || "circle-dot"} className="w-5 h-5 text-white stroke-[2.2]" />
+                      <div className={`w-11 h-11 rounded-full ${cat.color} flex items-center justify-center text-white mb-2 shadow-md shrink-0 transition-transform ${isSelected ? "scale-105" : ""}`}>
+                        <CategoryIcon name={cat.icon || "circle-dot"} className="w-5 h-5 text-white stroke-[2.3]" />
                       </div>
-                      <span className={`text-[11px] leading-tight text-center line-clamp-2 w-full px-0.5 ${isSelected ? "font-semibold text-foreground" : "font-medium"}`}>
+                      <span className={`text-[12px] leading-tight text-center line-clamp-2 w-full px-0.5 ${isSelected ? "font-bold text-foreground" : "font-medium text-foreground/90"}`}>
                         {cat.name}
                       </span>
                     </button>

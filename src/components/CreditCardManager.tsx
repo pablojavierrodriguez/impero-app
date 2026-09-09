@@ -8,6 +8,7 @@ import { useSettings } from "@/lib/settings-store";
 import { Currency, CURRENCIES } from "@/lib/settings-types";
 import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
 import { formatThousandsInput, parseThousandsInput } from "@/lib/utils";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 
 interface CreditCardManagerProps {
   accounts: Account[];
@@ -354,16 +355,14 @@ export function CreditCardManager({
                 />
               </>
             )}
-
             <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Límite de crédito</label>
-            <input
-              value={formLimit}
-              onChange={e => setFormLimit(formatThousandsInput(e.target.value))}
-              type="text"
-              inputMode="decimal"
-              placeholder="5.000.000"
-              className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
-            />
+            <div className="mb-4">
+              <MoneyInput
+                value={formLimit}
+                onChange={(val) => setFormLimit(val)}
+                placeholder="5.000.000"
+              />
+            </div>
 
             {/* Selector de Modo de Visualización (Paramétrico) */}
             <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">
@@ -375,16 +374,16 @@ export function CreditCardManager({
                 onClick={() => setFormViewMode("statement_cycles")}
                 className={`p-3 rounded-[12px] border text-left transition-all ${
                   formViewMode === "statement_cycles"
-                    ? "bg-secondary border-primary ring-1 ring-primary"
-                    : "bg-secondary/40 border-border/60 hover:bg-secondary/70"
+                    ? "bg-secondary border-foreground/30 ring-1 ring-foreground/20"
+                    : "bg-secondary/30 border-border/50 hover:bg-secondary/60"
                 }`}
               >
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-base">🏦</span>
-                  <span className="text-[13px] font-semibold text-foreground">Bancario</span>
+                  <CalendarDays className="w-3.5 h-3.5 text-foreground" />
+                  <span className="text-[12px] font-medium text-foreground">Ciclos de Resumen</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-snug">
-                  Ciclos de facturación: facturas abiertas y cerradas, día de corte y vencimiento.
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  Agrupa compras por período de cierre y fecha límite de pago.
                 </p>
               </button>
 
@@ -393,40 +392,43 @@ export function CreditCardManager({
                 onClick={() => setFormViewMode("negative_balance")}
                 className={`p-3 rounded-[12px] border text-left transition-all ${
                   formViewMode === "negative_balance"
-                    ? "bg-secondary border-primary ring-1 ring-primary"
-                    : "bg-secondary/40 border-border/60 hover:bg-secondary/70"
+                    ? "bg-secondary border-foreground/30 ring-1 ring-foreground/20"
+                    : "bg-secondary/30 border-border/50 hover:bg-secondary/60"
                 }`}
               >
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-base">💳</span>
-                  <span className="text-[13px] font-semibold text-foreground">Saldo Continuo</span>
+                  <DollarSign className="w-3.5 h-3.5 text-destructive" />
+                  <span className="text-[12px] font-medium text-foreground">Saldo Continuo</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-snug">
-                  Cuenta de pasivo con saldo negativo acumulado corrido, sin cortes forzados.
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  Muestra la deuda acumulada continua como saldo negativo directo.
                 </p>
               </button>
             </div>
 
+            {/* Closing & Payment days */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div>
-                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Día de cierre</label>
+                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Día de Cierre (1-28)</label>
                 <input
                   value={formClosingDay}
                   onChange={e => setFormClosingDay(e.target.value)}
                   type="number"
                   min="1"
                   max="28"
+                  placeholder="15"
                   className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[14px] focus:border-muted-foreground outline-none transition-colors"
                 />
               </div>
               <div>
-                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Día de vencimiento</label>
+                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Día de Pago (1-28)</label>
                 <input
                   value={formPaymentDay}
                   onChange={e => setFormPaymentDay(e.target.value)}
                   type="number"
                   min="1"
                   max="28"
+                  placeholder="5"
                   className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[14px] focus:border-muted-foreground outline-none transition-colors"
                 />
               </div>
@@ -435,14 +437,13 @@ export function CreditCardManager({
             {view === "create" ? (
               <>
                 <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Saldo adeudado inicial</label>
-                <input
-                  value={formBalance}
-                  onChange={e => setFormBalance(formatThousandsInput(e.target.value))}
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
-                />
+                <div className="mb-4">
+                  <MoneyInput
+                    value={formBalance}
+                    onChange={(val) => setFormBalance(val)}
+                    placeholder="0,00"
+                  />
+                </div>
               </>
             ) : (
               <div className="mb-4 p-3 rounded-[12px] bg-secondary/40 border border-border/40">
@@ -545,7 +546,7 @@ export function CreditCardManager({
                     </div>
                     <div>
                       <span className="text-muted-foreground block">Disponible</span>
-                      <span className="font-mono-data text-foreground">{formatCurrency(Math.max((detailCard.creditLimit || 0) + detailCard.balance, 0))}</span>
+                      <span className="font-mono-data text-foreground">{formatCurrency(Math.max((detailCard.creditLimit || 0) - Math.abs(detailCard.balance), 0))}</span>
                     </div>
                   </div>
                 )}
@@ -566,36 +567,45 @@ export function CreditCardManager({
 
               return (
                 <>
-                  <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Tipo de pago</label>
+                  <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Modalidad de pago</label>
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     <button
+                      type="button"
                       onClick={() => handleModeChange("total")}
-                      className={`p-2.5 rounded-[12px] text-center transition-all ${
+                      className={`p-2.5 rounded-[12px] border text-center transition-all ${
                         payMode === "total"
-                          ? "bg-primary/15 text-primary ring-1 ring-primary/40"
-                          : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                          ? "bg-primary/15 border-primary text-primary font-medium"
+                          : "bg-secondary/40 border-border/60 text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <span className="text-[11px] font-medium block mb-0.5">Total</span>
-                      <span className="font-mono-data text-[13px] font-semibold block">{formatCurrency(owed)}</span>
+                      <span className="text-[11px] block mb-0.5 opacity-80">Pago total</span>
+                      <span className="text-[12px] font-semibold block font-mono-data truncate">
+                        {formatCurrency(owed)}
+                      </span>
                     </button>
+
                     <button
+                      type="button"
                       onClick={() => handleModeChange("minimum")}
-                      className={`p-2.5 rounded-[12px] text-center transition-all ${
+                      className={`p-2.5 rounded-[12px] border text-center transition-all ${
                         payMode === "minimum"
-                          ? "bg-amber-500/15 text-amber-500 ring-1 ring-amber-500/40"
-                          : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                          ? "bg-primary/15 border-primary text-primary font-medium"
+                          : "bg-secondary/40 border-border/60 text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <span className="text-[11px] font-medium block mb-0.5">Mínimo</span>
-                      <span className="font-mono-data text-[13px] font-semibold block">{formatCurrency(minimumPayment)}</span>
+                      <span className="text-[11px] block mb-0.5 opacity-80">Pago mínimo</span>
+                      <span className="text-[12px] font-semibold block font-mono-data truncate">
+                        {formatCurrency(minimumPayment)}
+                      </span>
                     </button>
+
                     <button
+                      type="button"
                       onClick={() => handleModeChange("custom")}
-                      className={`p-2.5 rounded-[12px] text-center transition-all ${
+                      className={`p-2.5 rounded-[12px] border text-center transition-all ${
                         payMode === "custom"
-                          ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30"
-                          : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                          ? "bg-primary/15 border-primary text-primary font-medium"
+                          : "bg-secondary/40 border-border/60 text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       <span className="text-[11px] font-medium block mb-0.5">Otro monto</span>
@@ -608,13 +618,16 @@ export function CreditCardManager({
 
             {/* Amount input */}
             <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Monto a pagar</label>
-            <input
-              value={payAmount}
-              onChange={e => { setPayAmount(formatThousandsInput(e.target.value)); setPayMode("custom"); }}
-              type="text"
-              inputMode="decimal"
-              className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground font-mono-data text-[16px] focus:border-primary outline-none transition-colors mb-4"
-            />
+            <div className="mb-4">
+              <MoneyInput
+                value={payAmount}
+                onChange={(val) => {
+                  setPayAmount(val);
+                  setPayMode("custom");
+                }}
+                placeholder="0,00"
+              />
+            </div>
 
             {/* Source account selector */}
             <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Debitar desde</label>

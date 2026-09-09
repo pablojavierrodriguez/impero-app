@@ -18,8 +18,8 @@ import { SettingsPage } from "@/components/SettingsPage";
 import { TransactionFilters, applyFilters, EMPTY_FILTERS, TransactionFilterValues } from "@/components/TransactionFilters";
 import { BudgetManager, BudgetSummaryWidget } from "@/components/BudgetManager";
 import { GoalsManager, GoalsSummaryWidget } from "@/components/GoalsManager";
-import { RecurringManager } from "@/components/RecurringManager";
-import { BillReminders, BillsSummaryWidget } from "@/components/BillReminders";
+import { BillsSummaryWidget } from "@/components/BillsSummaryWidget";
+import { ObligationsManager } from "@/components/ObligationsManager";
 import { ReportsPage } from "@/components/ReportsPage";
 import { TagManager } from "@/components/TagManager";
 import { RulesManager } from "@/components/RulesManager";
@@ -398,7 +398,8 @@ const Index = () => {
               getSubcategories={store.getSubcategories} getArchivedCategories={store.getArchivedCategories}
               getTransactionCountByCategory={store.getTransactionCountByCategory} getAllActiveCategories={store.getAllActiveCategories}
               onAdd={store.addCategory} onUpdate={store.updateCategory} onArchive={store.archiveCategory}
-              onUnarchive={store.unarchiveCategory} onDelete={store.deleteCategory} onReassign={store.reassignTransactions} />
+              onUnarchive={store.unarchiveCategory} onDelete={store.deleteCategory} onReassign={store.reassignTransactions}
+              onSeedDefaults={store.seedDefaultCategories} />
           )}
 
           {activeTab === "accounts" && (
@@ -433,16 +434,23 @@ const Index = () => {
               onDelete={store.deleteGoal} onContribute={store.contributeToGoal} onWithdraw={store.withdrawFromGoal} />
           )}
 
-          {activeTab === "recurring" && (
-            <RecurringManager recurringTxs={store.recurringTxs} categories={store.getAllActiveCategories()}
-              accounts={store.getActiveAccounts()} onAdd={store.addRecurringTx} onUpdate={store.updateRecurringTx}
-              onDelete={store.deleteRecurringTx} onTogglePause={store.toggleRecurringPause} />
-          )}
-
-          {activeTab === "bills" && (
-            <BillReminders bills={store.bills} accounts={store.getActiveAccounts()} categories={store.getAllActiveCategories()}
-              onAdd={store.addBill} onUpdate={store.updateBill} onDelete={store.deleteBill}
-              onMarkPaid={store.markBillPaid} getPendingBills={store.getPendingBills} />
+          {(activeTab === "obligations" || activeTab === "recurring" || activeTab === "bills") && (
+            <ObligationsManager
+              bills={store.bills}
+              recurringTxs={store.recurringTxs}
+              accounts={store.getActiveAccounts()}
+              categories={store.getAllActiveCategories()}
+              initialSubTab={activeTab === "recurring" ? "recurring" : "bills"}
+              onAddBill={store.addBill}
+              onUpdateBill={store.updateBill}
+              onDeleteBill={store.deleteBill}
+              onMarkBillPaid={store.markBillPaid}
+              getPendingBills={store.getPendingBills}
+              onAddRecurring={store.addRecurringTx}
+              onUpdateRecurring={store.updateRecurringTx}
+              onDeleteRecurring={store.deleteRecurringTx}
+              onToggleRecurringPause={store.toggleRecurringPause}
+            />
           )}
 
           {activeTab === "reports" && (
@@ -483,12 +491,14 @@ const Index = () => {
               onCheckout={(listName, totalAmount, accountId, categoryId) => {
                 const cat = store.getAllActiveCategories().find(c => c.id === categoryId);
                 if (!cat) return;
+                const acc = store.accounts.find(a => a.id === accountId);
                 store.addTransaction(
                   totalAmount,
                   `Compra: ${listName}`,
                   cat,
                   "expense",
-                  accountId
+                  accountId,
+                  { currency: acc?.currency }
                 );
               }}
             />

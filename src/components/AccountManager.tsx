@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Archive, Pencil, Trash2, ArchiveRestore, X, ArrowLeftRight, ArrowUpDown, RefreshCw, AlertTriangle } from "lucide-react";
+import { Plus, Archive, Pencil, Trash2, ArchiveRestore, X, ArrowLeftRight, ArrowUpDown, RefreshCw, AlertTriangle, MoreVertical } from "lucide-react";
 import { Account, CATEGORY_COLORS, ACCOUNT_ICONS, ACCOUNT_TYPES, AccountType, Transaction } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { format } from "date-fns";
@@ -8,6 +8,13 @@ import { useSettings } from "@/lib/settings-store";
 import { Currency, CURRENCIES } from "@/lib/settings-types";
 import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
 import { formatThousandsInput, parseThousandsInput } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AccountManagerProps {
   accounts: Account[];
@@ -132,9 +139,15 @@ export function AccountManager({
           <>
             <h1 className="text-[20px] font-display font-semibold text-foreground">Accounts</h1>
             <div className="flex gap-2">
-              <button onClick={() => setView("archived")} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-                <Archive className="w-4 h-4" />
-              </button>
+              {archivedAccounts.length > 0 && (
+                <button
+                  onClick={() => setView("archived")}
+                  className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                  title="Ver cuentas archivadas"
+                >
+                  <Archive className="w-4 h-4" />
+                </button>
+              )}
               <button onClick={openCreate} className="p-2 text-primary hover:text-primary/80 transition-colors">
                 <Plus className="w-5 h-5" />
               </button>
@@ -198,16 +211,32 @@ export function AccountManager({
                           </span>
                           <span className="text-[11px] text-muted-foreground ml-2">{txCount} txns</span>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <button onClick={() => openAdjust(acc)} className="p-1.5 text-muted-foreground hover:text-primary" title="Adjust balance">
-                            <ArrowUpDown className="w-3.5 h-3.5" />
-                          </button>
-                          <button onClick={() => openEdit(acc)} className="p-1.5 text-muted-foreground hover:text-foreground">
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button onClick={() => onArchive(acc.id)} className="p-1.5 text-muted-foreground hover:text-amber-400">
-                            <Archive className="w-3.5 h-3.5" />
-                          </button>
+                        <div className="shrink-0">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 transition-all"
+                                title="Opciones de cuenta"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem onClick={() => openAdjust(acc)} className="cursor-pointer gap-2">
+                                <ArrowUpDown className="w-3.5 h-3.5" />
+                                <span>Ajustar saldo</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openEdit(acc)} className="cursor-pointer gap-2">
+                                <Pencil className="w-3.5 h-3.5" />
+                                <span>Editar</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => onArchive(acc.id)} className="cursor-pointer gap-2 text-amber-500 focus:text-amber-500">
+                                <Archive className="w-3.5 h-3.5" />
+                                <span>Archivar</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </div>

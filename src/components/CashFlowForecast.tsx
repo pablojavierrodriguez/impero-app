@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { useSettings } from "@/lib/settings-store";
 import { Account, Transaction, RecurringTransaction, BillReminder } from "@/lib/types";
 import { calculateCashFlowForecast } from "@/lib/cashflow-forecast";
+import { parseThousandsInput } from "@/lib/utils";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 
 interface CashFlowForecastProps {
   accounts: Account[];
@@ -20,7 +22,7 @@ export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }
   const [showSim, setShowSim] = useState(false);
 
   const forecast = useMemo(() => {
-    const simAmount = parseFloat(simulatedAmount) || 0;
+    const simAmount = parseThousandsInput(simulatedAmount) || 0;
     const simDate = new Date();
     simDate.setDate(simDate.getDate() + 15);
 
@@ -202,13 +204,14 @@ export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }
 
         {showSim && (
           <div className="flex items-center gap-2">
-            <input
-              type="number"
-              placeholder="Monto ($)"
-              value={simulatedAmount}
-              onChange={(e) => setSimulatedAmount(e.target.value)}
-              className="w-28 px-2.5 py-1 text-[12px] bg-secondary rounded-lg border border-border font-mono-data text-foreground outline-none"
-            />
+            <div className="w-32">
+              <MoneyInput
+                placeholder="Monto"
+                value={simulatedAmount}
+                onChange={(val) => setSimulatedAmount(val)}
+                className="h-8 text-[12px]"
+              />
+            </div>
           </div>
         )}
       </div>

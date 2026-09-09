@@ -123,7 +123,7 @@ export function UserProfilePage() {
           Cerrar sesión
         </Button>
         <p className="text-[11px] text-muted-foreground text-center mt-2">
-          Tus datos están sincronizados en la nube.
+          Tus datos están resguardados en tu instancia privada y segura.
         </p>
       </div>
     </div>

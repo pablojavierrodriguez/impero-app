@@ -77,6 +77,16 @@ En pantallas móviles (`< 768px`), las tablas de datos **deben transformarse en 
 </div>
 ```
 
+### 4.1. Jerarquía Vertical de Tarjetas (Anti-Hacinamiento)
+En pantallas de 375px a 390px de ancho, queda terminantemente prohibido colocar en una sola fila horizontal: icono + nombre + badge de workflow + fecha de vencimiento + cuenta bancaria + monto.
+- **Nivel 1 (Identidad y Monto):** `flex items-start justify-between`. A la izquierda: Icono (36x36px) y bloque de texto con `min-w-0 flex-1` (título `truncate` + subtítulo `truncate`). A la derecha: Monto `font-mono-data` grande y alineado.
+- **Nivel 2 (Contexto y Metadatos):** `flex flex-wrap items-center gap-1.5`. Chips sutiles para fecha, estado y workflow (`Débito auto` / `Pago manual`).
+- **Nivel 3 (Acciones y Footer):** `flex items-center justify-between pt-2 border-t`. Estado general y acciones táctiles.
+
+### 4.2. Control de Saturación de Acciones (`Action Creep Rule`)
+- Nunca exponer 3 o 4 botones chicos seguidos en una fila en mobile.
+- Si una entidad tiene más de 1 acción (ej: editar, archivar, reasignar, borrar), mantener **1 botón de acción directa** (ej: `+` o `Pagar`) y condensar el resto en un `DropdownMenu` accesible activado por un botón `MoreVertical` de mínimo 36-40px.
+
 ---
 
 ## 5. Teclados Virtuales e Inputs Específicos

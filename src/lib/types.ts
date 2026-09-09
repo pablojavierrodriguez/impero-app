@@ -63,7 +63,7 @@ export type Goal = {
   createdAt: Date;
 };
 
-export type RecurrenceFrequency = "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
+export type RecurrenceFrequency = "once" | "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
 
 export type RecurringTransaction = {
   id: string;

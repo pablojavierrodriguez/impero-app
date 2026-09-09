@@ -1,4 +1,4 @@
-import { Transaction, Category, CATEGORIES } from "./types";
+import { Transaction, Category, CATEGORIES, Currency } from "./types";
 
 export interface CsvRow {
   [key: string]: string;
@@ -424,7 +424,8 @@ export function rowsToTransactions(
   rows: CsvRow[],
   mapping: ColumnMapping,
   accountId: string,
-  availableCategories: Category[] = CATEGORIES
+  availableCategories: Category[] = CATEGORIES,
+  currency?: Currency
 ): Transaction[] {
   return rows.map((row, i) => {
     let amount = 0;
@@ -540,6 +541,7 @@ export function rowsToTransactions(
       date,
       type,
       accountId,
+      currency: currency || "ARS",
       isCardPayment,
       isTransfer,
       installmentInfo,

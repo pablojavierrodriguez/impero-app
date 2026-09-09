@@ -6,7 +6,8 @@ import { useSettings } from "@/lib/settings-store";
 import { Progress } from "@/components/ui/progress";
 import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/lib/types";
 import { calculateGoalPace } from "@/lib/goal-utils";
-import { parseLocalDate } from "@/lib/utils";
+import { parseLocalDate, parseThousandsInput } from "@/lib/utils";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 
 interface GoalsManagerProps {
   goals: Goal[];
@@ -37,9 +38,10 @@ export function GoalsManager({ goals, accounts = [], onAdd, onUpdate, onDelete, 
   const completedGoals = goals.filter(g => g.completed);
 
   const handleAdd = () => {
-    if (!name || !parseFloat(target)) return;
+    const parsedTarget = parseThousandsInput(target);
+    if (!name || !parsedTarget) return;
     onAdd({
-      id: Date.now().toString(), name, targetAmount: parseFloat(target),
+      id: Date.now().toString(), name, targetAmount: parsedTarget,
       currentAmount: 0, deadline: deadline ? parseLocalDate(deadline) : undefined,
       color, icon, completed: false, createdAt: new Date(),
     });
@@ -47,7 +49,7 @@ export function GoalsManager({ goals, accounts = [], onAdd, onUpdate, onDelete, 
   };
 
   const handleExecuteAction = () => {
-    const val = parseFloat(actionAmount);
+    const val = parseThousandsInput(actionAmount);
     if (!actionGoalId || isNaN(val) || val <= 0) return;
 
     if (actionType === "contribute") {
@@ -96,8 +98,13 @@ export function GoalsManager({ goals, accounts = [], onAdd, onUpdate, onDelete, 
           <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t("goal.namePlaceholder")}
             className="w-full h-10 px-3 rounded-[10px] bg-input border border-border text-foreground text-[14px] mb-3 focus:outline-none focus:ring-1 focus:ring-ring" />
           <label className="text-[12px] text-muted-foreground font-medium mb-1 block">{t("goal.target")}</label>
-          <input type="number" value={target} onChange={e => setTarget(e.target.value)}
-            className="w-full h-10 px-3 rounded-[10px] bg-input border border-border text-foreground text-[14px] mb-3 focus:outline-none focus:ring-1 focus:ring-ring" />
+          <div className="mb-3">
+            <MoneyInput
+              value={target}
+              onChange={(val) => setTarget(val)}
+              placeholder="100.000"
+            />
+          </div>
           <label className="text-[12px] text-muted-foreground font-medium mb-1 block">{t("goal.deadline")}</label>
           <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)}
             className="w-full h-10 px-3 rounded-[10px] bg-input border border-border text-foreground text-[14px] mb-3 focus:outline-none focus:ring-1 focus:ring-ring" />
@@ -108,7 +115,7 @@ export function GoalsManager({ goals, accounts = [], onAdd, onUpdate, onDelete, 
                 className={`w-7 h-7 rounded-full ${c} ${color === c ? "ring-2 ring-ring ring-offset-2 ring-offset-background" : ""}`} />
             ))}
           </div>
-          <button onClick={handleAdd} disabled={!name || !parseFloat(target)}
+          <button onClick={handleAdd} disabled={!name || !parseThousandsInput(target)}
             className="w-full h-10 rounded-[10px] bg-primary text-primary-foreground text-[14px] font-medium disabled:opacity-40 active:scale-[0.99] transition-all">
             {t("common.save")}
           </button>
@@ -208,12 +215,17 @@ export function GoalsManager({ goals, accounts = [], onAdd, onUpdate, onDelete, 
                       )}
 
                       <div className="flex gap-2">
-                        <input type="number" value={actionAmount} onChange={e => setActionAmount(e.target.value)}
-                          placeholder={t("goal.amount")}
-                          className="flex-1 h-9 px-3 rounded-[8px] bg-input border border-border text-foreground text-[13px] focus:outline-none" />
+                        <div className="flex-1">
+                          <MoneyInput
+                            value={actionAmount}
+                            onChange={(val) => setActionAmount(val)}
+                            placeholder={t("goal.amount")}
+                            className="h-9 text-[13px]"
+                          />
+                        </div>
                         <button
                           onClick={handleExecuteAction}
-                          disabled={!parseFloat(actionAmount)}
+                          disabled={!parseThousandsInput(actionAmount)}
                           className="h-9 px-4 rounded-[8px] bg-primary text-primary-foreground text-[12px] font-medium disabled:opacity-40">
                           {t("common.save")}
                         </button>

@@ -10,7 +10,7 @@ import { Currency, DEFAULT_EXCHANGE_RATES } from "./settings-types";
 import { applyRulesToTransaction } from "./rules-engine";
 import { useAuth } from "./auth-context";
 import { fetchAccounts, insertAccount, updateAccountRemote, deleteAccountRemote } from "@/services/accounts.service";
-import { fetchCategories, insertCategory, updateCategoryRemote, deleteCategoryRemote } from "@/services/categories.service";
+import { fetchCategories, insertCategory, updateCategoryRemote, deleteCategoryRemote, seedDefaultCategoriesRemote } from "@/services/categories.service";
 import { fetchTransactions, insertTransaction, insertTransactionsBatch, updateTransactionRemote, deleteTransactionRemote, deleteTransactionsByGroupIdRemote } from "@/services/transactions.service";
 import {
   fetchBudgets, insertBudget, updateBudgetRemote, deleteBudgetRemote,
@@ -35,6 +35,7 @@ function saveJSON(key: string, value: any) {
 function getNextDate(from: Date, freq: RecurrenceFrequency): Date {
   const d = new Date(from);
   switch (freq) {
+    case "once": return d;
     case "daily": d.setDate(d.getDate() + 1); break;
     case "weekly": d.setDate(d.getDate() + 7); break;
     case "biweekly": d.setDate(d.getDate() + 14); break;
@@ -136,7 +137,7 @@ export function useFinanceStore() {
   const addTransaction = useCallback((
     amount: number, description: string, category: Category,
     type: "income" | "expense", accountId: string,
-    extras?: { tags?: string[]; note?: string; installments?: number; receiptUrl?: string; currency?: Currency }
+    extras?: { tags?: string[]; note?: string; installments?: number; receiptUrl?: string; currency?: Currency; date?: Date }
   ) => {
     // Aplicar motor de automatizaciones y reglas (P10)
     const evaluated = applyRulesToTransaction(
@@ -228,10 +229,9 @@ export function useFinanceStore() {
           rollback();
         });
     } else {
-      // Para tarjetas de crédito: si el resumen ya cerró este mes (día actual > closingDay),
-      // el gasto pertenece al próximo ciclo. Ajustar la fecha para que caiga en el período correcto.
-      const singleTxDate = new Date();
-      if (targetAccount?.type === "credit" && type === "expense") {
+      // Usar la fecha especificada por el usuario (si existe) o la fecha actual
+      const singleTxDate = extras?.date ? new Date(extras.date) : new Date();
+      if (!extras?.date && targetAccount?.type === "credit" && type === "expense") {
         const closingDay = targetAccount?.closingDay || 15;
         if (singleTxDate.getDate() > closingDay) {
           singleTxDate.setMonth(singleTxDate.getMonth() + 1);
@@ -422,6 +422,18 @@ export function useFinanceStore() {
   const deleteCategory = useCallback((id: string) => {
     deleteCategoryRemote(id).catch(console.error);
     setCategories(prev => prev.filter(c => c.id !== id && c.parentId !== id));
+  }, []);
+
+  const seedDefaultCategories = useCallback(async () => {
+    try {
+      const seeded = await seedDefaultCategoriesRemote();
+      setCategories(prev => [...prev, ...seeded]);
+      toast.success("Categorías recomendadas cargadas correctamente");
+    } catch (err) {
+      console.error("Error seeding default categories:", err);
+      toast.error("Error al cargar categorías recomendadas");
+      throw err;
+    }
   }, []);
 
   const reassignTransactions = useCallback((fromCategoryId: string, toCategoryId: string) => {
@@ -721,8 +733,10 @@ export function useFinanceStore() {
   }, []);
 
   const contributeToGoal = useCallback((id: string, amount: number, accountId?: string) => {
+    let goalName = "Meta de Ahorro";
     setGoals(prev => prev.map(g => {
       if (g.id !== id) return g;
+      goalName = g.name;
       const next = g.currentAmount + amount;
       const completed = next >= g.targetAmount;
       updateGoalRemote(id, { currentAmount: next, completed }).catch(console.error);
@@ -730,20 +744,22 @@ export function useFinanceStore() {
     }));
 
     if (accountId) {
-      setAccounts(prev => prev.map(a => {
-        if (a.id === accountId) {
-          const newBal = a.balance - amount;
-          updateAccountRemote(a.id, { balance: newBal }).catch(console.error);
-          return { ...a, balance: newBal };
-        }
-        return a;
-      }));
+      const goalCat = categories.find(c => c.id === "savings" || c.id === "investments") || {
+        id: "savings",
+        name: "Ahorro / Metas",
+        color: "bg-emerald-500",
+        type: "expense" as const,
+        icon: "piggy-bank",
+      };
+      addTransaction(amount, `Aporte a meta: ${goalName}`, goalCat, "expense", accountId);
     }
-  }, []);
+  }, [categories, addTransaction]);
 
   const withdrawFromGoal = useCallback((id: string, amount: number, accountId?: string) => {
+    let goalName = "Meta de Ahorro";
     setGoals(prev => prev.map(g => {
       if (g.id !== id) return g;
+      goalName = g.name;
       const next = Math.max(0, g.currentAmount - amount);
       const completed = next >= g.targetAmount;
       updateGoalRemote(id, { currentAmount: next, completed }).catch(console.error);
@@ -751,16 +767,16 @@ export function useFinanceStore() {
     }));
 
     if (accountId) {
-      setAccounts(prev => prev.map(a => {
-        if (a.id === accountId) {
-          const newBal = a.balance + amount;
-          updateAccountRemote(a.id, { balance: newBal }).catch(console.error);
-          return { ...a, balance: newBal };
-        }
-        return a;
-      }));
+      const goalCat = categories.find(c => c.id === "savings" || c.id === "investments") || {
+        id: "savings",
+        name: "Ahorro / Metas",
+        color: "bg-emerald-500",
+        type: "income" as const,
+        icon: "piggy-bank",
+      };
+      addTransaction(amount, `Retiro de meta: ${goalName}`, goalCat, "income", accountId);
     }
-  }, []);
+  }, [categories, addTransaction]);
 
   // ===== BILLS =====
   const addBill = useCallback((bill: BillReminder) => {
@@ -789,8 +805,9 @@ export function useFinanceStore() {
     
     addTransaction(bill.amount, bill.name, cat, "expense", accountId);
 
-    // Update bill: mark paid and advance due date
-    const nextDue = getNextDate(new Date(bill.dueDate), bill.frequency);
+    // Update bill: mark paid and advance due date (if recurring)
+    const isOnce = bill.frequency === "once";
+    const nextDue = isOnce ? new Date(bill.dueDate) : getNextDate(new Date(bill.dueDate), bill.frequency);
     updateBillRemote(id, { status: "paid", dueDate: nextDue }).catch(console.error);
     setBills(prev => prev.map(b => b.id === id ? { ...b, status: "paid" as const, dueDate: nextDue } : b));
   }, [bills, categories, addTransaction]);
@@ -847,6 +864,15 @@ export function useFinanceStore() {
         if (currentDate > now) return r;
 
         anyUpdated = true;
+        if (r.frequency === "once") {
+          addTransaction(r.amount, r.description, r.category, r.type, r.accountId, {
+            tags: r.tags,
+            currency: r.currency,
+          });
+          updateRecurringTransactionRemote(r.id, { paused: true }).catch(console.error);
+          return { ...r, paused: true };
+        }
+
         // Avanzar e insertar transacciones hasta que la próxima fecha supere el momento actual
         // Limitado a un máximo de 24 iteraciones de seguridad para evitar loops infinitos
         let iterations = 0;
@@ -865,7 +891,32 @@ export function useFinanceStore() {
 
       return anyUpdated ? nextList : prev;
     });
-  }, [addTransaction]);
+
+    // Procesar vencimientos con débito automático (autoPay === true) que alcanzaron su fecha
+    setBills(prevBills => {
+      let anyBillUpdated = false;
+      const nextBills = prevBills.map(bill => {
+        if (!bill.autoPay || bill.status === "paid") return bill;
+        const due = new Date(bill.dueDate);
+        if (due > now) return bill;
+
+        anyBillUpdated = true;
+        const cat = categories.find(c => c.id === bill.categoryId) ||
+          { id: "bills", name: "Servicios/Facturas", color: "bg-red-400", type: "expense" as const, icon: "file-text" };
+        const targetAccId = bill.accountId || accounts[0]?.id;
+        if (targetAccId) {
+          addTransaction(bill.amount, bill.name, cat, "expense", targetAccId);
+        }
+
+        const isOnce = bill.frequency === "once";
+        const nextDue = isOnce ? due : getNextDate(due, bill.frequency);
+        updateBillRemote(bill.id, { status: "paid", dueDate: nextDue }).catch(console.error);
+        return { ...bill, status: "paid" as const, dueDate: nextDue };
+      });
+
+      return anyBillUpdated ? nextBills : prevBills;
+    });
+  }, [addTransaction, categories, accounts]);
 
   // ===== TAGS =====
   const addTag = useCallback((tag: Tag) => {
@@ -1045,7 +1096,7 @@ export function useFinanceStore() {
     loading,
     transactions, accounts, categories, budgets, goals, recurringTxs, bills, tags, rules,
     addTransaction, updateTransaction, deleteTransaction, deleteInstallmentGroup, duplicateTransaction, importTransactions,
-    addCategory, updateCategory, archiveCategory, unarchiveCategory, deleteCategory, reassignTransactions,
+    addCategory, updateCategory, archiveCategory, unarchiveCategory, deleteCategory, reassignTransactions, seedDefaultCategories,
     getTransactionCountByCategory, getRootCategories, getSubcategories, getArchivedCategories, getAllActiveCategories,
     addAccount, updateAccount, archiveAccount, unarchiveAccount, adjustAccountBalance,
     recalculateAccountBalance, syncAccountBalance, syncAllAccountBalances,

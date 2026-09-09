@@ -7,6 +7,8 @@ import {
 import { ShoppingList, ShoppingListItem, Account, Category } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { useSettings } from "@/lib/settings-store";
+import { parseThousandsInput } from "@/lib/utils";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 
 interface ShoppingListManagerProps {
   accounts: Account[];
@@ -70,7 +72,7 @@ export function ShoppingListManager({ accounts, categories, onCheckout }: Shoppi
       listId: activeList.id,
       name: newItemName.trim(),
       quantity: parseFloat(newItemQty) || 1,
-      unitPrice: parseFloat(newItemPrice) || 0,
+      unitPrice: parseThousandsInput(newItemPrice) || 0,
       isChecked: false,
       sortOrder: activeList.items.length,
     };
@@ -313,14 +315,14 @@ export function ShoppingListManager({ accounts, categories, onCheckout }: Shoppi
                   placeholder="Qty"
                   className="w-14 h-10 px-2 rounded-[10px] bg-input border border-border text-foreground text-[13px] font-mono-data text-center focus:border-primary outline-none transition-colors"
                 />
-                <input
-                  value={newItemPrice}
-                  onChange={e => setNewItemPrice(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  placeholder="Precio"
-                  className="w-20 h-10 px-2 rounded-[10px] bg-input border border-border text-foreground text-[13px] font-mono-data text-center focus:border-primary outline-none transition-colors"
-                />
+                <div className="w-24">
+                  <MoneyInput
+                    value={newItemPrice}
+                    onChange={(val) => setNewItemPrice(val)}
+                    placeholder="Precio"
+                    className="h-10 text-[13px] text-center"
+                  />
+                </div>
                 <button
                   onClick={handleAddItem}
                   disabled={!newItemName.trim()}

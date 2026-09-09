@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "@/lib/settings-store";
 import {
   startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
-  subMonths, startOfYear, endOfYear, format,
+  subMonths, addDays, startOfYear, endOfYear, format,
 } from "date-fns";
 
 export interface TransactionFilterValues {
@@ -37,10 +37,12 @@ type DatePreset = { label: string; from: Date; to: Date };
 function getDatePresets(): DatePreset[] {
   const now = new Date();
   const prev = subMonths(now, 1);
+  const next30 = addDays(now, 30);
   return [
     { label: "Hoy", from: startOfDay(now), to: endOfDay(now) },
     { label: "Esta semana", from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) },
     { label: "Este mes", from: startOfMonth(now), to: endOfMonth(now) },
+    { label: "Próximos 30 días", from: startOfDay(now), to: endOfDay(next30) },
     { label: "Mes anterior", from: startOfMonth(prev), to: endOfMonth(prev) },
     { label: "Este año", from: startOfYear(now), to: endOfYear(now) },
   ];

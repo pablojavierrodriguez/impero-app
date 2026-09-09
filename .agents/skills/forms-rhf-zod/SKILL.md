@@ -120,3 +120,50 @@ defaultValues: {
 ```
 
 Este bug fue resuelto en `SettingsPage.tsx` — las propiedades de `social_links` fallaban con warning de input controlado cuando el objeto era `null` desde la DB.
+
+---
+
+## Inputs de montos y moneda (Formato `es-AR`)
+
+En **IMPERO**, todos los montos se presentan con separador de miles por punto (`.`) y decimales por coma (`,`).
+
+**Regla de Oro:** Nunca usar `<input type="number">` para montos si se pretende admitir decimales en español o separador de miles, ya que el navegador móvil/desktop fuerza la notación anglosajona (`.`) y rechaza comas.
+
+### Patrón canónico con `formatThousandsInput` / `parseThousandsInput`
+
+1. Mantener en el estado/RHF el string formateado visible para el usuario (`1.500,00`).
+2. Sanitizar al parsear en Zod usando `z.preprocess` o convertir con `parseThousandsInput` al enviar a la base de datos:
+
+```ts
+import { z } from 'zod';
+import { formatThousandsInput, parseThousandsInput } from '@/lib/utils';
+
+// Schema Zod para montos localizados
+export const amountSchema = z.preprocess(
+  (val) => (typeof val === 'string' ? parseThousandsInput(val) : val),
+  z.number().positive({ message: 'El monto debe ser mayor a 0' })
+);
+```
+
+```tsx
+// Input controlado para montos con auto-formateo en blur o cambio
+<input
+  type="text"
+  inputMode="decimal"
+  placeholder="0,00"
+  value={displayAmount}
+  onChange={(e) => {
+    // Permitir dígitos y coma/punto
+    setDisplayAmount(e.target.value);
+  }}
+  onBlur={() => {
+    const numeric = parseThousandsInput(displayAmount);
+    if (!isNaN(numeric)) {
+      setDisplayAmount(formatThousandsInput(numeric));
+      setValue('amount', numeric);
+    }
+  }}
+  className="font-mono-data text-right"
+/>
+```
+

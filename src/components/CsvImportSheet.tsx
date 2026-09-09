@@ -128,7 +128,13 @@ export function CsvImportSheet({
       return;
     }
 
-    const txs = rowsToTransactions(rows, mapping, accountId, categories.length > 0 ? categories : undefined);
+    const txs = rowsToTransactions(
+      rows,
+      mapping,
+      accountId,
+      categories.length > 0 ? categories : undefined,
+      selectedAccount?.currency as any
+    );
 
     const items: PreviewItem[] = txs.map((tx) => {
       const isDup = isPotentialDuplicate(

@@ -30,8 +30,7 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer, onIm
   const moreItems = [
     { id: "budgets", icon: PiggyBank, label: t("nav.budgets"), desc: t("nav.budgetsDesc") },
     { id: "goals", icon: Target, label: t("nav.goals"), desc: t("nav.goalsDesc") },
-    { id: "recurring", icon: Repeat, label: t("nav.recurring"), desc: t("nav.recurringDesc") },
-    { id: "bills", icon: Bell, label: t("nav.bills"), desc: t("nav.billsDesc"), badge: pendingBillsCount },
+    { id: "obligations", icon: Bell, label: t("nav.obligations") || "Recurrentes", desc: t("nav.obligationsDesc") || "Vencimientos y pagos periódicos", badge: pendingBillsCount },
     { id: "reports", icon: BarChart3, label: t("nav.reports"), desc: t("nav.reportsDesc") },
     { id: "cards", icon: CreditCard, label: t("nav.cards"), desc: t("nav.cardsDesc") },
     { id: "categories", icon: Tags, label: t("nav.categories"), desc: t("nav.categoriesDesc") },

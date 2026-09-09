@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Archive, ChevronRight, Pencil, Trash2, ArchiveRestore, X, ChevronDown, FolderInput } from "lucide-react";
+import { Plus, Archive, ChevronRight, Pencil, Trash2, ArchiveRestore, X, ChevronDown, FolderInput, Sparkles, Loader2, MoreVertical } from "lucide-react";
 import { Category, CATEGORY_COLORS, CATEGORY_ICONS, TransactionType } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CategoryManagerProps {
   categories: Category[];
@@ -17,6 +25,7 @@ interface CategoryManagerProps {
   onUnarchive: (id: string) => void;
   onDelete: (id: string) => void;
   onReassign: (fromId: string, toId: string) => void;
+  onSeedDefaults?: () => Promise<void>;
 }
 
 type ViewMode = "list" | "edit" | "create" | "archived" | "reassign";
@@ -24,12 +33,13 @@ type ViewMode = "list" | "edit" | "create" | "archived" | "reassign";
 export function CategoryManager({
   categories, getRootCategories, getSubcategories, getArchivedCategories,
   getTransactionCountByCategory, getAllActiveCategories,
-  onAdd, onUpdate, onArchive, onUnarchive, onDelete, onReassign,
+  onAdd, onUpdate, onArchive, onUnarchive, onDelete, onReassign, onSeedDefaults,
 }: CategoryManagerProps) {
   const [typeFilter, setTypeFilter] = useState<TransactionType>("expense");
   const [view, setView] = useState<ViewMode>("list");
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [isSeeding, setIsSeeding] = useState(false);
 
   // Create/edit form state
   const [formName, setFormName] = useState("");
@@ -43,6 +53,16 @@ export function CategoryManager({
   const [reassignTargetId, setReassignTargetId] = useState<string>("");
   const [reassignCat, setReassignCat] = useState<Category | null>(null);
   const [skipReassign, setSkipReassign] = useState(false);
+
+  const handleSeed = async () => {
+    if (!onSeedDefaults || isSeeding) return;
+    try {
+      setIsSeeding(true);
+      await onSeedDefaults();
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   const rootCats = getRootCategories(typeFilter);
 
@@ -142,10 +162,28 @@ export function CategoryManager({
       {/* Header */}
       <div className="px-4 pb-3 flex items-center justify-between">
         <h1 className="text-[20px] font-display font-semibold text-foreground">Categories</h1>
-        <div className="flex gap-2">
-          <button onClick={() => setView("archived")} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-            <Archive className="w-4 h-4" />
-          </button>
+        <div className="flex items-center gap-1.5">
+          {onSeedDefaults && categories.length === 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSeed}
+              disabled={isSeeding}
+              className="h-8 text-xs gap-1.5 border-primary/20 text-primary hover:bg-primary/10"
+            >
+              {isSeeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              Cargar por defecto
+            </Button>
+          )}
+          {archivedCats.length > 0 && (
+            <button
+              onClick={() => setView("archived")}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+              title="Ver categorías archivadas"
+            >
+              <Archive className="w-4 h-4" />
+            </button>
+          )}
           <button onClick={() => openCreate()} className="p-2 text-primary hover:text-primary/80 transition-colors">
             <Plus className="w-5 h-5" />
           </button>
@@ -174,7 +212,39 @@ export function CategoryManager({
         {view === "list" && (
           <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="px-4">
             {rootCats.length === 0 && (
-              <p className="text-muted-foreground text-[13px] text-center py-8">No categories yet. Tap + to create one.</p>
+              <div className="py-12 px-4 flex flex-col items-center justify-center text-center">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4 text-primary">
+                  <Sparkles className="w-7 h-7" />
+                </div>
+                <h3 className="text-base font-medium text-foreground mb-1">
+                  No hay categorías {typeFilter === "expense" ? "de gastos" : "de ingresos"}
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-xs mb-6 leading-relaxed">
+                  {categories.length === 0
+                    ? "Podés cargar las categorías recomendadas listas para usar o crear tus propias categorías personalizadas."
+                    : "No tenés categorías registradas en esta sección. Creá una nueva para empezar a organizar tus movimientos."}
+                </p>
+                <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full max-w-xs">
+                  {onSeedDefaults && categories.length === 0 && (
+                    <Button
+                      onClick={handleSeed}
+                      disabled={isSeeding}
+                      className="w-full gap-2 font-medium"
+                    >
+                      {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      Cargar categorías recomendadas
+                    </Button>
+                  )}
+                  <Button
+                    variant={categories.length === 0 ? "outline" : "default"}
+                    onClick={() => openCreate()}
+                    className="w-full gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Crear categoría
+                  </Button>
+                </div>
+              </div>
             )}
             {rootCats.map(cat => {
               const subs = getSubcategories(cat.id);
@@ -197,19 +267,42 @@ export function CategoryManager({
                         <span className="text-[11px] text-muted-foreground ml-2">{txCount} txns</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => openCreate(cat.id)} className="p-1.5 text-muted-foreground hover:text-foreground">
-                        <Plus className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        onClick={() => openCreate(cat.id)}
+                        className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 transition-all"
+                        title="Nueva subcategoría"
+                      >
+                        <Plus className="w-4 h-4" />
                       </button>
-                      <button onClick={() => openEdit(cat)} className="p-1.5 text-muted-foreground hover:text-foreground">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => handleDeleteOrArchive(cat, "archive")} className="p-1.5 text-muted-foreground hover:text-amber-400">
-                        <Archive className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => handleDeleteOrArchive(cat, "delete")} className="p-1.5 text-muted-foreground hover:text-destructive">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 transition-all"
+                            title="Opciones de categoría"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem onClick={() => openEdit(cat)} className="cursor-pointer gap-2">
+                            <Pencil className="w-3.5 h-3.5" />
+                            <span>Editar</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDeleteOrArchive(cat, "archive")} className="cursor-pointer gap-2">
+                            <Archive className="w-3.5 h-3.5" />
+                            <span>Archivar</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteOrArchive(cat, "delete")}
+                            className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Eliminar</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                   {/* Subcategories */}
@@ -229,21 +322,40 @@ export function CategoryManager({
                               <CategoryIcon name={sub.icon || "circle-dot"} className="w-3 h-3 text-white" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <span className="text-[13px] text-foreground">{sub.name}</span>
+                              <span className="text-[13px] text-foreground font-medium truncate block">{sub.name}</span>
                               {subCount > 0 && (
-                                <span className="text-[11px] text-muted-foreground ml-2">{subCount}</span>
+                                <span className="text-[11px] text-muted-foreground">{subCount} txns</span>
                               )}
                             </div>
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => openEdit(sub)} className="p-1.5 text-muted-foreground hover:text-foreground">
-                                <Pencil className="w-3 h-3" />
-                              </button>
-                              <button onClick={() => handleDeleteOrArchive(sub, "archive")} className="p-1.5 text-muted-foreground hover:text-amber-400">
-                                <Archive className="w-3 h-3" />
-                              </button>
-                              <button onClick={() => handleDeleteOrArchive(sub, "delete")} className="p-1.5 text-muted-foreground hover:text-destructive">
-                                <Trash2 className="w-3 h-3" />
-                              </button>
+                            <div className="flex items-center gap-0.5">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all"
+                                    title="Opciones de subcategoría"
+                                  >
+                                    <MoreVertical className="w-3.5 h-3.5" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-40">
+                                  <DropdownMenuItem onClick={() => openEdit(sub)} className="cursor-pointer gap-2">
+                                    <Pencil className="w-3.5 h-3.5" />
+                                    <span>Editar</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleDeleteOrArchive(sub, "archive")} className="cursor-pointer gap-2">
+                                    <Archive className="w-3.5 h-3.5" />
+                                    <span>Archivar</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteOrArchive(sub, "delete")}
+                                    className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Eliminar</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
                         </motion.div>

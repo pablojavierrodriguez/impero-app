@@ -22,17 +22,38 @@ export function parseLocalDate(dateStr: string): Date {
  */
 export function formatThousandsInput(value: string | number): string {
   if (value === "" || value === null || value === undefined) return "";
-  const str = typeof value === "number" ? value.toString() : value;
-  // Normalizar comas a puntos para separar parte entera de decimal
-  const normalized = str.replace(/,/g, ".");
-  const parts = normalized.split(".");
+  
+  if (typeof value === "number") {
+    const parts = value.toString().split(".");
+    const formattedInteger = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    if (parts.length > 1) {
+      return `${formattedInteger},${parts[1].slice(0, 2)}`;
+    }
+    return formattedInteger;
+  }
+
+  const str = value;
+  // En formato es-AR, la coma (",") es el separador decimal y el punto (".") es de miles.
+  // Si el usuario escribe un punto al final (ej. "170."), interpretamos que busca ingresar decimales.
+  let normalized = str;
+  if (!str.includes(",") && str.endsWith(".")) {
+    normalized = str.slice(0, -1) + ",";
+  }
+
+  const hasComma = normalized.includes(",");
+  const parts = normalized.split(",");
+
+  // La parte entera toma solo los dígitos (ignora los puntos de miles ya existentes al re-formatear)
   const integerPart = parts[0].replace(/\D/g, "");
-  if (!integerPart && parts.length === 1) return "";
+  if (!integerPart && !hasComma) return "";
+
   const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  if (parts.length > 1) {
-    const decimalPart = parts[1].slice(0, 2); // Hasta 2 decimales
+
+  if (hasComma) {
+    const decimalPart = (parts[1] || "").replace(/\D/g, "").slice(0, 2);
     return `${formattedInteger || "0"},${decimalPart}`;
   }
+
   return formattedInteger;
 }
 

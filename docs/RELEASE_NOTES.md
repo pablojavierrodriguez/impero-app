@@ -2,6 +2,27 @@
 
 ---
 
+## v0.1.1 - Refactor Integral de UX Móvil y Unificación de Compromisos
+**Fecha:** Septiembre 2026
+
+### 🎯 Resumen
+Refactor integral de diseño y arquitectura de interfaz para desktop y mobile. Se unificaron los gastos recurrentes y recordatorios de vencimiento bajo el nuevo módulo de Compromisos (`ObligationsManager`), se erradicó el hacinamiento visual en pantallas compactas (<390px) y se optimizó la ergonomía táctil en Categorías, Cuentas y Presupuestos.
+
+### ✨ Mejoras de Experiencia y Arquitectura
+- **Gestor Unificado de Compromisos (`ObligationsManager`):**
+  - Reemplazo y consolidación definitiva de `BillReminders.tsx` y `RecurringManager.tsx`.
+  - Tarjetas en dos niveles con respiro garantizado para montos, nombres largos sin colapso vertical y chips contextuales de workflow (`Débito auto` vs `Pago manual`) y vencimiento.
+  - Widget de vencimientos para dashboard (`BillsSummaryWidget.tsx`).
+- **Saneamiento de Acciones y Densidad Móvil:**
+  - **Categorías (`CategoryManager`):** Eliminación de los 4 botones pegados por fila; integración de botón directo para subcategoría y menú desplegable accesible (`DropdownMenu`) para Editar, Archivar y Eliminar, liberando el 85% del ancho de pantalla.
+  - **Cuentas (`AccountManager`):** Reemplazo de la columna vertical de 3 botones por menú contextual accesible (`Ajustar saldo`, `Editar`, `Archivar`).
+  - **Presupuestos (`BudgetManager`):** Distribución fluida del header de tarjeta para acomodar insignias de *Rollover* sin desplazar el botón de eliminación.
+- **Teclado y Registro Rápido (`QuickAddSheet` & `finance-store`):**
+  - Soporte de fecha explícita para transacciones pasadas y futuras.
+  - Mayor contraste y visibilidad en la selección rápida de categorías.
+
+---
+
 ## v0.1.0 - Primera Versión Pública
 **Fecha prevista:** Septiembre 2026
 
