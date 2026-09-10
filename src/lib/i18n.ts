@@ -30,6 +30,7 @@ const translations = {
     "nav.tags": "Etiquetas",
     "nav.tagsDesc": "Organizá con etiquetas personalizadas",
     "nav.profile": "Mi Perfil",
+    "nav.profileDesc": "Datos personales y cuenta",
 
     // VelocityBar
     "velocity.title": "Gasto diario",
@@ -45,7 +46,7 @@ const translations = {
     // TransactionList
     "tx.title": "Transacciones",
     "tx.history": "Historial de transacciones",
-    "tx.importCsv": "Importar CSV",
+    "tx.importCsv": "Importar extracto",
     "tx.viewDetailed": "Desglosado",
     "tx.viewGrouped": "Agrupado por tarjeta",
     "tx.cardCharges": "consumos",
@@ -206,7 +207,7 @@ const translations = {
     "settings.dailyBudget": "Presupuesto diario",
     "settings.homeSections": "Secciones del Home",
     "settings.data": "Datos",
-    "settings.importCsv": "Importar CSV",
+    "settings.importCsv": "Importar extracto o resumen",
     "settings.exportCsv": "Exportar CSV",
     "settings.reset": "Restablecer configuración",
     "settings.sectionVelocity": "Gasto diario",
@@ -440,6 +441,7 @@ const translations = {
     "nav.tags": "Tags",
     "nav.tagsDesc": "Organize with custom labels",
     "nav.profile": "My Profile",
+    "nav.profileDesc": "Personal data and account",
 
     // VelocityBar
     "velocity.title": "Daily spend",
@@ -455,7 +457,7 @@ const translations = {
     // TransactionList
     "tx.title": "Transactions",
     "tx.history": "Transaction History",
-    "tx.importCsv": "Import CSV",
+    "tx.importCsv": "Import statement",
     "tx.viewDetailed": "Detailed",
     "tx.viewGrouped": "Grouped by card",
     "tx.cardCharges": "charges",
@@ -616,7 +618,7 @@ const translations = {
     "settings.dailyBudget": "Daily budget",
     "settings.homeSections": "Home Sections",
     "settings.data": "Data",
-    "settings.importCsv": "Import CSV",
+    "settings.importCsv": "Import statement or summary",
     "settings.exportCsv": "Export CSV",
     "settings.reset": "Reset settings",
     "settings.sectionVelocity": "Daily spend",

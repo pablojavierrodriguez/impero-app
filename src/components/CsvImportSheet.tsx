@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -13,6 +13,7 @@ import {
   CheckSquare,
   Square,
   Sparkles,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Account, Transaction, Category } from "@/lib/types";
 import {
@@ -20,9 +21,16 @@ import {
   guessMapping,
   rowsToTransactions,
   isPotentialDuplicate,
+  generateFutureInstallments,
   CsvRow,
   ColumnMapping,
 } from "@/lib/csv-parser";
+import { parseExcelBuffer } from "@/lib/excel-parser";
+import {
+  extractPdfTextItems,
+  parseBbvaCreditCardStatement,
+  StatementMetadata,
+} from "@/lib/pdf-statement-parser";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
@@ -57,6 +65,8 @@ export function CsvImportSheet({
   const fileRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("upload");
   const [fileName, setFileName] = useState("");
+  const [detectedProfile, setDetectedProfile] = useState<string | null>(null);
+  const [pdfMetadata, setPdfMetadata] = useState<StatementMetadata | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<CsvRow[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({
@@ -72,17 +82,42 @@ export function CsvImportSheet({
   const [previewItems, setPreviewItems] = useState<PreviewItem[]>([]);
   const [error, setError] = useState("");
   const [isImporting, setIsImporting] = useState(false);
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [projectAllFuture, setProjectAllFuture] = useState(true);
+
+  // Sincronizar automáticamente con una cuenta válida cuando cargan las cuentas
+  useEffect(() => {
+    if ((!accountId || !accounts.some((a) => a.id === accountId)) && accounts.length > 0) {
+      const defaultAcc = accounts.find((a) => a.type === "credit") || accounts[0];
+      setAccountId(defaultAcc.id);
+    }
+  }, [accounts, accountId]);
+
+  const handleAccountChange = (newAccId: string) => {
+    setAccountId(newAccId);
+    setPreviewItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        tx: {
+          ...item.tx,
+          accountId: newAccId,
+        },
+      }))
+    );
+  };
 
   const reset = () => {
     setStep("upload");
     setFileName("");
+    setDetectedProfile(null);
+    setPdfMetadata(null);
     setHeaders([]);
     setRows([]);
     setMapping({ date: "", description: "", amount: "", type: "", debit: "", credit: "", installments: "" });
     setPreviewItems([]);
     setError("");
     setIsImporting(false);
+    setIsLoadingFile(false);
     setProjectAllFuture(true);
   };
 
@@ -91,27 +126,137 @@ export function CsvImportSheet({
     onClose();
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     setError("");
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const { headers: h, rows: r } = parseCsvText(text);
-      if (h.length < 2 || r.length === 0) {
-        setError("No se encontraron datos válidos o columnas en el archivo.");
+    setIsLoadingFile(true);
+
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+
+      // 1. Manejo de PDF (Resúmenes bancarios y de tarjetas)
+      if (ext === "pdf") {
+        const buffer = await file.arrayBuffer();
+        const items = await extractPdfTextItems(buffer);
+        if (items.length === 0) {
+          setError("No se pudo extraer texto del PDF. Verificá que no sea una imagen escaneada.");
+          setIsLoadingFile(false);
+          return;
+        }
+
+        const fullText = items.map((i) => i.str).join(" ").toLowerCase();
+
+        // Detección BBVA
+        if (fullText.includes("bbva") || fullText.includes("resumen con vencimiento") || fullText.includes("consumos")) {
+          const effectiveAccountId =
+            accountId ||
+            (accounts.find((a) => a.type === "credit") || accounts[0])?.id ||
+            "";
+
+          if (!effectiveAccountId) {
+            setError("No hay cuentas configuradas para asociar los movimientos del extracto.");
+            setIsLoadingFile(false);
+            return;
+          }
+
+          if (accountId !== effectiveAccountId) {
+            setAccountId(effectiveAccountId);
+          }
+
+          const parsed = parseBbvaCreditCardStatement(items, effectiveAccountId, categories);
+          setDetectedProfile("Resumen Tarjeta BBVA");
+          setPdfMetadata(parsed.metadata);
+
+          // Combinar consumos + impuestos/cargos + pagos
+          const allTxs = [...parsed.transactions, ...parsed.taxesAndFees, ...parsed.payments];
+          if (allTxs.length === 0) {
+            setError("No se encontraron transacciones legibles en el formato de BBVA.");
+            setIsLoadingFile(false);
+            return;
+          }
+
+          const previewList: PreviewItem[] = allTxs.map((tx) => {
+            const isDup = isPotentialDuplicate(
+              { date: tx.date, amount: tx.amount, description: tx.description, accountId },
+              existingTransactions
+            );
+            return {
+              tx,
+              selected: !isDup,
+              isDuplicate: isDup,
+              projectFuture: tx.installmentInfo && tx.installmentInfo.current < tx.installmentInfo.total ? true : false,
+            };
+          });
+
+          setPreviewItems(previewList);
+          setStep("preview");
+          setIsLoadingFile(false);
+          return;
+        }
+
+        setError("El PDF no coincide con un formato bancario reconocido actualmente (BBVA). Podés convertirlo a Excel o CSV.");
+        setIsLoadingFile(false);
         return;
       }
-      setHeaders(h);
-      setRows(r);
-      const guessed = guessMapping(h);
-      setMapping(guessed);
-      setStep("mapping");
-    };
-    reader.onerror = () => {
-      setError("Error al leer el archivo seleccionado.");
-    };
-    reader.readAsText(file);
+
+      // 2. Manejo de Excel (.xls / .xlsx)
+      if (ext === "xls" || ext === "xlsx") {
+        const buffer = await file.arrayBuffer();
+        const sheets = parseExcelBuffer(buffer);
+
+        if (sheets.length === 0 || sheets[0].rows.length === 0) {
+          setError("No se encontraron tablas de datos válidas en el archivo Excel.");
+          setIsLoadingFile(false);
+          return;
+        }
+
+        const activeSheet = sheets[0];
+        setHeaders(activeSheet.headers);
+        setRows(activeSheet.rows);
+
+        const guessed = guessMapping(activeSheet.headers);
+        setMapping(guessed);
+
+        if (activeSheet.metadata?.detectedType === "santander") {
+          setDetectedProfile("Santander Río (Extracto Cuenta)");
+        } else if (activeSheet.metadata?.detectedType === "generic_card") {
+          setDetectedProfile("Tarjeta de Crédito / Movimientos");
+        } else {
+          setDetectedProfile(null);
+        }
+
+        setStep("mapping");
+        setIsLoadingFile(false);
+        return;
+      }
+
+      // 3. Fallback CSV / TXT
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const { headers: h, rows: r } = parseCsvText(text);
+        if (h.length < 2 || r.length === 0) {
+          setError("No se encontraron datos válidos o columnas en el archivo.");
+          setIsLoadingFile(false);
+          return;
+        }
+        setHeaders(h);
+        setRows(r);
+        const guessed = guessMapping(h);
+        setMapping(guessed);
+        setStep("mapping");
+        setIsLoadingFile(false);
+      };
+      reader.onerror = () => {
+        setError("Error al leer el archivo seleccionado.");
+        setIsLoadingFile(false);
+      };
+      reader.readAsText(file);
+    } catch (err) {
+      console.error(err);
+      setError("Ocurrió un error al procesar el archivo.");
+      setIsLoadingFile(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -252,6 +397,11 @@ export function CsvImportSheet({
   }, [previewItems]);
 
   const handleImport = async () => {
+    if (!accountId || !accounts.some((a) => a.id === accountId)) {
+      setError("Por favor seleccioná una cuenta de destino válida antes de importar.");
+      return;
+    }
+
     const selectedList = previewItems.filter((i) => i.selected);
     if (selectedList.length === 0) {
       setError("Seleccioná al menos un movimiento para importar.");
@@ -261,9 +411,13 @@ export function CsvImportSheet({
     // Construir lista final: transacciones base + cuotas proyectadas a futuro si está activo
     const toImport: Transaction[] = [];
     for (const item of selectedList) {
-      toImport.push(item.tx);
+      const ensuredTx: Transaction = {
+        ...item.tx,
+        accountId,
+      };
+      toImport.push(ensuredTx);
       if (item.projectFuture && item.tx.installmentInfo) {
-        const futureTxs = generateFutureInstallments(item.tx, {
+        const futureTxs = generateFutureInstallments(ensuredTx, {
           paymentDay: selectedAccount?.paymentDay,
           closingDay: selectedAccount?.closingDay,
         });
@@ -279,9 +433,9 @@ export function CsvImportSheet({
         description: `Se importaron ${toImport.length} movimientos (${selectedList.length} extracto + ${toImport.length - selectedList.length} cuotas futuras).`,
       });
       handleClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError("Ocurrió un error al persistir los movimientos.");
+      setError(err?.message || "Ocurrió un error al persistir los movimientos.");
     } finally {
       setIsImporting(false);
     }
@@ -319,7 +473,7 @@ export function CsvImportSheet({
                   Importar Extracto Bancario
                 </span>
                 <span className="text-[11px] text-muted-foreground font-mono">
-                  {step === "upload" && "Paso 1: Archivo CSV"}
+                  {step === "upload" && "Paso 1: Cargar extracto"}
                   {step === "mapping" && "Paso 2: Mapeo de Columnas"}
                   {step === "preview" && "Paso 3: Conciliación & Preview"}
                 </span>
@@ -330,7 +484,7 @@ export function CsvImportSheet({
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.txt"
+              accept=".csv,.txt,.xlsx,.xls,.pdf"
               className="hidden"
               onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
             />
@@ -350,18 +504,24 @@ export function CsvImportSheet({
                     <div
                       onDrop={handleDrop}
                       onDragOver={(e) => e.preventDefault()}
-                      onClick={() => fileRef.current?.click()}
-                      className="border-2 border-dashed border-border/80 hover:border-primary/80 rounded-[20px] p-8 flex flex-col items-center gap-3 cursor-pointer bg-secondary/15 hover:bg-secondary/30 transition-all duration-200"
+                      onClick={() => !isLoadingFile && fileRef.current?.click()}
+                      className={`border-2 border-dashed border-border/80 hover:border-primary/80 rounded-[20px] p-8 flex flex-col items-center gap-3 cursor-pointer bg-secondary/15 hover:bg-secondary/30 transition-all duration-200 ${
+                        isLoadingFile ? "opacity-60 pointer-events-none" : ""
+                      }`}
                     >
                       <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <Upload className="w-8 h-8" />
+                        {isLoadingFile ? (
+                          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Upload className="w-8 h-8" />
+                        )}
                       </div>
                       <div className="text-center space-y-1">
                         <p className="text-[15px] text-foreground font-medium">
-                          Arrastrá tu extracto o hacé clic para buscar
+                          {isLoadingFile ? "Procesando documento..." : "Arrastrá tu extracto o hacé clic para buscar"}
                         </p>
                         <p className="text-[13px] text-muted-foreground">
-                          Archivos CSV o TXT delimitados por comas o punto y coma
+                          Resúmenes en PDF · Libros Excel (.xlsx / .xls) · Archivos CSV
                         </p>
                       </div>
                     </div>
@@ -374,17 +534,17 @@ export function CsvImportSheet({
                     )}
 
                     <div className="space-y-2">
-                      <p className="text-[12px] text-muted-foreground font-medium">Bancos y billeteras compatibles:</p>
+                      <p className="text-[12px] text-muted-foreground font-medium">Formatos y entidades compatibles automáticamente:</p>
                       <div className="flex flex-wrap gap-2">
                         {[
+                          "BBVA Visa/Master (PDF)",
+                          "Santander Cuenta (XLS/CSV)",
+                          "La Anónima / Tarjetas (XLSX)",
                           "Mercado Pago",
                           "Banco Galicia",
-                          "Santander",
-                          "BBVA",
                           "Brubank",
                           "Ualá",
-                          "Extracto Visa / Master",
-                          "Excel exportado",
+                          "Excel / CSV Genérico",
                         ].map((b) => (
                           <span
                             key={b}
@@ -407,16 +567,23 @@ export function CsvImportSheet({
                     exit={{ opacity: 0, x: -20 }}
                     className="space-y-6 w-full min-w-0 overflow-x-hidden"
                   >
-                    <div className="flex items-center justify-between p-3.5 rounded-[16px] bg-secondary/40 border border-border/50">
-                      <div className="flex items-center gap-2.5">
-                        <FileText className="w-4 h-4 text-primary flex-shrink-0" />
-                        <span className="text-[13px] text-foreground font-medium truncate max-w-[200px] md:max-w-none">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-[16px] bg-secondary/40 border border-border/50 gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <FileSpreadsheet className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="text-[13px] text-foreground font-medium truncate">
                           {fileName || "Extracto cargado"}
                         </span>
                       </div>
-                      <Badge variant="outline" className="text-[11px] font-mono">
-                        {rows.length} filas · {headers.length} col.
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        {detectedProfile && (
+                          <Badge variant="outline" className="text-[11px] bg-primary/10 text-primary border-primary/30">
+                            {detectedProfile}
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="text-[11px] font-mono">
+                          {rows.length} filas · {headers.length} col.
+                        </Badge>
+                      </div>
                     </div>
 
                     {/* Account Selector */}
@@ -630,6 +797,35 @@ export function CsvImportSheet({
                     exit={{ opacity: 0, x: -20 }}
                     className="space-y-5 w-full min-w-0 overflow-x-hidden"
                   >
+                    {/* Selector de cuenta bancaria de destino */}
+                    <div className="flex items-center justify-between gap-3 p-3.5 rounded-[16px] bg-secondary/40 border border-border/60 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">
+                          Cuenta bancaria de destino
+                        </span>
+                        <div className="flex items-center gap-2 mt-0.5 min-w-0">
+                          {selectedAccount && <div className={`category-dot ${selectedAccount.color} flex-shrink-0`} />}
+                          <span className="text-[13px] font-medium text-foreground truncate block">
+                            {selectedAccount ? selectedAccount.name : "Seleccionar cuenta..."}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="relative flex-shrink-0">
+                        <select
+                          value={accountId}
+                          onChange={(e) => handleAccountChange(e.target.value)}
+                          className="h-10 px-3 pr-8 rounded-[12px] bg-card border border-border text-foreground text-[12px] font-medium outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
+                        >
+                          {accounts.map((acc) => (
+                            <option key={acc.id} value={acc.id}>
+                              {acc.name} ({acc.type === "credit" ? "Tarjeta" : acc.type === "savings" ? "Ahorro" : acc.type === "checking" ? "Corriente" : "Efectivo"})
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+
                     {/* Resumen de totales */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       <div className="p-3 rounded-[16px] bg-secondary/50 border border-border/40 text-center">

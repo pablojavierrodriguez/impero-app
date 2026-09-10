@@ -35,19 +35,30 @@ export function ResponsiveSheet({ open, onClose, children, title, titleRight }: 
             onClick={e => e.stopPropagation()}
             className={
               isMobile
-                ? "w-full bg-card/95 backdrop-blur-2xl rounded-t-[var(--card-radius)] border-t border-border/50 max-h-[90vh] overflow-y-auto shadow-2xl"
-                : "w-full max-w-lg bg-card/95 backdrop-blur-2xl rounded-[var(--card-radius)] shadow-2xl border border-border/60 max-h-[85vh] overflow-y-auto"
+                ? "w-full bg-card/95 backdrop-blur-2xl rounded-t-[var(--card-radius)] border-t border-border/50 max-h-[90vh] overflow-y-auto no-scrollbar shadow-2xl"
+                : "w-full max-w-lg bg-card/95 backdrop-blur-2xl rounded-[var(--card-radius)] shadow-2xl border border-border/60 max-h-[85vh] overflow-y-auto no-scrollbar"
             }
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-3">
-              <button onClick={onClose} className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-              {title && (
-                <span className="text-[15px] font-display font-semibold text-foreground">{title}</span>
-              )}
-              <div className="w-9 flex justify-end">{titleRight}</div>
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/40 gap-3">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-full bg-secondary/70 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 transition-all shrink-0"
+                  aria-label="Cerrar"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                {title && (
+                  <div className="text-[15px] font-display font-semibold text-foreground truncate min-w-0">
+                    {title}
+                  </div>
+                )}
+              </div>
+              <div className="shrink-0 flex items-center">
+                {titleRight || <div className="w-2" />}
+              </div>
             </div>
             {children}
           </motion.div>

@@ -137,10 +137,19 @@ export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }
             />
             <YAxis
               stroke="#71717a"
-              fontSize={11}
+              fontSize={10}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+              width={46}
+              tickCount={4}
+              tickFormatter={(v) => {
+                if (v === 0) return "$0";
+                const abs = Math.abs(v);
+                if (abs >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+                if (abs >= 10_000) return `$${(v / 1_000).toFixed(0)}k`;
+                if (abs >= 1_000) return `$${(v / 1_000).toFixed(1)}k`;
+                return `$${Math.round(v)}`;
+              }}
             />
             <Tooltip
               content={({ active, payload }) => {

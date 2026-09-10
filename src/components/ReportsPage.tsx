@@ -106,7 +106,7 @@ export function ReportsPage({
   };
 
   return (
-    <div className="pt-4 pb-12">
+    <div className="pt-4 pb-28 md:pb-12 max-w-2xl mx-auto">
       {/* Header */}
       <div className="px-4 pb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -125,7 +125,7 @@ export function ReportsPage({
       </div>
 
       {/* Date Range Selector */}
-      <div className="mx-4 mb-4 flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+      <div className="px-4 mb-4 flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar scroll-smooth">
         <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1 shrink-0 mr-1">
           <Calendar className="w-3 h-3" />
           {t("report.filterRange")}:
@@ -140,7 +140,7 @@ export function ReportsPage({
           <button
             key={item.key}
             onClick={() => setDateRange(item.key as DateRangePreset)}
-            className={`px-2.5 py-1 text-[11px] font-medium rounded-full transition-all whitespace-nowrap border ${
+            className={`px-3 py-1.5 text-[11px] font-medium rounded-full transition-all whitespace-nowrap border shrink-0 ${
               dateRange === item.key
                 ? "bg-primary text-primary-foreground border-primary shadow-sm"
                 : "bg-card text-muted-foreground border-border/60 hover:bg-secondary"
@@ -149,6 +149,7 @@ export function ReportsPage({
             {item.label}
           </button>
         ))}
+        <div className="w-6 shrink-0" aria-hidden="true" />
       </div>
 
       {/* Executive Summary Card */}

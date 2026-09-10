@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, RotateCcw, DollarSign, Languages, BarChart3, LayoutGrid, Hash, Eye, Sun, Moon, Monitor, Smartphone, Shield, EyeOff, Palette, Check, LayoutList, Calculator, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, RotateCcw, DollarSign, Languages, BarChart3, LayoutGrid, Hash, Eye, Sun, Moon, Monitor, Smartphone, Shield, EyeOff, Palette, Check, LayoutList, Calculator, SlidersHorizontal, User, LogOut } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WhatsAppIntegrationModal } from "@/components/WhatsAppIntegrationModal";
@@ -7,6 +7,7 @@ import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { DashboardCardPicker } from "@/components/DashboardCardPicker";
 import { useSettings, CURRENCIES, DEFAULT_EXCHANGE_RATES, type Currency, type ChartType, type ThemeMode, type AppTheme } from "@/lib/settings-store";
 import { usePrivacy } from "@/contexts/PrivacyContext";
+import { useAuth } from "@/lib/auth-context";
 import type { Language } from "@/lib/i18n";
 
 const LANGUAGES: { value: Language; label: string }[] = [
@@ -85,10 +86,11 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export function SettingsPage({ onImportCsv }: SettingsPageProps) {
   const { settings, updateSettings, toggleHomeSection, resetSettings, currencySymbol, t } = useSettings();
   const { isPrivacyMode, setPrivacyMode } = usePrivacy();
+  const { user, signOut } = useAuth();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   return (
-    <div className="pt-4 pb-4">
+    <div className="pt-4 pb-28 md:pb-8">
       <div className="px-4 pb-3">
         <h1 className="text-[20px] font-display font-semibold text-foreground">{t("settings.title")}</h1>
         <p className="text-[12px] text-muted-foreground mt-0.5">{t("settings.subtitle")}</p>
@@ -318,16 +320,16 @@ export function SettingsPage({ onImportCsv }: SettingsPageProps) {
 
           {/* Launcher interactivo del Dashboard Card Picker */}
           <div className="p-4 bg-secondary/20 rounded-2xl mx-4 my-2 border border-border/40">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
                   <SlidersHorizontal className="w-4 h-4" />
                 </div>
-                <div>
-                  <span className="text-sm font-semibold text-foreground block font-display">
+                <div className="min-w-0">
+                  <span className="text-sm font-semibold text-foreground block font-display truncate">
                     {t("settings.customizeHome") || "Personalizar Inicio"}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap block">
                     {settings.homeSections.filter(s => s.enabled).length} de {settings.homeSections.length} widgets activos
                   </span>
                 </div>
@@ -336,7 +338,7 @@ export function SettingsPage({ onImportCsv }: SettingsPageProps) {
               <button
                 type="button"
                 onClick={() => setIsPickerOpen(true)}
-                className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all active:scale-95 flex items-center gap-1.5 shadow-xs"
+                className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all active:scale-95 flex items-center gap-1.5 shadow-xs shrink-0"
               >
                 <span>Editar</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -347,17 +349,29 @@ export function SettingsPage({ onImportCsv }: SettingsPageProps) {
               {t("settings.customizeHomeSubtitle") || "Elegí y organizá qué widgets, gráficos y datos ver en la pantalla principal."}
             </p>
 
-            {/* Mini pills de widgets activos */}
-            <div className="flex flex-wrap gap-1.5">
-              {settings.homeSections.filter(s => s.enabled).map(section => (
-                <span
-                  key={section.id}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/80 border border-border/50 text-muted-foreground flex items-center gap-1"
+            {/* Mini pills de widgets activos (máximo 4 + indicador de restantes) */}
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {settings.homeSections
+                .filter(s => s.enabled)
+                .slice(0, 4)
+                .map(section => (
+                  <span
+                    key={section.id}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/80 border border-border/50 text-muted-foreground flex items-center gap-1"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                    <span className="truncate max-w-[120px]">{t(section.labelKey)}</span>
+                  </span>
+                ))}
+              {settings.homeSections.filter(s => s.enabled).length > 4 && (
+                <button
+                  type="button"
+                  onClick={() => setIsPickerOpen(true)}
+                  className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium hover:bg-primary/20 transition-colors"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  {t(section.labelKey)}
-                </span>
-              ))}
+                  +{settings.homeSections.filter(s => s.enabled).length - 4} más
+                </button>
+              )}
             </div>
           </div>
 
@@ -402,6 +416,31 @@ export function SettingsPage({ onImportCsv }: SettingsPageProps) {
               <span className="text-sm text-destructive">{t("settings.reset")}</span>
             </div>
           </button>
+
+          {user && (
+            <>
+              <SectionTitle>Cuenta & Sesión</SectionTitle>
+              <div className="flex items-center justify-between py-3 px-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm text-foreground truncate">{user.email}</span>
+                    <span className="text-[11px] text-muted-foreground">Sesión iniciada</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={signOut}
+                className="flex items-center justify-between w-full py-3 px-4 hover:bg-destructive/10 transition-colors text-destructive"
+              >
+                <div className="flex items-center gap-3">
+                  <LogOut className="w-4 h-4 text-destructive" />
+                  <span className="text-sm font-medium">Cerrar sesión</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-destructive/50" />
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

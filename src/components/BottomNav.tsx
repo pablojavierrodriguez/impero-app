@@ -4,8 +4,11 @@ import { LayoutDashboard, ArrowLeftRight, Wallet, Plus, MoreHorizontal } from "l
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
-import { CreditCard, Tags, Repeat, Receipt, Settings, PiggyBank, Target, Bell, BarChart3, Hash, Zap, ShoppingCart, Upload } from "lucide-react";
+import {
+  CreditCard, Tags, Repeat, Receipt, Settings, PiggyBank, Target, Bell, BarChart3, Hash, Zap, ShoppingCart, Upload, User, LogOut
+} from "lucide-react";
 import { useSettings } from "@/lib/settings-store";
+import { useAuth } from "@/lib/auth-context";
 
 interface BottomNavProps {
   activeTab: string;
@@ -20,6 +23,7 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer, onIm
   const [moreOpen, setMoreOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const { t } = useSettings();
+  const { user, signOut } = useAuth();
 
   const tabs = [
     { id: "dashboard", icon: LayoutDashboard, label: t("nav.home") },
@@ -40,6 +44,7 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer, onIm
     ...(onImportCsv
       ? [{ id: "import-csv", icon: Upload, label: t("tx.importCsv") || "Importar CSV", desc: "Carga extractos bancarios y billeteras", isAction: true, onClick: onImportCsv }]
       : []),
+    { id: "profile", icon: User, label: t("nav.profile") || "Mi Perfil", desc: t("nav.profileDesc") || "Datos personales y cuenta" },
     { id: "settings", icon: Settings, label: t("nav.settings"), desc: t("nav.settingsDesc") },
   ];
 
@@ -177,38 +182,61 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer, onIm
       </div>
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="left" className="w-72 p-0">
-          <SheetHeader className="px-5 pt-6 pb-4 border-b border-border/50">
-            <SheetTitle className="text-base font-display">{t("nav.moreOptions")}</SheetTitle>
-            <SheetDescription className="text-xs text-muted-foreground">{t("nav.advancedMgmt")}</SheetDescription>
-          </SheetHeader>
-          <div className="py-2 overflow-auto max-h-[calc(100vh-100px)]">
-            {moreItems.map(item => (
-              <button key={item.id}
-                onClick={() => {
-                  if ("onClick" in item && typeof item.onClick === "function") {
-                    item.onClick();
-                  } else {
-                    onTabChange(item.id);
-                  }
-                  setMoreOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-5 py-3 transition-colors hover:bg-secondary/50 ${
-                  activeTab === item.id ? "bg-secondary text-primary" : "text-foreground"
-                }`}>
-                <item.icon className="w-5 h-5" />
-                <div className="text-left flex-1">
-                  <div className="text-sm font-medium">{item.label}</div>
-                  <div className="text-[11px] text-muted-foreground">{item.desc}</div>
-                </div>
-                {item.badge && item.badge > 0 ? (
-                  <span className="w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-medium">
-                    {item.badge}
-                  </span>
-                ) : null}
-              </button>
-            ))}
+        <SheetContent
+          side="left"
+          className="w-72 p-0 flex flex-col justify-between [&>button]:top-5 [&>button]:right-4 [&>button]:w-7 [&>button]:h-7 [&>button]:rounded-full [&>button]:bg-secondary/60 [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:opacity-80 hover:[&>button]:opacity-100 transition-all"
+        >
+          <div>
+            <SheetHeader className="px-5 pt-6 pb-4 border-b border-border/50 pr-12">
+              <SheetTitle className="text-base font-display">{t("nav.moreOptions")}</SheetTitle>
+              <SheetDescription className="text-xs text-muted-foreground">{t("nav.advancedMgmt")}</SheetDescription>
+            </SheetHeader>
+            <div className="py-2 overflow-y-auto max-h-[calc(100vh-180px)] no-scrollbar">
+              {moreItems.map(item => (
+                <button key={item.id}
+                  onClick={() => {
+                    if ("onClick" in item && typeof item.onClick === "function") {
+                      item.onClick();
+                    } else {
+                      onTabChange(item.id);
+                    }
+                    setMoreOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-5 py-3 transition-colors hover:bg-secondary/50 ${
+                    activeTab === item.id ? "bg-secondary text-primary" : "text-foreground"
+                  }`}>
+                  <item.icon className="w-5 h-5" />
+                  <div className="text-left flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{item.label}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{item.desc}</div>
+                  </div>
+                  {item.badge && item.badge > 0 ? (
+                    <span className="w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-medium shrink-0">
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {user && (
+            <div className="p-4 pb-safe border-t border-border/50 bg-card/60">
+              <div className="text-[11px] text-muted-foreground truncate mb-2 px-1">
+                {user.email}
+              </div>
+              <button
+                onClick={() => {
+                  setMoreOpen(false);
+                  signOut();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-destructive/20 text-destructive hover:bg-destructive/10 active:scale-[0.98] transition-all text-xs font-medium"
+              >
+                <LogOut className="w-4 h-4 shrink-0" />
+                <span>Cerrar sesión</span>
+              </button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
     </>

@@ -5,6 +5,8 @@ import { Lock, ArrowRight, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
+import { getHumanAuthErrorMessage } from "@/lib/auth-errors";
+
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,10 @@ export default function ResetPassword() {
       toast.success("¡Contraseña actualizada!");
       navigate("/");
     } catch (err: any) {
-      toast.error(err.message);
+      const parsed = getHumanAuthErrorMessage(err);
+      toast.error(parsed.title, {
+        description: parsed.description,
+      });
     } finally {
       setLoading(false);
     }

@@ -331,11 +331,11 @@ export function DashboardCardPicker({ open, onClose }: DashboardCardPickerProps)
         </button>
       }
     >
-      <div className="px-5 pb-6 space-y-4">
+      <div className="px-5 pt-3 pb-6 space-y-4">
         {/* Subtítulo descriptivo y contador de widgets activos */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border/40 pb-3">
-          <span>{t("picker.subtitle") || "Organizá tus widgets, gráficos y métricas favoritas"}</span>
-          <span className="font-mono px-2 py-0.5 rounded-full bg-secondary/80 text-foreground font-semibold">
+        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground pb-1">
+          <span className="truncate">{t("picker.subtitle") || "Organizá tus widgets, gráficos y métricas favoritas"}</span>
+          <span className="font-mono px-2.5 py-1 rounded-full bg-secondary/80 text-foreground font-semibold text-[11px] whitespace-nowrap shrink-0">
             {enabledCount}/{sections.length} {t("picker.activeCount") || "activas"}
           </span>
         </div>
@@ -346,7 +346,7 @@ export function DashboardCardPicker({ open, onClose }: DashboardCardPickerProps)
             type="button"
             onClick={() => setActiveTab("organize")}
             className={cn(
-              "flex-1 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-2",
+              "flex-1 py-2 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-2 active:scale-98",
               activeTab === "organize"
                 ? "bg-card text-foreground shadow-xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
@@ -359,7 +359,7 @@ export function DashboardCardPicker({ open, onClose }: DashboardCardPickerProps)
             type="button"
             onClick={() => setActiveTab("catalog")}
             className={cn(
-              "flex-1 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-2",
+              "flex-1 py-2 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-2 active:scale-98",
               activeTab === "catalog"
                 ? "bg-card text-foreground shadow-xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
@@ -415,14 +415,14 @@ export function DashboardCardPicker({ open, onClose }: DashboardCardPickerProps)
                     {/* Drag Handle & Info */}
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div
-                        className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-foreground/60 hover:text-foreground transition-colors"
+                        className="cursor-grab active:cursor-grabbing p-2 -ml-1 text-muted-foreground/60 hover:text-foreground transition-colors touch-none"
                         title="Arrastrar para mover"
                       >
                         <GripVertical className="w-4 h-4" />
                       </div>
 
-                      <div className={cn("w-7 h-7 rounded-xl border flex items-center justify-center shrink-0", meta?.badgeColor)}>
-                        <IconComponent className="w-3.5 h-3.5" />
+                      <div className={cn("w-8 h-8 rounded-xl border flex items-center justify-center shrink-0", meta?.badgeColor)}>
+                        <IconComponent className="w-4 h-4" />
                       </div>
 
                       <div className="flex flex-col min-w-0 pr-2">
@@ -435,9 +435,9 @@ export function DashboardCardPicker({ open, onClose }: DashboardCardPickerProps)
                       </div>
                     </div>
 
-                    {/* Quick controls: Flechas de mover arriba/abajo + Switch de visibilidad */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <div className="flex flex-col gap-0.5 mr-1">
+                    {/* Quick controls: Flechas de mover arriba/abajo solo en desktop + Switch táctil */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="hidden sm:flex flex-col gap-0.5 mr-1">
                         <button
                           type="button"
                           onClick={() => handleMove(index, "up")}

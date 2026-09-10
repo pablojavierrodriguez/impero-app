@@ -14,8 +14,27 @@ const SUPABASE_PUBLISHABLE_KEY =
   (import.meta.env as any).NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   "";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
+// Custom fetch with timeout to prevent infinite hanging when local backend/docker is paused or unreachable
+const fetchWithTimeout: typeof fetch = (input, init) => {
+  const controller = new AbortController();
+  const timeoutMs = 8000; // 8 segundos de timeout
+  const timeoutId = setTimeout(() => controller.abort(new DOMException("Timeout al conectar con el servidor", "TimeoutError")), timeoutMs);
+
+  // Si el caller ya pasó una signal, encadenar el abort
+  if (init?.signal) {
+    init.signal.addEventListener("abort", () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    });
+  }
+
+  return fetch(input, {
+    ...init,
+    signal: controller.signal,
+  }).finally(() => {
+    clearTimeout(timeoutId);
+  });
+};
 
 export const supabase = createClient<Database>(
   SUPABASE_URL || "https://placeholder-project.supabase.co",
@@ -25,6 +44,10 @@ export const supabase = createClient<Database>(
       storage: localStorage,
       persistSession: true,
       autoRefreshToken: true,
+      throwOnError: true,
+    },
+    global: {
+      fetch: fetchWithTimeout,
     },
   }
 );

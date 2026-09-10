@@ -20,6 +20,16 @@ Refactor integral de diseño y arquitectura de interfaz para desktop y mobile. S
 - **Teclado y Registro Rápido (`QuickAddSheet` & `finance-store`):**
   - Soporte de fecha explícita para transacciones pasadas y futuras.
   - Mayor contraste y visibilidad en la selección rápida de categorías.
+- **Carga Masiva de Extractos (`CsvImportSheet`, `excel-parser`, `pdf-statement-parser`):**
+  - Soporte universal de importación para extractos bancarios en formatos CSV, XLSX/XLS y PDF.
+  - Inserción y sincronización por lotes (batches) en segundo plano para optimizar rendimiento en bases de datos locales y cloud.
+- **Acceso a Cuenta & Sesión en Mobile (`BottomNav`, `SettingsPage`):**
+  - Acceso directo a Mi Perfil y botón táctil de Cerrar Sesión en el menú lateral móvil y en Ajustes.
+  - Mensajería de errores de autenticación 100% traducida al español.
+- **Pulido Visual y Ergonómico en Mobile:**
+  - `ResponsiveSheet` y `DashboardCardPicker`: Header unificado, botón de cierre táctil circular y eliminación de desbordes en el badge de widgets activos.
+  - `ObligationsManager` y `ReportsPage`: Scroll horizontal con salida suave (`w-6`) y padding inferior seguro (`pb-28`) para evitar solapamientos con la barra de navegación fija.
+  - `CashFlowForecast`: Eje Y con ticks dinámicos y formateo de unidades escalonado ($0, $1.5k, $10k, $1.2M), erradicando valores repetidos.
 
 ---
 

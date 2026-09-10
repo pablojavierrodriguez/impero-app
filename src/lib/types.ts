@@ -1,4 +1,5 @@
 import type { Currency } from "./settings-types";
+export type { Currency };
 
 export type TransactionType = "income" | "expense";
 

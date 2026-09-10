@@ -663,7 +663,15 @@ BEGIN
       raw_app_meta_data,
       raw_user_meta_data,
       created_at,
-      updated_at
+      updated_at,
+      confirmation_token,
+      recovery_token,
+      email_change_token_new,
+      email_change,
+      phone_change,
+      phone_change_token,
+      email_change_token_current,
+      reauthentication_token
     ) VALUES (
       v_user_id,
       '00000000-0000-0000-0000-000000000000',
@@ -676,30 +684,45 @@ BEGIN
       '{"provider":"email","providers":["email"]}'::jsonb,
       '{"full_name":"Pablo Tester","avatar_url":"https://api.dicebear.com/7.x/avataaars/svg?seed=ImperoDev"}'::jsonb,
       now(),
-      now()
+      now(),
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      ''
     );
 
     -- También insertar identidad en auth.identities para autenticación correcta con Supabase Auth
     INSERT INTO auth.identities (
       id,
       user_id,
+      provider_id,
       identity_data,
       provider,
       last_sign_in_at,
       created_at,
       updated_at
     ) VALUES (
-      v_user_id::text,
       v_user_id,
+      v_user_id,
+      v_target_email,
       jsonb_build_object('sub', v_user_id::text, 'email', v_target_email),
       'email',
       now(),
       now(),
       now()
     )
-    ON CONFLICT (provider, id) DO NOTHING;
+    ON CONFLICT (provider_id, provider) DO NOTHING;
   END IF;
 
   -- 4. Ejecutar la función de seed para el usuario resuelto
   PERFORM public.seed_dev_data(v_user_id);
 END $$;
+
+-- Revoke direct RPC access: seed_dev_data is a dev-only function invoked by this seed script,
+-- it must not be callable by anon or authenticated clients via /rest/v1/rpc/.
+-- (Fixes DB Advisor lint 0028 / 0029: anon/authenticated_security_definer_function_executable)
+REVOKE EXECUTE ON FUNCTION public.seed_dev_data(uuid) FROM anon, authenticated, PUBLIC;

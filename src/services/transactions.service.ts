@@ -52,11 +52,23 @@ export async function fetchTransactions(categories: Category[]): Promise<Transac
   });
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isValidUuid(id?: string | null): boolean {
+  return typeof id === "string" && UUID_REGEX.test(id);
+}
+
 export async function insertTransaction(
   tx: Omit<Transaction, "id"> & { id?: string }
 ): Promise<Transaction> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No authenticated user");
+
+  if (!isValidUuid(tx.accountId)) {
+    throw new Error(`Cuenta bancaria inválida (${tx.accountId || "no seleccionada"}).`);
+  }
+
+  const isValidCat = tx.category?.id && isValidUuid(tx.category.id) && tx.category.id !== "uncategorized";
 
   const { data, error } = await supabase
     .from("transactions")
@@ -64,7 +76,7 @@ export async function insertTransaction(
       user_id: user.id,
       amount: tx.amount,
       description: tx.description,
-      category_id: tx.category.id !== "uncategorized" ? tx.category.id : null,
+      category_id: isValidCat ? tx.category.id : null,
       date: tx.date.toISOString(),
       type: tx.type,
       account_id: tx.accountId,
@@ -97,25 +109,33 @@ export async function insertTransactionsBatch(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No authenticated user");
 
-  const payload = txs.map((tx) => ({
-    user_id: user.id,
-    amount: tx.amount,
-    description: tx.description,
-    category_id: tx.category.id !== "uncategorized" ? tx.category.id : null,
-    date: tx.date.toISOString(),
-    type: tx.type,
-    account_id: tx.accountId,
-    currency: tx.currency || "ARS",
-    is_card_payment: tx.isCardPayment || false,
-    is_transfer: tx.isTransfer || false,
-    tag_ids: tx.tags || [],
-    note: tx.note || null,
-    receipt_url: tx.receiptUrl || null,
-    recurring_id: tx.recurringId || null,
-    installment_current: tx.installmentInfo?.current || null,
-    installment_total: tx.installmentInfo?.total || null,
-    installment_group_id: tx.installmentInfo?.groupId || null,
-  }));
+  const payload = txs.map((tx) => {
+    if (!isValidUuid(tx.accountId)) {
+      throw new Error(`Cuenta bancaria inválida (${tx.accountId || "no seleccionada"}).`);
+    }
+
+    const isValidCat = tx.category?.id && isValidUuid(tx.category.id) && tx.category.id !== "uncategorized";
+
+    return {
+      user_id: user.id,
+      amount: tx.amount,
+      description: tx.description,
+      category_id: isValidCat ? tx.category.id : null,
+      date: tx.date.toISOString(),
+      type: tx.type,
+      account_id: tx.accountId,
+      currency: tx.currency || "ARS",
+      is_card_payment: tx.isCardPayment || false,
+      is_transfer: tx.isTransfer || false,
+      tag_ids: tx.tags || [],
+      note: tx.note || null,
+      receipt_url: tx.receiptUrl || null,
+      recurring_id: tx.recurringId || null,
+      installment_current: tx.installmentInfo?.current || null,
+      installment_total: tx.installmentInfo?.total || null,
+      installment_group_id: tx.installmentInfo?.groupId || null,
+    };
+  });
 
   const { error } = await supabase.from("transactions").insert(payload);
   if (error) throw error;

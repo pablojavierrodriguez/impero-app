@@ -310,8 +310,8 @@ export function ObligationsManager({
         </button>
       </div>
 
-      {/* Chips de filtro rápido */}
-      <div className="px-4 mb-4 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+      {/* Chips de filtro rápido con scroll horizontal fluido y padding de respiro */}
+      <div className="px-4 mb-4 flex items-center gap-2 overflow-x-auto no-scrollbar py-1 scroll-smooth">
         <button
           onClick={() => setFilter("all")}
           className={`px-3 py-1.5 rounded-full text-[12px] font-medium shrink-0 transition-colors ${
@@ -365,17 +365,20 @@ export function ObligationsManager({
           <Pause className="w-3 h-3" />
           <span>Pausados</span>
         </button>
+        <div className="w-6 shrink-0" aria-hidden="true" />
       </div>
 
       {/* Listado unificado cronológico */}
-      <div className="px-4 space-y-2.5">
+      <div className="px-4 space-y-2.5 pb-28 md:pb-8">
         {filteredItems.length === 0 && (
-          <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-border/60">
-            <Repeat className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-            <p className="text-[14px] font-medium text-foreground">
+          <div className="text-center py-10 px-4 rounded-2xl border border-dashed border-border/60 bg-card/40 backdrop-blur-xs">
+            <div className="w-12 h-12 rounded-2xl bg-secondary/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground">
+              <Repeat className="w-6 h-6 opacity-70" />
+            </div>
+            <p className="text-[14px] font-semibold text-foreground font-display">
               No hay compromisos en esta vista
             </p>
-            <p className="text-[12px] text-muted-foreground mt-1">
+            <p className="text-[12px] text-muted-foreground mt-1 max-w-xs mx-auto leading-relaxed">
               Tocá el botón "Nuevo" arriba para registrar un vencimiento o débito automático.
             </p>
           </div>

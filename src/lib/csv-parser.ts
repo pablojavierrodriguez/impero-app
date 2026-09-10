@@ -189,10 +189,12 @@ export function extractInstallmentInfo(description: string): {
   // 1. C.06/06 o C 06/06 o C.6/6
   // 2. CUOTA 02/12 o CUOTA 2 DE 12 o CUOTA 2/12
   // 3. (03/06) o [03/06]
+  // 4. Formato aislado de celda: 04/06 o 4/6
   const patterns = [
     /\b(?:c\.|c\s+)(\d{1,2})\/(\d{1,2})\b/i,
     /\bcuota\s*(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})\b/i,
     /[\(\[]\s*(\d{1,2})\/(\d{1,2})\s*[\)\]]/i,
+    /^\s*(\d{1,2})\/(\d{1,2})\s*$/,
   ];
 
   for (const regex of patterns) {
@@ -265,45 +267,45 @@ export function guessCategory(description: string, availableCategories: Category
     if (found) return found;
   }
 
-  // 2. Supermercado / Comestibles
+  // 2. Supermercado / Comestibles / Alimentación
   if (/supermercado|super|market|coto|carrefour|dia|día|disco|jumbo|vea|walmart|chango|makro|vital|almacen|almacén|verduleria|verdul\b|carniceria|carnicer\b/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "groceries" || /groceries|super|comestibles/i.test(c.name));
+    const found = availableCategories.find((c) => c.id === "groceries" || /alimentaci[oó]n|comestibles|super|groceries/i.test(c.name));
     if (found) return found;
   }
 
   // 3. Restaurantes & Delivery / Salidas
   if (/pedidosya|rappi|restaurant|rest[oó]|bar\b|cafe|café|coffee|starbucks|mcdon|burger|mostaza|havanna|pizzeria|pizz|sushi|helad|cerveza|grido|freddo|lucciano/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "dining" || /dining|restaurante|comida/i.test(c.name));
+    const found = availableCategories.find((c) => c.id === "dining" || /restaurante|comida|dining|gastronom[ií]a/i.test(c.name));
     if (found) return found;
   }
 
-  // 4. Servicios & Facturas / Bills
+  // 4. Servicios & Facturas / Impuestos
   if (/luz|gas|agua|telecom|fibertel|personal|claro|movistar|edenor|edesur|metrogas|aysa|flow|telecentro|abl|arba|afip|rentas|seguro|inmobiliario|expensas|patente|alquiler/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "bills" || /bills|servicios|impuestos|facturas/i.test(c.name));
+    const found = availableCategories.find((c) => c.id === "bills" || /servicios|impuestos|facturas|bills/i.test(c.name));
     if (found) return found;
   }
 
   // 5. Salud & Farmacia
   if (/farmacia|farmacity|dr\.|doctor|hospital|clinica|clínica|swiss medical|osde|galeno|medic|optica|óptica|laboratorio|odontolog/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "health" || /health|salud|farmacia/i.test(c.name));
+    const found = availableCategories.find((c) => c.id === "health" || /salud|farmacia|health/i.test(c.name));
     if (found) return found;
   }
 
-  // 6. Entretenimiento & Streaming
+  // 6. Entretenimiento & Ocio / Salidas
   if (/netflix|spotify|disney|hbo|max|prime video|youtube|steam|playstation|xbox|cinema|cine|hoyts|cinemark|teatro|recital|show/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "entertainment" || /entertainment|entretenimiento|ocio/i.test(c.name));
+    const found = availableCategories.find((c) => c.id === "entertainment" || /ocio|entretenimiento|entertainment|salidas/i.test(c.name));
     if (found) return found;
   }
 
   // 7. Compras / Shopping
   if (/mercadolibre|mercado libre|meli|amazon|zara|falabella|tienda|shop|ropa|indumentaria|electronica|electrónica|nike|adidas/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "shopping" || /shopping|compras/i.test(c.name));
+    const found = availableCategories.find((c) => c.id === "shopping" || /compras|shopping|indumentaria/i.test(c.name));
     if (found) return found;
   }
 
   // 8. Sueldos / Ingresos recurrentes
   if (/sueldo|salary|haberes|honorarios|remuneraci[oó]n|jubilaci[oó]n|acreditacion haberes|pago de haberes/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "salary" || /salary|sueldo/i.test(c.name));
+    const found = availableCategories.find((c) => c.id === "salary" || /sueldo|salario|salary/i.test(c.name));
     if (found) return found;
   }
 
@@ -315,16 +317,27 @@ export function guessCategory(description: string, availableCategories: Category
 
   // 10. Rendimientos / Inversiones
   if (/interes|intereses|rendimiento|dividendos|plazo fijo|fci|cauci[oó]n|dividend/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "investments" || /investment|inversion|inversión/i.test(c.name));
+    const found = availableCategories.find((c) => c.id === "investments" || /inversi[oó]n|rendimiento|investment/i.test(c.name));
     if (found) return found;
   }
 
-  // Fallback
-  return (
-    availableCategories.find((c) => c.id === "other-expense") ??
+  // Fallback seguro: buscar una categoría válida existente en availableCategories
+  const safeFallback =
+    availableCategories.find((c) => /otros?|general/i.test(c.name) && c.type === "expense") ??
     availableCategories.find((c) => c.type === "expense") ??
-    CATEGORIES[0]
-  );
+    availableCategories[0];
+
+  if (safeFallback) {
+    return safeFallback;
+  }
+
+  return {
+    id: "uncategorized",
+    name: "Sin Categoría",
+    color: "bg-zinc-500",
+    type: "expense",
+    icon: "circle-dot",
+  };
 }
 
 export function parseAmount(raw: string): number {
@@ -496,14 +509,31 @@ export function rowsToTransactions(
       // Opcional: limpiar descripción para que quede prolija
       desc = extracted.cleanDescription;
     } else if (mapping.installments && row[mapping.installments]) {
-      const instCount = parseInt(row[mapping.installments], 10);
-      if (!isNaN(instCount) && instCount > 1) {
+      const rawInst = row[mapping.installments].trim();
+      const extractedFromCol = extractInstallmentInfo(rawInst);
+      if (extractedFromCol) {
         installmentInfo = {
-          current: 1,
-          total: instCount,
+          current: extractedFromCol.current,
+          total: extractedFromCol.total,
           groupId: `group-${Date.now()}-${i}`,
         };
+      } else {
+        const instCount = parseInt(rawInst, 10);
+        if (!isNaN(instCount) && instCount > 1) {
+          installmentInfo = {
+            current: 1,
+            total: instCount,
+            groupId: `group-${Date.now()}-${i}`,
+          };
+        }
       }
+    }
+
+    // Detección de moneda USD si el monto o la descripción explicitan USD
+    let txCurrency = currency || "ARS";
+    const rawAmountStr = (mapping.amount ? row[mapping.amount] : "") || "";
+    if (/usd|u\$s|\$us/i.test(rawAmountStr) || /usd|u\$s|\$us/i.test(desc)) {
+      txCurrency = "USD";
     }
 
     const isCardPayment = detectCardPayment(desc);

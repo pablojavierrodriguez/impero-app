@@ -499,17 +499,22 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
-DROP POLICY IF EXISTS "Users can upload their own receipts" ON storage.objects;
-DROP POLICY IF EXISTS "Anyone can view public receipts"    ON storage.objects;
-DROP POLICY IF EXISTS "Users can delete their own receipts" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload their own receipts"   ON storage.objects;
+DROP POLICY IF EXISTS "Anyone can view public receipts"       ON storage.objects;
+DROP POLICY IF EXISTS "Users can view their own receipts"     ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their own receipts"   ON storage.objects;
 
 CREATE POLICY "Users can upload their own receipts" ON storage.objects
   FOR INSERT WITH CHECK (
     bucket_id = 'receipts'
     AND (storage.foldername(name))[1] = auth.uid()::text
   );
-CREATE POLICY "Anyone can view public receipts" ON storage.objects
-  FOR SELECT USING (bucket_id = 'receipts');
+-- Restrict SELECT to owner's own folder only (avoids broad listing warned by DB Advisor lint 0025)
+CREATE POLICY "Users can view their own receipts" ON storage.objects
+  FOR SELECT TO authenticated USING (
+    bucket_id = 'receipts'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
 CREATE POLICY "Users can delete their own receipts" ON storage.objects
   FOR DELETE USING (
     bucket_id = 'receipts'
@@ -598,6 +603,16 @@ GRANT ALL ON ALL ROUTINES  IN SCHEMA public TO anon, authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES    TO anon, authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES  TO anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- SECURITY: Revoke direct RPC access to trigger-only functions
+-- These functions are invoked exclusively by database triggers and must not
+-- be callable via /rest/v1/rpc/ by anon or authenticated clients.
+-- (Fixes DB Advisor lint 0028 / 0029: anon/authenticated_security_definer_function_executable)
+-- ---------------------------------------------------------------------------
+
+REVOKE EXECUTE ON FUNCTION public.handle_new_user()   FROM anon, authenticated, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.seed_user_defaults() FROM anon, authenticated, PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- SCHEMA RELOAD (PostgREST)

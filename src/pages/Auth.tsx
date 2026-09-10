@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, User } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, User, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { getHumanAuthErrorMessage, isLocalEnvironment } from "@/lib/auth-errors";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -16,10 +17,12 @@ export default function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [connError, setConnError] = useState<{ title: string; description: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setConnError(null);
 
     try {
       if (mode === "login") {
@@ -49,7 +52,14 @@ export default function AuthPage() {
         setMode("login");
       }
     } catch (err: any) {
-      toast.error(err.message || "Ocurrió un error");
+      const parsed = getHumanAuthErrorMessage(err);
+      if (parsed.isConnectionError) {
+        setConnError({ title: parsed.title, description: parsed.description });
+      } else {
+        toast.error(parsed.title, {
+          description: parsed.description,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -75,6 +85,43 @@ export default function AuthPage() {
             {mode === "forgot" && "Recuperá tu contraseña"}
           </p>
         </div>
+
+        {/* Banner de error de conexión / servidor offline */}
+        <AnimatePresence>
+          {connError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-5 p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-200 text-xs space-y-2.5 shadow-md backdrop-blur-sm"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-1 rounded-lg bg-amber-500/20 shrink-0 mt-0.5">
+                  <AlertCircle className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="space-y-1 text-left">
+                  <p className="font-semibold text-sm leading-tight text-amber-300">
+                    {connError.title}
+                  </p>
+                  <p className="leading-relaxed text-amber-200/90 text-xs">
+                    {connError.description}
+                  </p>
+                </div>
+              </div>
+              <div className="pt-1 flex items-center justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConnError(null)}
+                  className="h-7 text-xs px-3 border-amber-500/40 hover:bg-amber-500/20 text-amber-200 bg-amber-950/40"
+                >
+                  Entendido
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           <motion.form
