@@ -8,6 +8,7 @@ import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/lib/types";
 import { calculateGoalPace } from "@/lib/goal-utils";
 import { parseLocalDate, parseThousandsInput } from "@/lib/utils";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { usePrivacy } from "@/contexts/PrivacyContext";
 
 interface GoalsManagerProps {
   goals: Goal[];
@@ -20,7 +21,9 @@ interface GoalsManagerProps {
 }
 
 export function GoalsManager({ goals, accounts = [], onAdd, onUpdate, onDelete, onContribute, onWithdraw }: GoalsManagerProps) {
-  const { formatAmount, t } = useSettings();
+  const { maskAmount } = usePrivacy();
+  const { formatAmount: baseFormatAmount, t } = useSettings();
+  const formatAmount = (n: number, opts?: any) => maskAmount(baseFormatAmount(n, opts));
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState<"active" | "completed">("active");
   const [name, setName] = useState("");
@@ -257,7 +260,9 @@ export function GoalsManager({ goals, accounts = [], onAdd, onUpdate, onDelete, 
 
 // Dashboard widget
 export function GoalsSummaryWidget({ goals }: { goals: Goal[] }) {
-  const { formatAmount, t } = useSettings();
+  const { maskAmount } = usePrivacy();
+  const { formatAmount: baseFormatAmount, t } = useSettings();
+  const formatAmount = (n: number, opts?: any) => maskAmount(baseFormatAmount(n, opts));
   const active = goals.filter(g => !g.completed);
   if (active.length === 0) return null;
 

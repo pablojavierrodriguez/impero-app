@@ -32,6 +32,7 @@ export type Database = {
           updated_at: string
           user_id: string
           currency: string | null
+          credit_card_view_mode: string | null
         }
         Insert: {
           archived?: boolean
@@ -50,6 +51,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           currency?: string | null
+          credit_card_view_mode?: string | null
         }
         Update: {
           archived?: boolean
@@ -68,6 +70,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           currency?: string | null
+          credit_card_view_mode?: string | null
         }
         Relationships: []
       }
@@ -141,6 +144,8 @@ export type Database = {
           updated_at: string
           user_id: string
           year: number
+          enable_rollover: boolean
+          accumulated_rollover: number
         }
         Insert: {
           amount: number
@@ -151,6 +156,8 @@ export type Database = {
           updated_at?: string
           user_id: string
           year: number
+          enable_rollover?: boolean
+          accumulated_rollover?: number
         }
         Update: {
           amount?: number
@@ -161,6 +168,8 @@ export type Database = {
           updated_at?: string
           user_id?: string
           year?: number
+          enable_rollover?: boolean
+          accumulated_rollover?: number
         }
         Relationships: [
           {
@@ -631,6 +640,72 @@ export type Database = {
           theme?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      shopping_lists: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          status: string
+          target_account_id: string | null
+          target_category_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          name: string
+          status?: string
+          target_account_id?: string | null
+          target_category_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          status?: string
+          target_account_id?: string | null
+          target_category_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shopping_list_items: {
+        Row: {
+          id: string
+          list_id: string
+          name: string
+          quantity: number
+          unit_price: number
+          is_checked: boolean
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          list_id: string
+          name: string
+          quantity?: number
+          unit_price?: number
+          is_checked?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          list_id?: string
+          name?: string
+          quantity?: number
+          unit_price?: number
+          is_checked?: boolean
+          sort_order?: number
+          created_at?: string
         }
         Relationships: []
       }

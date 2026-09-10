@@ -9,6 +9,7 @@ import { Currency, CURRENCIES } from "@/lib/settings-types";
 import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
 import { formatThousandsInput, parseThousandsInput } from "@/lib/utils";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { usePrivacy } from "@/contexts/PrivacyContext";
 
 interface CreditCardManagerProps {
   accounts: Account[];
@@ -65,8 +66,11 @@ export function CreditCardManager({
   const archivedCards = getArchivedAccounts().filter(a => a.type === "credit");
   const sourceAccounts = getNonCardAccounts();
 
-  const { formatAmount: formatCurrency, t } = useSettings();
-  const { convert, formatInCurrency } = useCurrencyConversion();
+  const { maskAmount } = usePrivacy();
+  const { formatAmount: baseFormatCurrency, t } = useSettings();
+  const formatCurrency = (n: number | null | undefined, opts?: any) => maskAmount(baseFormatCurrency(n ?? 0, opts));
+  const { convert, formatInCurrency: baseFormatInCurrency } = useCurrencyConversion();
+  const formatInCurrency = (amount: number, curr?: string, opts?: any) => maskAmount(baseFormatInCurrency(amount, curr, opts));
   const activeCurrencySymbol = CURRENCIES.find(c => c.value === formCurrency)?.symbol || "$";
 
   const openCreate = () => {

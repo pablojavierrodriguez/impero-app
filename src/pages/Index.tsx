@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useFinanceStore } from "@/lib/finance-store";
 import { useSettings } from "@/lib/settings-store";
 import { VelocityBar } from "@/components/VelocityBar";
@@ -26,6 +27,8 @@ import { RulesManager } from "@/components/RulesManager";
 import { ShoppingListManager } from "@/components/ShoppingListManager";
 import { HealthScore } from "@/components/HealthScore";
 import { UserProfilePage } from "@/components/UserProfile";
+import { OnboardingWizard } from "@/components/OnboardingWizard";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { Transaction, Account } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
@@ -41,10 +44,63 @@ const pageVariants = {
   exit: { opacity: 0, y: -8 },
 };
 
-const Index = () => {
+const VALID_TAB_SET = new Set([
+  "dashboard",
+  "transactions",
+  "cards",
+  "categories",
+  "accounts",
+  "budgets",
+  "goals",
+  "obligations",
+  "reports",
+  "tags",
+  "rules",
+  "shopping",
+  "settings",
+  "profile",
+]);
+
+interface IndexProps {
+  initialTab?: string;
+}
+
+const Index = ({ initialTab }: IndexProps = {}) => {
   const store = useFinanceStore();
   const { settings, isSectionEnabled, t, formatAmount } = useSettings();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const getTabFromPath = useCallback(() => {
+    const raw = location.pathname.replace(/^\//, "").split("/")[0];
+    if (VALID_TAB_SET.has(raw)) return raw;
+    return "dashboard";
+  }, [location.pathname]);
+
+  const [activeTab, setActiveTabState] = useState<string>(() => {
+    if (initialTab && VALID_TAB_SET.has(initialTab)) return initialTab;
+    const fromPath = location.pathname.replace(/^\//, "").split("/")[0];
+    if (VALID_TAB_SET.has(fromPath)) return fromPath;
+    return "dashboard";
+  });
+
+  // Sync state if URL changes externally (browser back/forward or deep links)
+  useEffect(() => {
+    const fromPath = getTabFromPath();
+    if (fromPath !== activeTab) {
+      setActiveTabState(fromPath);
+    }
+  }, [location.pathname, getTabFromPath]);
+
+  const setActiveTab = useCallback((tab: string) => {
+    setActiveTabState(tab);
+    const targetPath = tab === "dashboard" ? "/" : `/${tab}`;
+    if (location.pathname !== targetPath) {
+      navigate(targetPath);
+    }
+  }, [navigate, location.pathname]);
+
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem("onboarding-complete"));
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState<"expense" | "income">("expense");
   const [csvImportOpen, setCsvImportOpen] = useState(false);
@@ -151,7 +207,10 @@ const Index = () => {
         <motion.div key={activeTab} variants={pageVariants} initial="initial" animate="animate" exit="exit"
           transition={{ duration: 0.2 }} className="w-full min-w-0">
 
-          {activeTab === "dashboard" && (() => {
+          {activeTab === "dashboard" && (
+            store.loading && store.accounts.length === 0 ? (
+              <DashboardSkeleton />
+            ) : (() => {
             // Helper para renderizar cada widget individualmente
             const renderWidget = (id: string) => {
               switch (id) {
@@ -332,7 +391,7 @@ const Index = () => {
                 </div>
               </div>
             );
-          })()}
+          })())}
 
           {activeTab === "transactions" && (
             <div className="pt-4">
@@ -548,6 +607,10 @@ const Index = () => {
         open={isCardPickerOpen}
         onClose={() => setIsCardPickerOpen(false)}
       />
+
+      {showOnboarding && (
+        <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
+      )}
 
       <div className="md:hidden">
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab}

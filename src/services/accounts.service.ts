@@ -27,7 +27,7 @@ export async function fetchAccounts(): Promise<Account[]> {
     brand: (row.brand as CreditCardBrand) || undefined,
     customBrandName: row.custom_brand_name || undefined,
     currency: (row.currency as any) || "ARS",
-    creditCardViewMode: (row as any).credit_card_view_mode || "statement_cycles",
+    creditCardViewMode: (row.credit_card_view_mode as "statement_cycles" | "negative_balance") || "statement_cycles",
   }));
 }
 
@@ -54,6 +54,7 @@ export async function insertAccount(acc: Omit<Account, "id">): Promise<Account> 
       brand: acc.brand || null,
       custom_brand_name: acc.customBrandName || null,
       currency: acc.currency || "ARS",
+      credit_card_view_mode: acc.creditCardViewMode || "statement_cycles",
     })
     .select()
     .single();
@@ -75,7 +76,7 @@ export async function insertAccount(acc: Omit<Account, "id">): Promise<Account> 
     brand: (data.brand as CreditCardBrand) || undefined,
     customBrandName: data.custom_brand_name || undefined,
     currency: (data.currency as any) || "ARS",
-    creditCardViewMode: (data as any).credit_card_view_mode || "statement_cycles",
+    creditCardViewMode: (data.credit_card_view_mode as "statement_cycles" | "negative_balance") || "statement_cycles",
   };
 }
 
@@ -93,6 +94,7 @@ export async function updateAccountRemote(id: string, updates: Partial<Account>)
   if (updates.brand !== undefined) payload.brand = updates.brand;
   if (updates.customBrandName !== undefined) payload.custom_brand_name = updates.customBrandName;
   if (updates.currency !== undefined) payload.currency = updates.currency;
+  if (updates.creditCardViewMode !== undefined) payload.credit_card_view_mode = updates.creditCardViewMode;
 
   const { error } = await supabase
     .from("accounts")

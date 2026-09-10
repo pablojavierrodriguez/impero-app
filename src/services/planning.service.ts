@@ -16,6 +16,8 @@ export async function fetchBudgets(): Promise<Budget[]> {
     amount: Number(b.amount),
     month: b.month,
     year: b.year,
+    enableRollover: Boolean(b.enable_rollover),
+    accumulatedRollover: Number(b.accumulated_rollover) || 0,
   }));
 }
 
@@ -31,6 +33,8 @@ export async function insertBudget(budget: Omit<Budget, "id">): Promise<Budget> 
       amount: budget.amount,
       month: budget.month,
       year: budget.year,
+      enable_rollover: budget.enableRollover ?? false,
+      accumulated_rollover: budget.accumulatedRollover ?? 0,
     })
     .select()
     .single();
@@ -42,6 +46,8 @@ export async function insertBudget(budget: Omit<Budget, "id">): Promise<Budget> 
     amount: Number(data.amount),
     month: data.month,
     year: data.year,
+    enableRollover: Boolean(data.enable_rollover),
+    accumulatedRollover: Number(data.accumulated_rollover) || 0,
   };
 }
 
@@ -49,6 +55,8 @@ export async function updateBudgetRemote(id: string, updates: Partial<Budget>): 
   const payload: BudgetUpdate = {};
   if (updates.amount !== undefined) payload.amount = updates.amount;
   if (updates.categoryId !== undefined) payload.category_id = updates.categoryId;
+  if (updates.enableRollover !== undefined) payload.enable_rollover = updates.enableRollover;
+  if (updates.accumulatedRollover !== undefined) payload.accumulated_rollover = updates.accumulatedRollover;
 
   const { error } = await supabase.from("budgets").update(payload).eq("id", id);
   if (error) throw error;

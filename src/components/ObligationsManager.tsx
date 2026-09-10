@@ -10,6 +10,7 @@ import { useSettings } from "@/lib/settings-store";
 import { format } from "date-fns";
 import { parseLocalDate, parseThousandsInput } from "@/lib/utils";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { usePrivacy } from "@/contexts/PrivacyContext";
 import { CategoryIcon } from "./CategoryIcon";
 import { ResponsiveSheet } from "./ResponsiveSheet";
 import {
@@ -84,7 +85,9 @@ export function ObligationsManager({
   onDeleteRecurring,
   onToggleRecurringPause,
 }: ObligationsManagerProps) {
-  const { formatAmount, t } = useSettings();
+  const { maskAmount } = usePrivacy();
+  const { formatAmount: baseFormatAmount, t } = useSettings();
+  const formatAmount = (n: number, opts?: any) => maskAmount(baseFormatAmount(n, opts));
   const [filter, setFilter] = useState<FilterType>("all");
 
   // Sheet de creación / edición

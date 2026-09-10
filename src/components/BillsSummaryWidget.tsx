@@ -1,9 +1,12 @@
 import { BillReminder } from "@/lib/types";
 import { useSettings } from "@/lib/settings-store";
+import { usePrivacy } from "@/contexts/PrivacyContext";
 import { Clock } from "lucide-react";
 
 export function BillsSummaryWidget({ bills }: { bills: BillReminder[] }) {
-  const { formatAmount, t } = useSettings();
+  const { maskAmount } = usePrivacy();
+  const { formatAmount: baseFormatAmount, t } = useSettings();
+  const formatAmount = (n: number, opts?: any) => maskAmount(baseFormatAmount(n, opts));
   const now = new Date();
   const upcoming = bills
     .filter((b) => {

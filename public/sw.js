@@ -1,11 +1,11 @@
 /**
- * Service Worker para m3 (Money Master)
+ * Service Worker para IMPERO (Finanzas Personales Soberanas)
  * Estrategia:
  * - Cache-First para recursos estáticos del app shell (HTML, CSS, JS, fuentes, imágenes).
  * - Bypass estricto (Network-Only) para peticiones a Supabase y APIs externas.
  */
 
-const CACHE_NAME = 'm3-shell-v2';
+const CACHE_NAME = 'impero-shell-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

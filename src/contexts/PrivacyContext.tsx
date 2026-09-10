@@ -9,13 +9,15 @@ export interface PrivacyContextType {
 
 const PrivacyContext = createContext<PrivacyContextType | null>(null);
 
-const STORAGE_KEY = "m3-privacy-mode";
+const STORAGE_KEY = "impero-privacy-mode";
+const LEGACY_STORAGE_KEY = "m3-privacy-mode";
 const MASK = "$ ••••••";
 
 export function PrivacyProvider({ children }: { children: ReactNode }) {
   const [isPrivacyMode, setIsPrivacyMode] = useState<boolean>(() => {
     try {
-      return localStorage.getItem(STORAGE_KEY) === "true";
+      const stored = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
+      return stored === "true";
     } catch {
       return false;
     }

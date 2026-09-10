@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { calculateBudgetMetrics, calculateSuggestedBudget, calculateEffectiveBudgetAmount } from "@/lib/budget-utils";
 import { formatThousandsInput, parseThousandsInput } from "@/lib/utils";
+import { usePrivacy } from "@/contexts/PrivacyContext";
 
 interface BudgetManagerProps {
   budgets: Budget[];
@@ -24,7 +25,9 @@ export function BudgetManager({
   budgets, categories, transactions = [], getBudgetSpent, getAllActiveCategories,
   onAdd, onUpdate, onDelete,
 }: BudgetManagerProps) {
-  const { formatAmount, t } = useSettings();
+  const { maskAmount } = usePrivacy();
+  const { formatAmount: baseFormatAmount, t } = useSettings();
+  const formatAmount = (n: number, opts?: any) => maskAmount(baseFormatAmount(n, opts));
   const [showForm, setShowForm] = useState(false);
   const [selectedCat, setSelectedCat] = useState("");
   const [limitAmount, setLimitAmount] = useState("");
@@ -261,7 +264,9 @@ export function BudgetSummaryWidget({
   budgets: Budget[]; categories: Category[];
   getBudgetSpent: (categoryId: string, month: number, year: number) => number;
 }) {
-  const { formatAmount, t } = useSettings();
+  const { maskAmount } = usePrivacy();
+  const { formatAmount: baseFormatAmount, t } = useSettings();
+  const formatAmount = (n: number, opts?: any) => maskAmount(baseFormatAmount(n, opts));
   const now = new Date();
   const month = now.getMonth();
   const year = now.getFullYear();

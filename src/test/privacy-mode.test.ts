@@ -36,6 +36,12 @@ describe("Privacy Context & Masking", () => {
       result.current.setPrivacyMode(true);
     });
 
-    expect(localStorage.getItem("m3-privacy-mode")).toBe("true");
+    expect(localStorage.getItem("impero-privacy-mode")).toBe("true");
+  });
+
+  it("reads legacy m3-privacy-mode key when modern key is absent", () => {
+    localStorage.setItem("m3-privacy-mode", "true");
+    const { result } = renderHook(() => usePrivacy(), { wrapper });
+    expect(result.current.isPrivacyMode).toBe(true);
   });
 });

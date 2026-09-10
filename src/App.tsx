@@ -58,6 +58,23 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+const VALID_TABS = [
+  "dashboard",
+  "transactions",
+  "cards",
+  "categories",
+  "accounts",
+  "budgets",
+  "goals",
+  "obligations",
+  "reports",
+  "tags",
+  "rules",
+  "shopping",
+  "settings",
+  "profile",
+] as const;
+
 function AppRoutes() {
   const { user, loading } = useAuth();
 
@@ -85,6 +102,17 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      {VALID_TABS.map((tab) => (
+        <Route
+          key={tab}
+          path={`/${tab}`}
+          element={
+            <ProtectedRoute>
+              <Index initialTab={tab} />
+            </ProtectedRoute>
+          }
+        />
+      ))}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

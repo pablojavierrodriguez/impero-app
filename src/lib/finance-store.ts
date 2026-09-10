@@ -57,11 +57,18 @@ export function useFinanceStore() {
   const [recurringTxs, setRecurringTxs] = useState<RecurringTransaction[]>([]);
   const [bills, setBills] = useState<BillReminder[]>([]);
   const [tags, setTags] = useState<Tag[]>(() => loadJSON("tags", []));
-  const [rules, setRules] = useState<TransactionRule[]>(() => loadJSON("m3-transaction-rules", []));
+  const RULES_STORAGE_KEY = "impero-transaction-rules";
+  const LEGACY_RULES_STORAGE_KEY = "m3-transaction-rules";
+
+  const [rules, setRules] = useState<TransactionRule[]>(() => {
+    const modern = loadJSON<TransactionRule[] | null>(RULES_STORAGE_KEY, null);
+    if (modern !== null) return modern;
+    return loadJSON(LEGACY_RULES_STORAGE_KEY, []);
+  });
 
   const saveRules = useCallback((newRules: TransactionRule[]) => {
     setRules(newRules);
-    saveJSON("m3-transaction-rules", newRules);
+    saveJSON(RULES_STORAGE_KEY, newRules);
   }, []);
 
   // Cargar datos desde Supabase al autenticarse
@@ -94,7 +101,9 @@ export function useFinanceStore() {
           }),
           fetchRules().catch((err) => {
             console.warn("Could not fetch remote rules, using local:", err);
-            return loadJSON<TransactionRule[]>("m3-transaction-rules", []);
+            const modern = loadJSON<TransactionRule[] | null>(RULES_STORAGE_KEY, null);
+            if (modern !== null) return modern;
+            return loadJSON<TransactionRule[]>(LEGACY_RULES_STORAGE_KEY, []);
           }),
         ]);
 
@@ -1023,7 +1032,7 @@ export function useFinanceStore() {
       .then(inserted => {
         setRules(prev => {
           const updated = [...prev.filter(r => r.id !== rule.id), inserted];
-          saveJSON("m3-transaction-rules", updated);
+          saveJSON(RULES_STORAGE_KEY, updated);
           return updated;
         });
       })
@@ -1031,7 +1040,7 @@ export function useFinanceStore() {
         console.error("Error inserting remote rule:", err);
         setRules(prev => {
           const updated = [...prev, rule];
-          saveJSON("m3-transaction-rules", updated);
+          saveJSON(RULES_STORAGE_KEY, updated);
           return updated;
         });
       });
@@ -1041,7 +1050,7 @@ export function useFinanceStore() {
     updateRuleRemote(id, updates).catch(err => console.error("Error updating remote rule:", err));
     setRules(prev => {
       const updated = prev.map(r => r.id === id ? { ...r, ...updates } : r);
-      saveJSON("m3-transaction-rules", updated);
+      saveJSON(RULES_STORAGE_KEY, updated);
       return updated;
     });
   }, []);
@@ -1050,7 +1059,7 @@ export function useFinanceStore() {
     deleteRuleRemote(id).catch(err => console.error("Error deleting remote rule:", err));
     setRules(prev => {
       const updated = prev.filter(r => r.id !== id);
-      saveJSON("m3-transaction-rules", updated);
+      saveJSON(RULES_STORAGE_KEY, updated);
       return updated;
     });
   }, []);
@@ -1061,7 +1070,7 @@ export function useFinanceStore() {
       const nextActive = target ? !target.isActive : true;
       updateRuleRemote(id, { isActive: nextActive }).catch(err => console.error("Error toggling remote rule:", err));
       const updated = prev.map(r => r.id === id ? { ...r, isActive: nextActive } : r);
-      saveJSON("m3-transaction-rules", updated);
+      saveJSON(RULES_STORAGE_KEY, updated);
       return updated;
     });
   }, []);

@@ -7,6 +7,7 @@ import { Account, Transaction, RecurringTransaction, BillReminder } from "@/lib/
 import { calculateCashFlowForecast } from "@/lib/cashflow-forecast";
 import { parseThousandsInput } from "@/lib/utils";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { usePrivacy } from "@/contexts/PrivacyContext";
 
 interface CashFlowForecastProps {
   accounts: Account[];
@@ -16,7 +17,9 @@ interface CashFlowForecastProps {
 }
 
 export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }: CashFlowForecastProps) {
-  const { formatAmount } = useSettings();
+  const { maskAmount } = usePrivacy();
+  const { formatAmount: baseFormatAmount } = useSettings();
+  const formatAmount = (n: number, opts?: any) => maskAmount(baseFormatAmount(n, opts));
   const [daysAhead, setDaysAhead] = useState<30 | 60 | 90>(30);
   const [simulatedAmount, setSimulatedAmount] = useState("");
   const [showSim, setShowSim] = useState(false);

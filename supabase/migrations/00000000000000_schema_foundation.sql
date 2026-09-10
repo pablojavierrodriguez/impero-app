@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS public.accounts (
   brand            TEXT,
   custom_brand_name TEXT,
   currency         TEXT NOT NULL DEFAULT 'ARS',
+  credit_card_view_mode TEXT NOT NULL DEFAULT 'statement_cycles',
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -201,6 +202,8 @@ CREATE TABLE IF NOT EXISTS public.budgets (
   amount      NUMERIC NOT NULL,
   month       INT NOT NULL CHECK (month BETWEEN 0 AND 11),
   year        INT NOT NULL,
+  enable_rollover      BOOLEAN NOT NULL DEFAULT false,
+  accumulated_rollover NUMERIC NOT NULL DEFAULT 0,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );

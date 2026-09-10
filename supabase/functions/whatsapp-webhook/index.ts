@@ -32,13 +32,18 @@ serve(async (req: Request) => {
     const token = url.searchParams.get("hub.verify_token");
     const challenge = url.searchParams.get("hub.challenge");
 
-    const expectedToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN") || "m3_money_master_secret_webhook_token";
+    const expectedToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN");
+
+    if (!expectedToken) {
+      console.error("❌ Variable de entorno WHATSAPP_VERIFY_TOKEN no configurada en Supabase Edge Functions");
+      return new Response("Webhook verification token not configured", { status: 500 });
+    }
 
     if (mode === "subscribe" && token === expectedToken) {
       console.log("✅ Webhook de WhatsApp verificado con éxito");
       return new Response(challenge, { status: 200 });
     } else {
-      console.error("❌ Fallo en la verificación del webhook de WhatsApp");
+      console.error("❌ Fallo en la verificación del webhook de WhatsApp (token mismatch o modo inválido)");
       return new Response("Forbidden", { status: 403 });
     }
   }

@@ -1,14 +1,24 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, X, ShoppingCart, Trash2, Check, Archive, CheckCircle2,
-  Package, ChevronRight, DollarSign, ArrowLeft,
+  Package, ChevronRight, DollarSign, ArrowLeft, Loader2,
 } from "lucide-react";
 import { ShoppingList, ShoppingListItem, Account, Category } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { useSettings } from "@/lib/settings-store";
 import { parseThousandsInput } from "@/lib/utils";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import {
+  fetchShoppingLists,
+  createShoppingList,
+  updateShoppingListRemote,
+  deleteShoppingListRemote,
+  createShoppingListItemRemote,
+  updateShoppingListItemRemote,
+  deleteShoppingListItemRemote,
+} from "@/services/shopping.service";
+import { toast } from "sonner";
 
 interface ShoppingListManagerProps {
   accounts: Account[];
@@ -22,6 +32,7 @@ export function ShoppingListManager({ accounts, categories, onCheckout }: Shoppi
   const { formatAmount, t } = useSettings();
   const [view, setView] = useState<ViewMode>("lists");
   const [lists, setLists] = useState<ShoppingList[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -36,6 +47,23 @@ export function ShoppingListManager({ accounts, categories, onCheckout }: Shoppi
   const [checkoutAccountId, setCheckoutAccountId] = useState("");
   const [checkoutCategoryId, setCheckoutCategoryId] = useState("");
 
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await fetchShoppingLists();
+      setLists(data);
+    } catch (err) {
+      console.error("Error loading shopping lists:", err);
+      toast.error("Error al cargar las listas de compras");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   const sourceAccounts = useMemo(
     () => accounts.filter(a => a.type !== "credit" && !a.archived),
     [accounts]
@@ -49,66 +77,114 @@ export function ShoppingListManager({ accounts, categories, onCheckout }: Shoppi
   const completedLists = lists.filter(l => l.status === "completed");
 
   // — Handlers —
-  const handleCreateList = () => {
+  const handleCreateList = async () => {
     if (!formName.trim()) return;
-    const newList: ShoppingList = {
-      id: `sl-${Date.now()}`,
-      name: formName.trim(),
-      status: "active",
-      items: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setLists(prev => [newList, ...prev]);
-    setActiveList(newList);
-    setFormName("");
-    setView("detail");
+    try {
+      const created = await createShoppingList(formName.trim());
+      setLists(prev => [created, ...prev]);
+      setActiveList(created);
+      setFormName("");
+      setView("detail");
+    } catch (err) {
+      console.error("Error creating shopping list:", err);
+      toast.error("Error al crear la lista de compras");
+    }
   };
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!activeList || !newItemName.trim()) return;
-    const item: ShoppingListItem = {
-      id: `sli-${Date.now()}`,
-      listId: activeList.id,
-      name: newItemName.trim(),
-      quantity: parseFloat(newItemQty) || 1,
-      unitPrice: parseThousandsInput(newItemPrice) || 0,
-      isChecked: false,
-      sortOrder: activeList.items.length,
-    };
-    const updated = { ...activeList, items: [...activeList.items, item], updatedAt: new Date() };
-    setActiveList(updated);
-    setLists(prev => prev.map(l => l.id === updated.id ? updated : l));
-    setNewItemName("");
-    setNewItemQty("1");
-    setNewItemPrice("");
+    const qty = parseFloat(newItemQty) || 1;
+    const price = parseThousandsInput(newItemPrice) || 0;
+    try {
+      const createdItem = await createShoppingListItemRemote({
+        listId: activeList.id,
+        name: newItemName.trim(),
+        quantity: qty,
+        unitPrice: price,
+        isChecked: false,
+        sortOrder: activeList.items.length,
+      });
+
+      const updated = {
+        ...activeList,
+        items: [...activeList.items, createdItem],
+        updatedAt: new Date(),
+      };
+      setActiveList(updated);
+      setLists(prev => prev.map(l => l.id === updated.id ? updated : l));
+      setNewItemName("");
+      setNewItemQty("1");
+      setNewItemPrice("");
+    } catch (err) {
+      console.error("Error adding item to shopping list:", err);
+      toast.error("Error al agregar el artículo");
+    }
   };
 
-  const toggleItem = useCallback((itemId: string) => {
+  const toggleItem = useCallback(async (itemId: string) => {
     if (!activeList) return;
+    const currentItem = activeList.items.find(i => i.id === itemId);
+    if (!currentItem) return;
+
+    const nextChecked = !currentItem.isChecked;
     const updatedItems = activeList.items.map(i =>
-      i.id === itemId ? { ...i, isChecked: !i.isChecked } : i
+      i.id === itemId ? { ...i, isChecked: nextChecked } : i
     );
     const updated = { ...activeList, items: updatedItems, updatedAt: new Date() };
     setActiveList(updated);
     setLists(prev => prev.map(l => l.id === updated.id ? updated : l));
+
+    try {
+      await updateShoppingListItemRemote(itemId, { isChecked: nextChecked });
+    } catch (err) {
+      console.error("Error toggling item:", err);
+      // Rollback on error
+      const rollbackItems = activeList.items.map(i =>
+        i.id === itemId ? { ...i, isChecked: currentItem.isChecked } : i
+      );
+      const rolledBack = { ...activeList, items: rollbackItems };
+      setActiveList(rolledBack);
+      setLists(prev => prev.map(l => l.id === rolledBack.id ? rolledBack : l));
+      toast.error("Error al actualizar el estado del artículo");
+    }
   }, [activeList]);
 
-  const removeItem = useCallback((itemId: string) => {
+  const removeItem = useCallback(async (itemId: string) => {
     if (!activeList) return;
+    const previousItems = activeList.items;
     const updatedItems = activeList.items.filter(i => i.id !== itemId);
     const updated = { ...activeList, items: updatedItems, updatedAt: new Date() };
     setActiveList(updated);
     setLists(prev => prev.map(l => l.id === updated.id ? updated : l));
+
+    try {
+      await deleteShoppingListItemRemote(itemId);
+    } catch (err) {
+      console.error("Error deleting shopping list item:", err);
+      const rolledBack = { ...activeList, items: previousItems };
+      setActiveList(rolledBack);
+      setLists(prev => prev.map(l => l.id === rolledBack.id ? rolledBack : l));
+      toast.error("Error al eliminar el artículo");
+    }
   }, [activeList]);
 
-  const deleteList = useCallback((listId: string) => {
+  const deleteList = useCallback(async (listId: string) => {
+    const previousLists = lists;
     setLists(prev => prev.filter(l => l.id !== listId));
     if (activeList?.id === listId) {
       setActiveList(null);
       setView("lists");
     }
-  }, [activeList]);
+
+    try {
+      await deleteShoppingListRemote(listId);
+      toast.success("Lista eliminada");
+    } catch (err) {
+      console.error("Error deleting shopping list:", err);
+      setLists(previousLists);
+      toast.error("Error al eliminar la lista");
+    }
+  }, [activeList, lists]);
 
   const openCheckout = () => {
     if (!activeList || activeList.items.length === 0) return;
@@ -119,7 +195,7 @@ export function ShoppingListManager({ accounts, categories, onCheckout }: Shoppi
     setView("checkout");
   };
 
-  const handleConfirmCheckout = () => {
+  const handleConfirmCheckout = async () => {
     if (!activeList || !checkoutAccountId || !checkoutCategoryId) return;
     const checkedItems = activeList.items.filter(i => i.isChecked);
     const total = checkedItems.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
@@ -127,11 +203,17 @@ export function ShoppingListManager({ accounts, categories, onCheckout }: Shoppi
 
     onCheckout(activeList.name, total, checkoutAccountId, checkoutCategoryId);
 
-    // Mark list as completed
+    // Mark list as completed in DB and local state
     const updated = { ...activeList, status: "completed" as const, updatedAt: new Date() };
     setActiveList(updated);
     setLists(prev => prev.map(l => l.id === updated.id ? updated : l));
     setView("lists");
+
+    try {
+      await updateShoppingListRemote(activeList.id, { status: "completed" });
+    } catch (err) {
+      console.error("Error updating shopping list status to completed:", err);
+    }
   };
 
   const getListTotal = (list: ShoppingList) =>
@@ -139,6 +221,15 @@ export function ShoppingListManager({ accounts, categories, onCheckout }: Shoppi
 
   const getCheckedTotal = (list: ShoppingList) =>
     list.items.filter(i => i.isChecked).reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+
+  if (loading && lists.length === 0) {
+    return (
+      <div className="pt-16 pb-28 flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground">Cargando listas de compras...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-4 pb-28">
