@@ -39,17 +39,17 @@ export function AccountCards({ accounts, onSelectAccount }: AccountCardsProps) {
         <button
           onClick={toggleViewMode}
           className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground text-[11px] font-medium transition-colors"
-          title={viewMode === "list" ? "Ver en carrusel" : "Ver en lista ordenada"}
+          title={viewMode === "list" ? t("acct.viewCarouselTitle") : t("acct.viewListTitle")}
         >
           {viewMode === "list" ? (
             <>
               <Columns className="w-3.5 h-3.5" />
-              <span>Carrusel</span>
+              <span>{t("acct.carousel")}</span>
             </>
           ) : (
             <>
               <LayoutList className="w-3.5 h-3.5" />
-              <span>Lista</span>
+              <span>{t("acct.list")}</span>
             </>
           )}
         </button>
@@ -169,7 +169,7 @@ export function AccountCards({ accounts, onSelectAccount }: AccountCardsProps) {
                     {isCredit && limit > 0 && (
                       <div className="mt-2 pt-2 border-t border-border/40">
                         <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                          <span>Disp</span>
+                          <span>{t("acct.availableShort")}</span>
                           <span className="font-mono-data text-foreground">{maskAmount(formatInCurrency(available, accCurrency))}</span>
                         </div>
                         <div className="h-1 rounded-full bg-secondary overflow-hidden">

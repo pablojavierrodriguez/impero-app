@@ -1,4 +1,5 @@
 import { Transaction, Category, CATEGORIES, Currency } from "./types";
+import { applyRulesToTransaction, TransactionRule, DraftTransactionInput } from "./rules-engine";
 
 export interface CsvRow {
   [key: string]: string;
@@ -258,73 +259,118 @@ export function generateFutureInstallments(
   return futureTxs;
 }
 
-export function guessCategory(description: string, availableCategories: Category[] = CATEGORIES): Category {
+export function guessCategory(
+  description: string,
+  availableCategories: Category[] = CATEGORIES,
+  type?: "income" | "expense"
+): Category {
   const d = description.toLowerCase();
+
+  // Si la transacción es explícitamente un INGRESO, buscar exclusivamente entre categorías de ingreso
+  if (type === "income") {
+    const incomeCats = availableCategories.filter((c) => c.type === "income");
+
+    // 1. Sueldos / Haberes / Salario
+    if (/sueldo|salary|haberes|honorarios|remuneraci[oó]n|jubilaci[oó]n|acreditacion haberes|pago de haberes/.test(d)) {
+      const found = incomeCats.find((c) => c.id === "salary" || /sueldo|salario|salary|haberes|laboral/i.test(c.name));
+      if (found) return found;
+    }
+
+    // 2. Rendimientos / Intereses / Inversiones / Dividendos
+    if (/inter[eé]s|intereses|rendimiento|dividendos|plazo fijo|fci|cauci[oó]n|dividend|renta|capital/i.test(d)) {
+      const found = incomeCats.find(
+        (c) => c.id === "investments" || /inversi|rendimiento|investment|inter[eé]s/i.test(c.name)
+      );
+      if (found) return found;
+    }
+
+    // 3. Freelance / Consultoría / Proyectos
+    if (/freelance|honorarios prof|proyecto|cliente|factura emitida|upwork|fiverr|consultor/.test(d)) {
+      const found = incomeCats.find((c) => c.id === "freelance" || /freelance|proyecto|consultor/i.test(c.name));
+      if (found) return found;
+    }
+
+    // Fallback garantizado para ingresos: nunca un gasto
+    const safeIncomeFallback =
+      incomeCats.find((c) => /otros?|general|ingreso/i.test(c.name)) ??
+      incomeCats[0];
+
+    if (safeIncomeFallback) return safeIncomeFallback;
+
+    return {
+      id: "uncategorized-income",
+      name: "Sin Categoría (Ingreso)",
+      color: "bg-emerald-500",
+      type: "income",
+      icon: "circle-dot",
+    };
+  }
+
+  // Si no es ingreso (es gasto por defecto o type === "expense"):
+  const expenseCats = availableCategories.filter((c) => c.type === "expense");
 
   // 1. Transporte / Movilidad
   if (/uber|cabify|didi|lyft|taxi|subte|metro|colectivo|peaje|autopista|sube|tren|combustible|ypf|shell|axion|puma energy|estacionamiento/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "transport" || /transport|viaje|movilidad/i.test(c.name));
+    const found = expenseCats.find((c) => c.id === "transport" || /transport|viaje|movilidad/i.test(c.name));
     if (found) return found;
   }
 
   // 2. Supermercado / Comestibles / Alimentación
   if (/supermercado|super|market|coto|carrefour|dia|día|disco|jumbo|vea|walmart|chango|makro|vital|almacen|almacén|verduleria|verdul\b|carniceria|carnicer\b/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "groceries" || /alimentaci[oó]n|comestibles|super|groceries/i.test(c.name));
+    const found = expenseCats.find((c) => c.id === "groceries" || /alimentaci[oó]n|comestibles|super|groceries/i.test(c.name));
     if (found) return found;
   }
 
   // 3. Restaurantes & Delivery / Salidas
   if (/pedidosya|rappi|restaurant|rest[oó]|bar\b|cafe|café|coffee|starbucks|mcdon|burger|mostaza|havanna|pizzeria|pizz|sushi|helad|cerveza|grido|freddo|lucciano/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "dining" || /restaurante|comida|dining|gastronom[ií]a/i.test(c.name));
+    const found = expenseCats.find((c) => c.id === "dining" || /restaurante|comida|dining|gastronom[ií]a/i.test(c.name));
     if (found) return found;
   }
 
   // 4. Servicios & Facturas / Impuestos
   if (/luz|gas|agua|telecom|fibertel|personal|claro|movistar|edenor|edesur|metrogas|aysa|flow|telecentro|abl|arba|afip|rentas|seguro|inmobiliario|expensas|patente|alquiler/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "bills" || /servicios|impuestos|facturas|bills/i.test(c.name));
+    const found = expenseCats.find((c) => c.id === "bills" || /servicios|impuestos|facturas|bills/i.test(c.name));
     if (found) return found;
   }
 
   // 5. Salud & Farmacia
   if (/farmacia|farmacity|dr\.|doctor|hospital|clinica|clínica|swiss medical|osde|galeno|medic|optica|óptica|laboratorio|odontolog/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "health" || /salud|farmacia|health/i.test(c.name));
+    const found = expenseCats.find((c) => c.id === "health" || /salud|farmacia|health/i.test(c.name));
     if (found) return found;
   }
 
   // 6. Entretenimiento & Ocio / Salidas
   if (/netflix|spotify|disney|hbo|max|prime video|youtube|steam|playstation|xbox|cinema|cine|hoyts|cinemark|teatro|recital|show/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "entertainment" || /ocio|entretenimiento|entertainment|salidas/i.test(c.name));
+    const found = expenseCats.find((c) => c.id === "entertainment" || /ocio|entretenimiento|entertainment|salidas/i.test(c.name));
     if (found) return found;
   }
 
   // 7. Compras / Shopping
   if (/mercadolibre|mercado libre|meli|amazon|zara|falabella|tienda|shop|ropa|indumentaria|electronica|electrónica|nike|adidas/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "shopping" || /compras|shopping|indumentaria/i.test(c.name));
+    const found = expenseCats.find((c) => c.id === "shopping" || /compras|shopping|indumentaria/i.test(c.name));
     if (found) return found;
   }
 
-  // 8. Sueldos / Ingresos recurrentes
-  if (/sueldo|salary|haberes|honorarios|remuneraci[oó]n|jubilaci[oó]n|acreditacion haberes|pago de haberes/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "salary" || /sueldo|salario|salary/i.test(c.name));
-    if (found) return found;
-  }
-
-  // 9. Freelance / Proyectos
-  if (/freelance|honorarios prof|proyecto|cliente|factura emitida|upwork|fiverr/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "freelance" || /freelance|proyecto/i.test(c.name));
-    if (found) return found;
-  }
-
-  // 10. Rendimientos / Inversiones
-  if (/interes|intereses|rendimiento|dividendos|plazo fijo|fci|cauci[oó]n|dividend/.test(d)) {
-    const found = availableCategories.find((c) => c.id === "investments" || /inversi[oó]n|rendimiento|investment/i.test(c.name));
-    if (found) return found;
+  // Si no se especificó type, evaluar ingresos como posibilidad secundaria
+  if (!type) {
+    if (/sueldo|salary|haberes|honorarios|remuneraci[oó]n|jubilaci[oó]n|acreditacion haberes|pago de haberes/.test(d)) {
+      const found = availableCategories.find((c) => c.id === "salary" || /sueldo|salario|salary/i.test(c.name));
+      if (found) return found;
+    }
+    if (/freelance|honorarios prof|proyecto|cliente|factura emitida|upwork|fiverr/.test(d)) {
+      const found = availableCategories.find((c) => c.id === "freelance" || /freelance|proyecto/i.test(c.name));
+      if (found) return found;
+    }
+    if (/inter[eé]s|intereses|rendimiento|dividendos|plazo fijo|fci|cauci[oó]n|dividend/.test(d)) {
+      const found = availableCategories.find((c) => c.id === "investments" || /inversi|rendimiento|investment|inter[eé]s/i.test(c.name));
+      if (found) return found;
+    }
   }
 
   // Fallback seguro: buscar una categoría válida existente en availableCategories
   const safeFallback =
-    availableCategories.find((c) => /otros?|general/i.test(c.name) && c.type === "expense") ??
-    availableCategories.find((c) => c.type === "expense") ??
+    expenseCats.find((c) => /otros?|general/i.test(c.name)) ??
+    expenseCats[0] ??
     availableCategories[0];
 
   if (safeFallback) {
@@ -438,7 +484,8 @@ export function rowsToTransactions(
   mapping: ColumnMapping,
   accountId: string,
   availableCategories: Category[] = CATEGORIES,
-  currency?: Currency
+  currency?: Currency,
+  rules: TransactionRule[] = []
 ): Transaction[] {
   return rows.map((row, i) => {
     let amount = 0;
@@ -536,45 +583,84 @@ export function rowsToTransactions(
       txCurrency = "USD";
     }
 
-    const isCardPayment = detectCardPayment(desc);
-    const isTransfer = detectPotentialTransfer(desc, row);
+    let isCardPayment = detectCardPayment(desc);
+    let isTransfer = detectPotentialTransfer(desc, row);
 
-    let category: Category;
-    if (isTransfer) {
-      const transferCat = availableCategories.find(
-        (c) => c.id === "transfer" || /transfer/i.test(c.name)
-      );
-      category = transferCat ?? {
-        id: "transfer",
-        name: "Transferencia",
-        color: "bg-sky-500",
-        type,
-        icon: "arrow-left-right",
-      };
-    } else if (type === "income") {
-      const guessed = guessCategory(desc, availableCategories);
-      category =
-        guessed.type === "income"
-          ? guessed
-          : availableCategories.find((c) => c.id === "other-income") ??
-            availableCategories.find((c) => c.type === "income") ??
-            CATEGORIES[11];
-    } else {
-      category = guessCategory(desc, availableCategories);
+    // Categoría de fallback garantizada proveniente de las categorías reales
+    const defaultExpense =
+      availableCategories.find((c) => /otros?|general/i.test(c.name) && c.type === "expense") ??
+      availableCategories.find((c) => c.type === "expense") ??
+      availableCategories[0];
+    const defaultIncome =
+      availableCategories.find((c) => /otros?|general/i.test(c.name) && c.type === "income") ??
+      availableCategories.find((c) => c.type === "income") ??
+      availableCategories[0];
+
+    const fallbackCat: Category = (type === "income" ? defaultIncome : defaultExpense) || {
+      id: "uncategorized",
+      name: "Sin Categoría",
+      color: "bg-zinc-500",
+      type,
+      icon: "circle-dot",
+    };
+
+    // Crear draft para pasar por el motor de reglas
+    const draft: DraftTransactionInput = {
+      amount,
+      description: desc,
+      category: fallbackCat,
+      type,
+      accountId,
+      isTransfer,
+      isCardPayment,
+    };
+
+    // Evaluar reglas declarativas activas
+    const evaluated =
+      rules.length > 0
+        ? applyRulesToTransaction(draft, rules, availableCategories)
+        : draft;
+
+    let finalCategory = evaluated.category;
+
+    // Si ninguna regla asignó categoría y se conserva el fallback, intentar deducción por nombre
+    if (finalCategory.id === fallbackCat.id) {
+      if (evaluated.isTransfer) {
+        const transferCat = availableCategories.find(
+          (c) => c.id === "transfer" || /transfer/i.test(c.name)
+        );
+        if (transferCat) finalCategory = transferCat;
+      } else {
+        const guessed = guessCategory(evaluated.description, availableCategories, evaluated.type);
+        if (guessed && !guessed.id.startsWith("uncategorized")) {
+          finalCategory = guessed;
+        }
+      }
+    }
+
+    // Invariante de coherencia de tipo: si la transacción es ingreso, jamás debe quedar con categoría de gasto
+    if (evaluated.type === "income" && finalCategory.type === "expense") {
+      const incomeCat =
+        availableCategories.find((c) => c.type === "income" && /inversi|rendimiento|inter[eé]s/i.test(c.name)) ??
+        availableCategories.find((c) => c.type === "income" && /otros?|general|ingreso/i.test(c.name)) ??
+        availableCategories.find((c) => c.type === "income") ??
+        fallbackCat;
+      finalCategory = incomeCat;
     }
 
     return {
       id: `import-${Date.now()}-${i}`,
-      amount,
-      description: desc,
-      category,
+      amount: evaluated.amount,
+      description: evaluated.description,
+      category: finalCategory,
       date,
-      type,
+      type: evaluated.type,
       accountId,
-      currency: currency || "ARS",
-      isCardPayment,
-      isTransfer,
+      currency: txCurrency,
+      isCardPayment: evaluated.isCardPayment ?? isCardPayment,
+      isTransfer: evaluated.isTransfer ?? isTransfer,
       installmentInfo,
+      tags: evaluated.tags,
     };
   });
 }

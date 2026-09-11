@@ -34,7 +34,7 @@ export async function insertTag(tag: Omit<Tag, "id"> & { id?: string }): Promise
 
   const { data, error } = await supabase
     .from("tags")
-    .insert(insertPayload)
+    .upsert(insertPayload, { onConflict: "id" })
     .select()
     .single();
 

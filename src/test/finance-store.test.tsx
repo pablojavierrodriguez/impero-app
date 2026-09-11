@@ -73,8 +73,27 @@ vi.mock("@/services/tags.service", () => ({
 vi.mock("@/services/rules.service", () => ({
   fetchRules: vi.fn().mockImplementation(() => Promise.resolve([])),
   insertRule: vi.fn().mockImplementation((r) => Promise.resolve({ ...r, id: r.id || "new-rule-id" })),
+  insertRulesBatch: vi.fn().mockImplementation((rules) =>
+    Promise.resolve(rules.map((r: any, i: number) => ({ ...r, id: r.id || `batch-rule-${i}` })))
+  ),
   updateRuleRemote: vi.fn().mockImplementation(() => Promise.resolve()),
   deleteRuleRemote: vi.fn().mockImplementation(() => Promise.resolve()),
+  createDefaultRulesTemplates: vi.fn().mockImplementation(() => [
+    {
+      name: "Supermercados y Comestibles",
+      isActive: true,
+      priority: 90,
+      conditions: [{ field: "description", operator: "contains_any", value: "coto" }],
+      actions: { setCategoryId: "cat-1" },
+    },
+    {
+      name: "Combustible y Estaciones de Servicio",
+      isActive: true,
+      priority: 85,
+      conditions: [{ field: "description", operator: "contains_any", value: "ypf" }],
+      actions: { setCategoryId: "cat-2" },
+    },
+  ]),
 }));
 
 describe("useFinanceStore Unit & Integration Tests", () => {
@@ -137,5 +156,14 @@ describe("useFinanceStore Unit & Integration Tests", () => {
         receiptUrl: "https://supabase.co/storage/v1/object/public/receipts/user/receipt.jpg",
       })
     );
+  });
+
+  it("exposes offline-first sync controls and purgeAllUserData", () => {
+    const { result } = renderHook(() => useFinanceStore());
+
+    expect(typeof result.current.pendingGlobalSyncCount).toBe("number");
+    expect(typeof result.current.isGlobalSyncing).toBe("boolean");
+    expect(typeof result.current.syncGlobalQueue).toBe("function");
+    expect(typeof result.current.purgeAllUserData).toBe("function");
   });
 });

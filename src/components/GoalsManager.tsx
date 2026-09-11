@@ -74,9 +74,13 @@ export function GoalsManager({ goals, accounts = [], onAdd, onUpdate, onDelete, 
           <h1 className="text-[20px] font-display font-semibold text-foreground">{t("goal.title")}</h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">{t("goal.subtitle")}</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
-          className="h-8 w-8 rounded-full bg-primary flex items-center justify-center transition-transform active:scale-95 shadow-sm">
-          <Plus className="w-4 h-4 text-primary-foreground" />
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 active:scale-95 transition-all shadow-xs shrink-0"
+          title={t("goals.newGoal") || "Nueva meta"}
+          aria-label={t("goals.newGoal") || "Nueva meta"}
+        >
+          <Plus className="w-4 h-4" />
         </button>
       </div>
 

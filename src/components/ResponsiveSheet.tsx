@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSettings } from "@/lib/settings-store";
 
 interface ResponsiveSheetProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface ResponsiveSheetProps {
  */
 export function ResponsiveSheet({ open, onClose, children, title, titleRight }: ResponsiveSheetProps) {
   const isMobile = useIsMobile();
+  const { t } = useSettings();
 
   return (
     <AnimatePresence>
@@ -46,7 +48,7 @@ export function ResponsiveSheet({ open, onClose, children, title, titleRight }: 
                   type="button"
                   onClick={onClose}
                   className="w-8 h-8 rounded-full bg-secondary/70 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 transition-all shrink-0"
-                  aria-label="Cerrar"
+                  aria-label={t("common.close")}
                 >
                   <X className="w-4 h-4" />
                 </button>

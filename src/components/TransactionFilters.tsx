@@ -34,17 +34,17 @@ interface TransactionFiltersProps {
 
 type DatePreset = { label: string; from: Date; to: Date };
 
-function getDatePresets(): DatePreset[] {
+function getDatePresets(t: (k: any) => string): DatePreset[] {
   const now = new Date();
   const prev = subMonths(now, 1);
   const next30 = addDays(now, 30);
   return [
-    { label: "Hoy", from: startOfDay(now), to: endOfDay(now) },
-    { label: "Esta semana", from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) },
-    { label: "Este mes", from: startOfMonth(now), to: endOfMonth(now) },
-    { label: "Próximos 30 días", from: startOfDay(now), to: endOfDay(next30) },
-    { label: "Mes anterior", from: startOfMonth(prev), to: endOfMonth(prev) },
-    { label: "Este año", from: startOfYear(now), to: endOfYear(now) },
+    { label: t("filters.today"), from: startOfDay(now), to: endOfDay(now) },
+    { label: t("filters.thisWeek"), from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) },
+    { label: t("filters.thisMonth"), from: startOfMonth(now), to: endOfMonth(now) },
+    { label: t("filters.next30Days"), from: startOfDay(now), to: endOfDay(next30) },
+    { label: t("filters.prevMonth"), from: startOfMonth(prev), to: endOfMonth(prev) },
+    { label: t("filters.thisYear"), from: startOfYear(now), to: endOfYear(now) },
   ];
 }
 
@@ -67,7 +67,7 @@ export function TransactionFilters({ filters, onChange, categories, accounts }: 
       const cat = categories.find(c => c.id === filters.categoryId);
       chips.push({
         key: "category",
-        label: cat?.name || "Categoría",
+        label: cat?.name || t("filters.category"),
         onRemove: () => onChange({ ...filters, categoryId: null }),
       });
     }
@@ -75,7 +75,7 @@ export function TransactionFilters({ filters, onChange, categories, accounts }: 
       const acc = accounts.find(a => a.id === filters.accountId);
       chips.push({
         key: "account",
-        label: acc?.name || "Cuenta",
+        label: acc?.name || t("filters.accountFilter"),
         onRemove: () => onChange({ ...filters, accountId: null }),
       });
     }
@@ -83,8 +83,8 @@ export function TransactionFilters({ filters, onChange, categories, accounts }: 
       const label = filters.dateFrom && filters.dateTo
         ? `${filters.dateFrom} – ${filters.dateTo}`
         : filters.dateFrom
-        ? `Desde ${filters.dateFrom}`
-        : `Hasta ${filters.dateTo}`;
+        ? `${t("filters.from")} ${filters.dateFrom}`
+        : `${t("filters.to")} ${filters.dateTo}`;
       chips.push({
         key: "date",
         label,
@@ -95,8 +95,8 @@ export function TransactionFilters({ filters, onChange, categories, accounts }: 
       const label = filters.amountMin && filters.amountMax
         ? `$${filters.amountMin} – $${filters.amountMax}`
         : filters.amountMin
-        ? `Desde $${filters.amountMin}`
-        : `Hasta $${filters.amountMax}`;
+        ? `${t("filters.from")} $${filters.amountMin}`
+        : `${t("filters.to")} $${filters.amountMax}`;
       chips.push({
         key: "amount",
         label,
@@ -110,7 +110,7 @@ export function TransactionFilters({ filters, onChange, categories, accounts }: 
   const update = (partial: Partial<TransactionFilterValues>) => onChange({ ...filters, ...partial });
   const clearAll = () => onChange(EMPTY_FILTERS);
 
-  const datePresets = useMemo(() => getDatePresets(), []);
+  const datePresets = useMemo(() => getDatePresets(t), [t]);
 
   const applyDatePreset = (preset: DatePreset) => {
     update({
@@ -165,7 +165,7 @@ export function TransactionFilters({ filters, onChange, categories, accounts }: 
               onClick={clearAll}
               className="inline-flex items-center gap-1 px-2.5 py-1 theme-pill-btn bg-destructive/10 text-destructive text-[11px] font-medium hover:bg-destructive/20 transition-colors"
             >
-              Limpiar todo
+              {t("filters.clearAll")}
               <X className="w-3 h-3" />
             </button>
           )}

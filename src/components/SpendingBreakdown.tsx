@@ -87,7 +87,7 @@ export function SpendingBreakdown({
                 ? "bg-card text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
-            title="Gráfico de Torta / Dona interactivo"
+            title={t("breakdown.donutChart")}
           >
             <PieIcon className="w-3.5 h-3.5" />
           </button>
@@ -99,7 +99,7 @@ export function SpendingBreakdown({
                 ? "bg-card text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
-            title="Gráfico de Barras"
+            title={t("breakdown.barChart")}
           >
             <BarChart3 className="w-3.5 h-3.5" />
           </button>
@@ -111,7 +111,7 @@ export function SpendingBreakdown({
                 ? "bg-card text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
-            title="Gráfico de Área"
+            title={t("breakdown.areaChart")}
           >
             <TrendingUp className="w-3.5 h-3.5" />
           </button>
@@ -123,7 +123,7 @@ export function SpendingBreakdown({
                 ? "bg-card text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
-            title="Solo lista"
+            title={t("breakdown.listOnly")}
           >
             <EyeOff className="w-3.5 h-3.5" />
           </button>

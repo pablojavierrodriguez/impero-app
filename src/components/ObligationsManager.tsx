@@ -298,18 +298,18 @@ export function ObligationsManager({
       <div className="px-4 pt-2 pb-3 flex items-center justify-between">
         <div>
           <h1 className="text-[20px] font-display font-semibold text-foreground">
-            {t("nav.obligations") || "Recurrentes & Vencimientos"}
+            {t("nav.obligations")}
           </h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">
-            Cronograma unificado de pagos periódicos y vencimientos
+            {t("obligations.subtitle")}
           </p>
         </div>
         <button
           onClick={handleOpenNew}
-          className="h-8 px-3 rounded-full bg-primary text-primary-foreground text-[12px] font-medium flex items-center gap-1.5 shadow-sm hover:opacity-90 active:scale-95 transition-all"
+          className="h-8 px-3 rounded-xl bg-primary text-primary-foreground text-[12px] font-medium flex items-center gap-1.5 shadow-xs hover:bg-primary/90 active:scale-95 transition-all"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>{t("common.new") || "Nuevo"}</span>
+          <span>{t("common.new")}</span>
         </button>
       </div>
 
@@ -323,7 +323,7 @@ export function ObligationsManager({
               : "bg-secondary/70 text-muted-foreground hover:text-foreground"
           }`}
         >
-          Todos ({unifiedItems.length})
+          {t("common.all")} ({unifiedItems.length})
         </button>
         <button
           onClick={() => setFilter("pending")}
@@ -334,7 +334,7 @@ export function ObligationsManager({
           }`}
         >
           <Clock className="w-3 h-3" />
-          <span>Pendientes de pago</span>
+          <span>{t("obligations.pendingPayment")}</span>
           {pendingCount > 0 && (
             <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-background/20 font-bold">
               {pendingCount}
@@ -350,7 +350,7 @@ export function ObligationsManager({
           }`}
         >
           <Zap className="w-3 h-3" />
-          <span>Débitos automáticos</span>
+          <span>{t("obligations.autoDebits")}</span>
           {autoCount > 0 && (
             <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-background/20 font-bold">
               {autoCount}
@@ -366,7 +366,7 @@ export function ObligationsManager({
           }`}
         >
           <Pause className="w-3 h-3" />
-          <span>Pausados</span>
+          <span>{t("obligations.paused")}</span>
         </button>
         <div className="w-6 shrink-0" aria-hidden="true" />
       </div>
@@ -379,10 +379,10 @@ export function ObligationsManager({
               <Repeat className="w-6 h-6 opacity-70" />
             </div>
             <p className="text-[14px] font-semibold text-foreground font-display">
-              No hay compromisos en esta vista
+              {t("obligations.noCommitmentsInView")}
             </p>
             <p className="text-[12px] text-muted-foreground mt-1 max-w-xs mx-auto leading-relaxed">
-              Tocá el botón "Nuevo" arriba para registrar un vencimiento o débito automático.
+              {t("obligations.tapNewHint")}
             </p>
           </div>
         )}
@@ -440,8 +440,8 @@ export function ObligationsManager({
                             {acc.type === "credit" && (
                               <span className="text-[10px] text-primary/80 font-normal shrink-0">
                                 {acc.paymentDay
-                                  ? `(Día ${acc.paymentDay})`
-                                  : `(Tarjeta)`}
+                                  ? t("obligations.dayLabel").replace("{day}", String(acc.paymentDay))
+                                  : t("obligations.cardLabel")}
                               </span>
                             )}
                           </span>
@@ -469,11 +469,11 @@ export function ObligationsManager({
                 {/* Workflow Badge */}
                 {item.autoPay ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] bg-primary/10 text-primary border border-primary/20 font-medium">
-                    <Zap className="w-3 h-3 shrink-0" /> Débito auto
+                    <Zap className="w-3 h-3 shrink-0" /> {t("obligations.badgeAuto")}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] bg-secondary text-muted-foreground font-medium">
-                    <Clock className="w-3 h-3 shrink-0" /> Pago manual
+                    <Clock className="w-3 h-3 shrink-0" /> {t("obligations.badgeManual")}
                   </span>
                 )}
 
@@ -485,7 +485,7 @@ export function ObligationsManager({
                     ? "bg-secondary/70 text-muted-foreground"
                     : "bg-secondary/70 text-foreground/85"
                 }`}>
-                  {isPaid ? "Pagado: " : isOverdue ? "Venció: " : "Vence: "}
+                  {isPaid ? t("obligations.paidPrefix") : isOverdue ? t("obligations.overduePrefix") : t("obligations.duePrefix")}
                   {format(item.dueDate, "d MMM yyyy")}
                 </span>
               </div>
@@ -495,22 +495,22 @@ export function ObligationsManager({
                 <div>
                   {isPaid && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
-                      <Check className="w-3 h-3" /> Pagado
+                      <Check className="w-3 h-3" /> {t("obligations.statusPaid")}
                     </span>
                   )}
                   {isOverdue && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-destructive">
-                      <AlertCircle className="w-3 h-3" /> Vencido
+                      <AlertCircle className="w-3 h-3" /> {t("obligations.statusOverdue")}
                     </span>
                   )}
                   {isPaused && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-500">
-                      <Pause className="w-3 h-3" /> Pausado
+                      <Pause className="w-3 h-3" /> {t("obligations.statusPaused")}
                     </span>
                   )}
                   {!isPaid && !isOverdue && !isPaused && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                      <Clock className="w-3 h-3 text-amber-500" /> Próximo
+                      <Clock className="w-3 h-3 text-amber-500" /> {t("obligations.statusUpcoming")}
                     </span>
                   )}
                 </div>
@@ -541,7 +541,7 @@ export function ObligationsManager({
                           className="h-7 px-2.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-medium flex items-center gap-1"
                         >
                           <Check className="w-3 h-3" />
-                          <span>Confirmar</span>
+                          <span>{t("common.confirm")}</span>
                         </button>
                       </div>
                     ) : (
@@ -552,7 +552,7 @@ export function ObligationsManager({
                         }}
                         className="h-7 px-2.5 rounded-lg bg-primary/10 text-primary text-[11px] font-medium hover:bg-primary/20 transition-colors mr-1"
                       >
-                        Marcar pagado
+                        {t("obligations.markPaid")}
                       </button>
                     )
                   )}
@@ -561,7 +561,7 @@ export function ObligationsManager({
                   {item.origin === "recurring" && (
                     <button
                       onClick={() => onToggleRecurringPause(item.id)}
-                      title={item.paused ? "Reanudar" : "Pausar"}
+                      title={item.paused ? t("obligations.resume") : t("obligations.pause")}
                       className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
                     >
                       {item.paused ? (
@@ -619,8 +619,8 @@ export function ObligationsManager({
         onClose={handleCloseSheet}
         title={
           editingItem
-            ? t("common.edit") || "Editar Compromiso"
-            : "Nuevo Compromiso o Recurrente"
+            ? t("obligations.editTitle")
+            : t("obligations.newTitle")
         }
       >
         <div className="px-5 pb-6 pt-2 space-y-4">
@@ -655,13 +655,13 @@ export function ObligationsManager({
           {/* Nombre / Descripción */}
           <div>
             <label className="text-[12px] text-muted-foreground font-medium mb-1 block">
-              Descripción o Nombre
+              {t("obligations.nameLabel")}
             </label>
             <input
               type="text"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              placeholder="ej. Netflix, Edenor, Alquiler"
+              placeholder={t("obligations.namePlaceholder")}
               className="w-full h-11 px-3 rounded-[12px] bg-input border border-border text-foreground text-[14px] focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
@@ -681,7 +681,7 @@ export function ObligationsManager({
           {/* Fecha de vencimiento / impacto */}
           <div>
             <label className="text-[12px] text-muted-foreground font-medium mb-1 block">
-              Fecha de vencimiento o próximo cobro
+              {t("obligations.dueDateLabel")}
             </label>
             <input
               type="date"
@@ -724,13 +724,13 @@ export function ObligationsManager({
                   }`}
                 />
                 <span className="text-[13px] font-medium text-foreground">
-                  Débito automático
+                  {t("obligations.autoDebit")}
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 {formAutoPay
-                  ? "Se descuenta solo en la fecha programada."
-                  : "Genera alerta y espera que presiones 'Pagar'."}
+                  ? t("obligations.autoPayDesc")
+                  : t("obligations.manualPayDesc")}
               </p>
             </div>
             <button
@@ -802,7 +802,7 @@ export function ObligationsManager({
                   <span>{acc.name}</span>
                   {acc.type === "credit" && (
                     <span className="text-[10px] text-muted-foreground">
-                      (Tarjeta)
+                      {t("obligations.cardLabel")}
                     </span>
                   )}
                 </button>
@@ -817,7 +817,7 @@ export function ObligationsManager({
               onClick={handleCloseSheet}
               className="flex-1 h-12 rounded-[12px] bg-secondary text-foreground font-medium text-[14px] hover:bg-secondary/80 transition-colors"
             >
-              {t("common.cancel") || "Cancelar"}
+              {t("common.cancel")}
             </button>
             <button
               type="button"
@@ -825,7 +825,7 @@ export function ObligationsManager({
               disabled={!formName.trim() || !parseThousandsInput(formAmount)}
               className="flex-[2] h-12 rounded-[12px] bg-primary text-primary-foreground font-medium text-[14px] disabled:opacity-40 hover:opacity-90 active:scale-[0.98] transition-all"
             >
-              {t("common.save") || "Guardar"}
+              {t("common.save")}
             </button>
           </div>
         </div>

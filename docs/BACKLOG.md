@@ -20,7 +20,7 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
 | **P9** 📈 | **Proyección de Flujo de Caja (Forecast 30/60/90 días)** | **Visión anticipatoria real:** saber con certeza si se llega a fin de mes antes de asumir nuevos compromisos o cuotas. | Medio | **Altísimo** | [SPEC-011](specs/SPEC-011-cashflow-forecast.md) | Completado |
 | **P10** ⚡ | **Motor de Reglas y Automatizaciones** | **Ahorro masivo de tiempo:** tagueo, categorización y acciones automáticas condicionales según el comercio o monto. | Medio | **Alto** | [SPEC-012](specs/SPEC-012-transaction-rules-engine.md) | Completado |
 | **P11** 🔄 | **Presupuestos con Rollover Dinámico** | **Flexibilidad real:** trasladar saldo sobrante al mes siguiente o volcarlo automáticamente a metas de ahorro. | Bajo | **Medio** | [SPEC-013](specs/SPEC-013-dynamic-budget-rollover.md) | Completado |
-| **P12** 🛡️ | **Modo Privacidad & Bloqueo Biométrico Web** | **Tranquilidad en público:** ofuscación de saldos de un toque (`$ ••••••`) y reanudación segura con FaceID / TouchID. | Bajo | **Medio** | [SPEC-014](specs/SPEC-014-privacy-mode-and-biometrics.md) | Parcial (Privacidad ✅, Biometría pendiente) |
+| **P12** 🛡️ | **Modo Privacidad & Bloqueo Biométrico Web** | **Tranquilidad en público:** ofuscación de saldos de un toque (`$ ••••••`) y reanudación segura con FaceID / TouchID. | Bajo | **Medio** | [SPEC-014](specs/SPEC-014-privacy-mode-and-biometrics.md) | Completado |
 | **P13** 💎 | **Unificación de Identidad de Marca, Nomenclatura y Microcopia de Alta Gama** | **Coherencia y artesanía:** eliminar discrepancias (`FinTrack` vs `m3`), traducir 100% la microcopia al español financiero y armonizar términos. | Bajo | **Alto** | [SPEC-015](specs/SPEC-015-brand-and-microcopy.md) | Completado |
 | **P14** ⚡ | **QuickAdd 2.0: Fricción Mínima, Smart Chips y Feedback Sensorial (Háptica)** | **Velocidad de registro de clase mundial:** chips rápidos de categorías frecuentes, vibración física nativa en teclado y cálculo en 1-tap. | Bajo | **Altísimo** | [SPEC-016](specs/SPEC-016-quickadd-frictionless.md) | Completado |
 | **P19** 🏛️ | **Consolidación de Identidad IMPERO & Dominio Propio** | **Alineación filosófica y técnica:** formalización de SPEC-021, ajuste de microcopia (asignación de recursos, serenidad) y metadatos globales. | Bajo | **Altísimo** | [SPEC-021](specs/SPEC-021-brand-identity-impero.md) | Completado |
@@ -28,7 +28,16 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
 | **P16** 🎨 | **Refinamiento del Design System: Contraste WCAG AA, Modo Claro y Safe Areas Móviles** | **Accesibilidad y confort visual:** paleta `.light` con contraste > 4.5:1, targets táctiles de 44px y control de teclado virtual móvil. | Bajo | **Alto** | [SPEC-018](specs/SPEC-018-design-system-and-a11y.md) | Completado |
 | **P17** 📊 | **Curva de Evolución Patrimonial (Net Worth Chart) y Empty States Dinámicos** | **Visión histórica clara y onboarding continuo:** gráfico minimalista de saldo neto en el tiempo y guías interactivas en estados vacíos. | Medio | **Medio** | [SPEC-019](specs/SPEC-019-net-worth-and-empty-states.md) | Completado |
 | **P18** 🚀 | **Convergencia IMPERO: Excelencia Mobills (Tarjetas/Ciclos) + Potencia Wallet (Shopping List/Filtros) + Factor Wow** | **Superioridad definitiva:** Liquidación con pago parcial y arrastre de deuda de tarjeta, Shopping List con checkout directo a gasto, y buscador/filtros multi-criterio rápidos. | Medio | **Altísimo (Core Value)** | [SPEC-020](specs/SPEC-020-mobills-wallet-m3-convergence.md) | Completado |
-| **P20** 🛒 | **Resiliencia Offline-First: Fallback Local en Shopping List** | **Tolerancia a desconexión y latencia:** ante micro-cortes o migraciones de base de datos, permitir operar listas de compras 100% en local con sincronización diferida. | Bajo | **Medio** | [SPEC-022](specs/SPEC-022-offline-shopping-resilience.md) | Pendiente |
+| **P20** 🛒 | **Resiliencia Offline-First: Fallback Local en Shopping List** | **Tolerancia a desconexión y latencia:** ante micro-cortes o migraciones de base de datos, permitir operar listas de compras 100% en local con sincronización diferida. | Bajo | **Medio** | [SPEC-022](specs/SPEC-022-offline-shopping-resilience.md) | Completado |
+| **P21** 🔍 | **Buscador Omnicanal Global (`Cmd+K`) & Acciones Rápidas** | **Agilidad absoluta:** búsqueda instantánea de comercios, cuentas, categorías y disparador de acciones en 1 toque. | Medio | **Altísimo** | [SPEC-023](specs/SPEC-023-global-command-menu.md) | Completado |
+| **P22** ⌨️ | **Atajos de Teclado Globales & Cheat Sheet Modal (`?`)** | **Cultura Power-User:** navegación relámpago con combinaciones de teclas (G+D, G+T, G+C, N, H) y panel de referencia rápida con tecla `?`. | Bajo | **Alto** | [SPEC-024](specs/SPEC-024-keyboard-shortcuts.md) | Completado |
+| **P23** 🎬 | **Transiciones Cinemáticas de Vistas (Framer Motion)** | **Fluidez de alta gama:** eliminar saltos bruscos entre pestañas con animaciones de entrada/salida a 60 FPS. | Bajo | **Medio** | [SPEC-025](specs/SPEC-025-page-transitions.md) | Completado ✅ |
+| **P24** 📈 | **Sparklines de Tendencia en Métricas del Dashboard** | **Estética financiera Mercury/Stripe:** curvas de velocidad y tendencia de 14/30 días integradas en el fondo de las tarjetas de ingresos, gastos y balance. | Bajo | **Alto** | [SPEC-026](specs/SPEC-026-dashboard-sparklines.md) | Completado |
+| **P25** 📱 | **Pull-To-Refresh Móvil con Respuesta Háptica** | **Sensación de app nativa:** gesto elástico al deslizar hacia abajo en la cabecera para recargar balances y cotizaciones con vibración sensorial. | Bajo | **Alto** | [SPEC-027](specs/SPEC-027-pull-to-refresh.md) | Completado ✅ |
+| **P26** 🚀 | **Centro de Novedades In-App ("What's New Modal")** | **Celebración de valor:** modal interactivo que comunica automáticamente los avances de versión al usuario con highlights visuales y badges. | Bajo | **Medio** | [SPEC-028](specs/SPEC-028-whats-new-modal.md) | Completado |
+| **P27** 🌐 | **Motor Global Offline-First & Outbox Sync (Toda la App)** | **Cero fricción y cero pérdida de datos:** apertura instantánea en 0ms mediante Stale-While-Revalidate, registro y mutaciones en las 9 entidades de dominio garantizadas sin señal celular con cola de sincronización diferida e indicador global de conectividad. | Medio | **Altísimo (Game Changer)** | [SPEC-029](specs/SPEC-029-global-offline-first-sync-engine.md) | Completada ✅ |
+| **P28** 🌐 | **Internacionalización Integral (ES / EN) y Erradicación de Textos Hardcodeados** | **Paridad absoluta y experiencia global:** 100% de paridad en 1.101 claves de traducción, cero textos o etiquetas hardcodeadas en vistas, componentes, filtros dinámicos, toasts y tooltips, con auditoría automatizada en CI/CD. | Bajo | **Altísimo** | [i18n-audit](scripts/check-i18n.cjs) | Completado ✅ |
+
 
 ---
 
@@ -286,7 +295,119 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
 
 ---
 
-## 💡 Ideas Futuras & Nice-to-Have (Could Have)
+### P21 — Buscador Omnicanal Global (`Cmd+K`) & Acciones Rápidas
+- **Problema:** Encontrar rápidamente una transacción por comercio o monto, saltar a una cuenta específica o disparar un nuevo gasto requiere múltiples clics o navegar por menús dispersos.
+- **Alcance:**
+  - Componente modal tipo Linear/Raycast (`GlobalCommandMenu.tsx`) accesible globalmente mediante el atajo `Cmd+K` / `Ctrl+K` en desktop y botón lupa en la barra de navegación móvil.
+  - Búsqueda en tiempo real indexando:
+    - **Transacciones:** búsqueda por descripción, comercio y monto.
+    - **Cuentas bancarias & billeteras:** salto directo a la cuenta seleccionada.
+    - **Categorías & Presupuestos:** acceso directo al detalle de asignación.
+    - **Acciones Rápidas (Command Palette):**
+      - `+ Registrar Gasto` (abre `QuickAddSheet` con foco listo en monto).
+      - `+ Nueva Lista de Compras` (abre `ShoppingListManager` en creación).
+      - `🔒 Alternar Modo Privacidad` (ofusca o revela saldos al instante).
+      - `🌓 Alternar Modo Oscuro/Claro`.
+      - `📥 Importar Extracto Bancario (CSV/Excel/PDF)`.
+      - `📊 Ir a Reportes / Flujo de Caja / Tarjetas`.
+- **Criterios de Aceptación:**
+  - `Cmd+K` abre el modal en menos de 100ms con foco automático en el input.
+  - La navegación con flechas de teclado y `Enter` ejecuta la acción o abre la vista seleccionada.
+  - En móviles, un botón táctil en el header o barra inferior activa la misma experiencia.
+
+---
+
+### P22 — Atajos de Teclado Globales & Cheat Sheet Modal (`?`)
+- **Problema:** Los usuarios avanzados operan mucho más rápido con teclado, pero los atajos actuales (como `H` para privacidad) están ocultos y no existe un estándar consistente de navegación rápida.
+- **Alcance:**
+  - Sistema de atajos globales unificado:
+    - **Navegación Go-To (Secuencias `G + [tecla]`):** `G + D` (Dashboard), `G + T` (Transacciones), `G + C` (Tarjetas), `G + B` (Presupuestos), `G + S` (Shopping List), `G + R` (Reportes), `G + A` (Ajustes).
+    - **Acciones Directas:** `N` (Nuevo gasto), `H` (Modo privacidad), `Cmd+K` (Buscador), `?` (Ver atajos).
+  - Modal interactivo de referencia rápida (`KeyboardShortcutsModal.tsx`) accesible presionando `?` o `Shift + /` en cualquier pantalla que no sea un campo de texto editable.
+- **Criterios de Aceptación:**
+  - Presionar `?` despliega el modal con diseño estético de alta gama agrupado por categorías.
+  - Los atajos no se disparan cuando el usuario está escribiendo en un input o textarea.
+
+---
+
+### P23 — Transiciones Cinemáticas de Vistas (Framer Motion)
+- **Problema:** Al alternar entre pestañas o módulos principales, el contenido parpadea o cambia de golpe, rompiendo la sensación de aplicación premium y artesanal.
+- **Alcance:**
+  - Envoltorio unificado `<PageTransition>` para todas las vistas principales en `Index.tsx`.
+  - Animación fluida de entrada/salida (`opacity: 0, y: 8` -> `opacity: 1, y: 0`) con curva orgánica (`easeOut`, 250ms).
+  - Respeto estricto a preferencias de accesibilidad (`prefers-reduced-motion`).
+- **Criterios de Aceptación:**
+  - [x] Todo cambio de pestaña se siente suave, continuo y a 60 FPS sin tirones visuales.
+
+---
+
+### P24 — Sparklines de Tendencia en Métricas del Dashboard
+- **Problema:** Las tarjetas de métricas del Dashboard (Ingresos, Gastos, Balance Neto) son números estáticos que no transmiten la velocidad ni la aceleración del flujo de dinero en el mes.
+- **Alcance:**
+  - Componente `<DashboardSparkline>` embebido en el fondo de las tarjetas de métricas principales.
+  - Mini gráfico de área minimalista con gradiente suave (`defs/linearGradient`), sin ejes ni etiquetas ruidosas, reflejando la curva evolutiva de los últimos 14/30 días.
+  - Adaptación cromática automática según el tipo de métrica (verde para ingresos, rojo/ámbar para gastos, acento para balance).
+- **Criterios de Aceptación:**
+  - Las tarjetas de resumen muestran la mini-curva de fondo sin sobrecargar la lectura del número monetario principal.
+  - Se adapta responsivamente al ancho de pantalla.
+
+---
+
+### P25 — Pull-To-Refresh Móvil con Respuesta Háptica
+- **Problema:** En smartphones y PWA instalada, para refrescar datos o cotizaciones el usuario debe recurrir a trucos de navegación o recargar el navegador.
+- **Alcance:**
+  - Componente contenedor `<PullToRefresh>` que detecta el gesto de arrastre vertical hacia abajo cuando el scroll está en la parte superior.
+  - Resistencia elástica progresiva, indicador visual giratorio y vibración táctil nativa (`navigator.vibrate` / háptica) al alcanzar el umbral de disparo.
+  - Recálculo en caliente de balances, cotizaciones de divisas y sincronización de la cola de Shopping List.
+- **Criterios de Aceptación:**
+  - [x] Funciona naturalmente en dispositivos móviles táctiles sin interferir con el scroll vertical normal.
+  - [x] Feedback háptico sutil al completar el gesto.
+
+---
+
+### P26 — Centro de Novedades In-App ("What's New Modal")
+- **Problema:** Cuando se despliegan actualizaciones y mejoras de valor, el usuario no se entera o las descubre por casualidad, perdiéndose el impacto del progreso continuo del producto.
+- **Alcance:**
+  - Modal interactivo de novedades (`ReleaseNotesModal.tsx`) con estética visual de impacto:
+    - Badge animado de versión (*"Update Disponible v0.2.0"*).
+    - Tarjetas con íconos de highlights funcionales destacando las 3 mejoras principales del release.
+    - Botón primario de confirmación (*"¡Entendido, vamos!"*) y enlace para ver el historial completo.
+  - Apertura automática en el primer inicio tras un cambio de versión (persistido en `localStorage`), y botón manual en el perfil o ajustes para consultarlo cuando se desee.
+- **Criterios de Aceptación:**
+  - Si la versión en `package.json` es superior a la última vista por el usuario, el modal aparece una única vez tras el login.
+  - Puede volver a abrirse manualmente en cualquier momento desde *Ajustes* o *Mi Perfil*.
+
+
+---
+
+### P27 — Motor Global Offline-First & Outbox Sync (Toda la App)
+- **Problema:** La carga de gastos y operaciones financieras ocurre primordialmente en la calle (bares, cocheras, transporte, supermercados) donde la red celular puede fallar o fluctuar. Revertir transacciones (`rollback`), perder datos o mostrar pantallas en blanco por falta de conexión destruye la confiabilidad del producto.
+- **Alcance:**
+  - **Apertura Instantánea (0ms):** Carga inicial de `useFinanceStore` hidratada desde almacenamiento local (`localStorage`), permitiendo visualizar cuentas, saldos y transacciones sin latencia de red ni spinners bloqueantes (*Stale-While-Revalidate*).
+  - **Outbox Pattern Universal:** Servicio central de cola de salida (`sync-queue.service.ts`) para acumular operaciones sin conexión cubriendo **todas las 9 entidades de dominio**:
+    1. Transacciones (crear, editar, borrar, recalcular saldos).
+    2. Cuentas (crear, editar, archivar, restaurar, eliminar, ajustar balance).
+    3. Categorías (crear, editar, archivar, eliminar).
+    4. Presupuestos (crear, editar, eliminar).
+    5. Metas (crear, editar, aportar, retirar, eliminar).
+    6. Facturas / Servicios (crear, editar, marcar pagado, eliminar).
+    7. Transacciones Recurrentes (crear, editar, pausar/reanudar, eliminar).
+    8. Etiquetas (crear, eliminar).
+    9. Reglas de Categorización (crear, editar, pausar/activar, eliminar).
+  - **UUIDs v4 en Cliente:** Identificadores `crypto.randomUUID()` generados en el navegador para todas las nuevas entidades, garantizando relaciones íntegras en memoria y persistencia idempotente en Supabase vía `upsert` con `onConflict: "id"`.
+  - **Auto-Sincronización Idempotente:** Listener automático ante reconexión (`window.ononline`) con drenado secuencial FIFO y botón de sincronización forzada bajo demanda.
+  - **Indicador Global de Conectividad:** Chip minimalista en la cabecera indicando *"Al día"* o *"X pendientes"* con feedback animado de sincronización y disparador táctil.
+- **Criterios de Aceptación:**
+  - [x] El usuario puede abrir la app y operar en modo avión sin pantallas en blanco ni bloqueos.
+  - [x] Toda entidad creada o modificada sin internet se persiste localmente y se encola para su despacho posterior sin rollbacks destructivos.
+  - [x] Al restablecerse la red, los datos se propagan a Supabase automáticamente sin generar duplicados.
+  - [x] Retención segura de operaciones en la cola si el servidor responde con error, permitiendo reintentos.
+
+---
+
+## 💡 Próximos Horizontes de Producto (Siguiente Etapa de IMPERO)
+
+Habiendo liquidado la totalidad de las épicas fundamentales (**P0 a P20**) y el sprint de Quick Wins de UX (**P21, P22, P24, P26**), el producto consolida una experiencia de uso ágil y sensorial:
 
 ### C1 — Personalidades Configurables del Bot Financiero (Salo / Levi / Tito)
 - **Problema:** Cada usuario tiene una relación psicológica distinta con el dinero. Algunos prefieren sobriedad y sabiduría directa, otros precisión técnica de copiloto, y otros un trato compinche y relajado que desdramatice las finanzas.
@@ -298,3 +419,35 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
   - Inyección dinámica del *system prompt* del webhook de WhatsApp según la preferencia elegida en `public.profiles.bot_personality`.
 - **Criterios de Aceptación:**
   - El usuario puede alternar la personalidad de su asistente desde la app y el bot adopta el tono inmediatamente en su siguiente respuesta.
+
+---
+
+### C2 — Escaneo Inteligente de Tickets con Visión Multimodal (Client-side / Cloud OCR)
+- **Problema:** Tipear manualmente los detalles de tickets extensos de supermercados o facturas de compras físicas sigue generando fricción cuando se registra un comprobante.
+- **Alcance:**
+  - Integrar extracción automática de ítems, montos y comercio al subir una foto o comprobante en `QuickAddSheet` o `TransactionEditSheet`.
+  - Sugerencia de autocompletado de ítems para poblar la lista de compras o desglosar gastos en subcategorías.
+- **Criterios de Aceptación:**
+  - Al tomar foto a un ticket, el sistema extrae automáticamente fecha, comercio, total e ítems sugeridos con confirmación en 1-tap.
+
+---
+
+### C3 — Detector de Fugas & Auditor de Suscripciones (Subscription Leak Detector)
+- **Problema:** Micro-gastos recurrentes invisibles (streaming, membresías olvidadas, comisiones bancarias) drenan el ahorro sin que el usuario sea consciente de su impacto anual y plurianual.
+- **Alcance:**
+  - Detección automática en el historial de transacciones de patrones mensuales fijos.
+  - Cálculo del costo proyectado a 1 año, 3 años y 5 años con interés compuesto de costo de oportunidad.
+  - Acciones rápidas: *"Pausar suscripción"*, *"Establecer recordatorio de cancelación"* o *"Marcar como indispensable"*.
+- **Criterios de Aceptación:**
+  - El usuario visualiza un ranking de suscripciones activas ordenadas por peso anual sobre sus ingresos.
+
+---
+
+### C4 — Finanzas Compartidas / Modo Pareja o Familia (Household Finance)
+- **Problema:** En parejas o familias se comparten gastos comunes (alquiler, compras, servicios) pero cada miembro mantiene cuentas bancarias y gastos personales separados.
+- **Alcance:**
+  - Vinculación segura de dos perfiles de IMPERO a un "Espacio Compartido".
+  - Posibilidad de imputar transacciones a presupuestos compartidos o registrar quién pagó para cálculo automático de liquidación de saldos (*Splitwise-style* integrado).
+- **Criterios de Aceptación:**
+  - Cada miembro mantiene sus cuentas bancarias privadas, pero puede visualizar y nutrir los compromisos y presupuestos comunes.
+

@@ -39,10 +39,10 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer, onIm
     { id: "cards", icon: CreditCard, label: t("nav.cards"), desc: t("nav.cardsDesc") },
     { id: "categories", icon: Tags, label: t("nav.categories"), desc: t("nav.categoriesDesc") },
     { id: "tags", icon: Hash, label: t("nav.tags"), desc: t("nav.tagsDesc") },
-    { id: "rules", icon: Zap, label: "Reglas", desc: "Automatizaciones y auto-categorización" },
-    { id: "shopping", icon: ShoppingCart, label: "Listas de Compras", desc: "Organizar compras y registrar gastos" },
+    { id: "rules", icon: Zap, label: t("nav.rules") || "Reglas", desc: t("nav.rulesDesc") || "Automatizaciones y auto-categorización" },
+    { id: "shopping", icon: ShoppingCart, label: t("nav.shopping") || "Listas de Compras", desc: t("nav.shoppingDesc") || "Organizar compras y registrar gastos" },
     ...(onImportCsv
-      ? [{ id: "import-csv", icon: Upload, label: t("tx.importCsv") || "Importar CSV", desc: "Carga extractos bancarios y billeteras", isAction: true, onClick: onImportCsv }]
+      ? [{ id: "import-csv", icon: Upload, label: t("tx.importCsv") || "Importar CSV", desc: t("tx.importCsvDesc") || "Carga extractos bancarios y billeteras", isAction: true, onClick: onImportCsv }]
       : []),
     { id: "profile", icon: User, label: t("nav.profile") || "Mi Perfil", desc: t("nav.profileDesc") || "Datos personales y cuenta" },
     { id: "settings", icon: Settings, label: t("nav.settings"), desc: t("nav.settingsDesc") },
@@ -80,8 +80,8 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer, onIm
                     <Receipt className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <span className="text-sm font-semibold block text-foreground">Nuevo Gasto</span>
-                    <span className="text-[11px] text-muted-foreground block">Registrar salida de dinero</span>
+                    <span className="text-sm font-semibold block text-foreground">{t("tx.newExpense") || "Nuevo Gasto"}</span>
+                    <span className="text-[11px] text-muted-foreground block">{t("tx.newExpenseDesc") || "Registrar salida de dinero"}</span>
                   </div>
                 </div>
                 <span className="text-destructive text-lg font-bold">−</span>
@@ -105,8 +105,8 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer, onIm
                     <ArrowLeftRight className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <span className="text-sm font-semibold block text-foreground">Nuevo Ingreso</span>
-                    <span className="text-[11px] text-muted-foreground block">Sueldo, cobro o rendimientos</span>
+                    <span className="text-sm font-semibold block text-foreground">{t("tx.newIncome") || "Nuevo Ingreso"}</span>
+                    <span className="text-[11px] text-muted-foreground block">{t("tx.newIncomeDesc") || "Sueldo, cobro o rendimientos"}</span>
                   </div>
                 </div>
                 <span className="text-primary text-lg font-bold">+</span>
@@ -131,7 +131,7 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer, onIm
                   </div>
                   <div className="text-left">
                     <span className="text-sm font-semibold block text-foreground">{t("nav.transfer")}</span>
-                    <span className="text-[11px] text-muted-foreground block">Mover fondos entre cuentas</span>
+                    <span className="text-[11px] text-muted-foreground block">{t("tx.transferDesc") || "Mover fondos entre cuentas"}</span>
                   </div>
                 </div>
                 <span className="text-sky-500 text-lg font-bold">⇄</span>
@@ -233,7 +233,7 @@ export function BottomNav({ activeTab, onTabChange, onQuickAdd, onTransfer, onIm
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-destructive/20 text-destructive hover:bg-destructive/10 active:scale-[0.98] transition-all text-xs font-medium"
               >
                 <LogOut className="w-4 h-4 shrink-0" />
-                <span>Cerrar sesión</span>
+                <span>{t("settings.signOut") || "Cerrar sesión"}</span>
               </button>
             </div>
           )}

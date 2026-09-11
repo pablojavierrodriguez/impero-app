@@ -21,21 +21,24 @@ export async function fetchBudgets(): Promise<Budget[]> {
   }));
 }
 
-export async function insertBudget(budget: Omit<Budget, "id">): Promise<Budget> {
+export async function insertBudget(budget: Omit<Budget, "id"> & { id?: string }): Promise<Budget> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No user");
 
+  const insertPayload: any = {
+    user_id: user.id,
+    category_id: budget.categoryId,
+    amount: budget.amount,
+    month: budget.month,
+    year: budget.year,
+    enable_rollover: budget.enableRollover ?? false,
+    accumulated_rollover: budget.accumulatedRollover ?? 0,
+  };
+  if (budget.id) insertPayload.id = budget.id;
+
   const { data, error } = await supabase
     .from("budgets")
-    .insert({
-      user_id: user.id,
-      category_id: budget.categoryId,
-      amount: budget.amount,
-      month: budget.month,
-      year: budget.year,
-      enable_rollover: budget.enableRollover ?? false,
-      accumulated_rollover: budget.accumulatedRollover ?? 0,
-    })
+    .upsert(insertPayload, { onConflict: "id" })
     .select()
     .single();
 
@@ -84,22 +87,25 @@ export async function fetchGoals(): Promise<Goal[]> {
   }));
 }
 
-export async function insertGoal(goal: Omit<Goal, "id" | "createdAt">): Promise<Goal> {
+export async function insertGoal(goal: Omit<Goal, "id" | "createdAt"> & { id?: string }): Promise<Goal> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No user");
 
+  const insertPayload: any = {
+    user_id: user.id,
+    name: goal.name,
+    target_amount: goal.targetAmount,
+    current_amount: goal.currentAmount,
+    deadline: goal.deadline ? goal.deadline.toISOString() : null,
+    color: goal.color,
+    icon: goal.icon,
+    completed: goal.completed,
+  };
+  if (goal.id) insertPayload.id = goal.id;
+
   const { data, error } = await supabase
     .from("goals")
-    .insert({
-      user_id: user.id,
-      name: goal.name,
-      target_amount: goal.targetAmount,
-      current_amount: goal.currentAmount,
-      deadline: goal.deadline ? goal.deadline.toISOString() : null,
-      color: goal.color,
-      icon: goal.icon,
-      completed: goal.completed,
-    })
+    .upsert(insertPayload, { onConflict: "id" })
     .select()
     .single();
 
@@ -153,23 +159,26 @@ export async function fetchBills(): Promise<BillReminder[]> {
   }));
 }
 
-export async function insertBill(bill: Omit<BillReminder, "id">): Promise<BillReminder> {
+export async function insertBill(bill: Omit<BillReminder, "id"> & { id?: string }): Promise<BillReminder> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No user");
 
+  const insertPayload: any = {
+    user_id: user.id,
+    name: bill.name,
+    amount: bill.amount,
+    due_date: bill.dueDate.toISOString(),
+    frequency: bill.frequency,
+    category_id: bill.categoryId || null,
+    account_id: bill.accountId || null,
+    status: bill.status,
+    auto_pay: bill.autoPay,
+  };
+  if (bill.id) insertPayload.id = bill.id;
+
   const { data, error } = await supabase
     .from("bill_reminders")
-    .insert({
-      user_id: user.id,
-      name: bill.name,
-      amount: bill.amount,
-      due_date: bill.dueDate.toISOString(),
-      frequency: bill.frequency,
-      category_id: bill.categoryId || null,
-      account_id: bill.accountId || null,
-      status: bill.status,
-      auto_pay: bill.autoPay,
-    })
+    .upsert(insertPayload, { onConflict: "id" })
     .select()
     .single();
 
@@ -248,27 +257,30 @@ export async function fetchRecurringTransactions(categories: Category[]): Promis
 }
 
 export async function insertRecurringTransaction(
-  rtx: Omit<RecurringTransaction, "id">
+  rtx: Omit<RecurringTransaction, "id"> & { id?: string }
 ): Promise<RecurringTransaction> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No user");
 
+  const insertPayload: any = {
+    user_id: user.id,
+    amount: rtx.amount,
+    description: rtx.description,
+    category_id: rtx.category.id !== "uncategorized" ? rtx.category.id : null,
+    type: rtx.type,
+    account_id: rtx.accountId,
+    frequency: rtx.frequency,
+    start_date: rtx.startDate.toISOString(),
+    next_date: rtx.nextDate.toISOString(),
+    paused: rtx.paused,
+    tag_ids: rtx.tags || [],
+    currency: rtx.currency || "ARS",
+  };
+  if (rtx.id) insertPayload.id = rtx.id;
+
   const { data, error } = await supabase
     .from("recurring_transactions")
-    .insert({
-      user_id: user.id,
-      amount: rtx.amount,
-      description: rtx.description,
-      category_id: rtx.category.id !== "uncategorized" ? rtx.category.id : null,
-      type: rtx.type,
-      account_id: rtx.accountId,
-      frequency: rtx.frequency,
-      start_date: rtx.startDate.toISOString(),
-      next_date: rtx.nextDate.toISOString(),
-      paused: rtx.paused,
-      tag_ids: rtx.tags || [],
-      currency: rtx.currency || "ARS",
-    })
+    .upsert(insertPayload, { onConflict: "id" })
     .select()
     .single();
 

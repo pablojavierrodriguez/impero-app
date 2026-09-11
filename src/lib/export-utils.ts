@@ -1,3 +1,4 @@
+import * as XLSX from "xlsx";
 import { Transaction, Account } from "./types";
 
 /**
@@ -82,3 +83,90 @@ export function downloadCsvFile(content: string, filename = "transacciones_imper
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Generates an Excel workbook (.xlsx binary buffer) from a list of transactions,
+ * with structured headers and auto-sized column widths.
+ */
+export function generateTransactionsExcel(
+  transactions: Transaction[],
+  accountsMap: Record<string, string> = {}
+): Uint8Array {
+  const headers = [
+    "Fecha",
+    "Tipo",
+    "Descripción",
+    "Categoría",
+    "Monto",
+    "Cuenta",
+    "Es Transferencia",
+    "Pago Tarjeta",
+    "Cuota",
+    "Notas",
+    "Etiquetas"
+  ];
+
+  const rows = transactions.map((t) => {
+    const dateStr = t.date instanceof Date 
+      ? t.date.toISOString().split("T")[0] 
+      : new Date(t.date).toISOString().split("T")[0];
+    
+    const typeStr = t.type === "expense" ? "Gasto" : "Ingreso";
+    const accountName = accountsMap[t.accountId] || t.accountId || "";
+    const installmentStr = t.installmentInfo 
+      ? `${t.installmentInfo.current}/${t.installmentInfo.total}` 
+      : "";
+    const tagsStr = (t.tags || []).join("; ");
+
+    return [
+      dateStr,
+      typeStr,
+      t.description,
+      t.category?.name || "Sin Categoría",
+      t.amount,
+      accountName,
+      t.isTransfer ? "Sí" : "No",
+      t.isCardPayment ? "Sí" : "No",
+      installmentStr,
+      t.note || "",
+      tagsStr
+    ];
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+  // Cálculo de ancho automático por columna
+  const colWidths = headers.map((header, colIdx) => {
+    let maxLen = header.length;
+    for (const row of rows) {
+      const val = String(row[colIdx] ?? "");
+      if (val.length > maxLen) maxLen = Math.min(val.length, 45);
+    }
+    return { wch: Math.max(maxLen + 3, 10) };
+  });
+  ws["!cols"] = colWidths;
+
+  XLSX.utils.book_append_sheet(wb, ws, "Transacciones");
+  const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  return new Uint8Array(wbout);
+}
+
+/**
+ * Triggers a browser download of the generated Excel (.xlsx) file
+ */
+export function downloadExcelFile(data: Uint8Array, filename = "transacciones_impero.xlsx"): void {
+  const blob = new Blob([data], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+

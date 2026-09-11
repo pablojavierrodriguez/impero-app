@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, ArrowLeftRight, Wallet, PiggyBank, Target,
   Repeat, Bell, BarChart3, CreditCard, Tags, Hash, Settings, Plus,
-  Repeat as RepeatIcon, PanelLeftClose, PanelLeft, User, LogIn, Upload, Zap, ShoppingCart
+  Repeat as RepeatIcon, PanelLeftClose, PanelLeft, User, LogIn, Upload, Zap, ShoppingCart,
+  Search, Sparkles, Keyboard
 } from "lucide-react";
 import { useSettings } from "@/lib/settings-store";
 import { Button } from "@/components/ui/button";
@@ -16,10 +17,23 @@ interface DesktopSidebarProps {
   onQuickAdd: () => void;
   onTransfer: () => void;
   onImportCsv?: () => void;
+  onOpenCommandMenu?: () => void;
+  onOpenShortcuts?: () => void;
+  onOpenReleaseNotes?: () => void;
   pendingBillsCount?: number;
 }
 
-export function DesktopSidebar({ activeTab, onTabChange, onQuickAdd, onTransfer, onImportCsv, pendingBillsCount = 0 }: DesktopSidebarProps) {
+export function DesktopSidebar({
+  activeTab,
+  onTabChange,
+  onQuickAdd,
+  onTransfer,
+  onImportCsv,
+  onOpenCommandMenu,
+  onOpenShortcuts,
+  onOpenReleaseNotes,
+  pendingBillsCount = 0,
+}: DesktopSidebarProps) {
   const { t } = useSettings();
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem("sidebar-collapsed") === "true"; } catch { return false; }
@@ -43,8 +57,8 @@ export function DesktopSidebar({ activeTab, onTabChange, onQuickAdd, onTransfer,
     { id: "cards", icon: CreditCard, label: t("nav.cards") },
     { id: "categories", icon: Tags, label: t("nav.categories") },
     { id: "tags", icon: Hash, label: t("nav.tags") },
-    { id: "rules", icon: Zap, label: "Reglas" },
-    { id: "shopping", icon: ShoppingCart, label: "Listas de Compras" },
+    { id: "rules", icon: Zap, label: t("nav.rules") || "Reglas" },
+    { id: "shopping", icon: ShoppingCart, label: t("nav.shopping") || "Listas de Compras" },
   ];
 
   const bottomItems = [
@@ -74,7 +88,7 @@ export function DesktopSidebar({ activeTab, onTabChange, onQuickAdd, onTransfer,
                 </div>
                 <div className="flex flex-col">
                   <span className="font-display font-bold text-foreground text-base tracking-tight leading-none">IMPERO</span>
-                  <span className="text-[10px] text-muted-foreground tracking-tight leading-tight mt-0.5">Visión y Propósito</span>
+                  <span className="text-[10px] text-muted-foreground tracking-tight leading-tight mt-0.5">{t("nav.tagline") || "Visión y Propósito"}</span>
                 </div>
               </motion.div>
             )}
@@ -148,6 +162,41 @@ export function DesktopSidebar({ activeTab, onTabChange, onQuickAdd, onTransfer,
           )}
         </div>
 
+        {/* Command Menu Search Trigger (⌘K) */}
+        {onOpenCommandMenu && (
+          <div className={`px-3 pb-2 pt-0.5`}>
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="w-10 h-10 border border-border/40 text-muted-foreground hover:text-foreground"
+                    onClick={onOpenCommandMenu}
+                  >
+                    <Search className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{t("nav.searchOrCommandTooltip") || "Buscar o comando (⌘K)"}</TooltipContent>
+              </Tooltip>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenCommandMenu}
+                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-border/50 bg-secondary/30 hover:bg-secondary/60 text-xs text-muted-foreground hover:text-foreground transition-all group"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Search className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span>{t("nav.searchOrCommand") || "Buscar o comando..."}</span>
+                </div>
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono-data bg-background border border-border/80 rounded text-muted-foreground group-hover:text-foreground">
+                  ⌘K
+                </kbd>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Main nav */}
         <div className={`flex-1 overflow-y-auto ${collapsed ? "px-2" : "px-3"} space-y-0.5`}>
           {mainTabs.map(tab => (
@@ -189,6 +238,24 @@ export function DesktopSidebar({ activeTab, onTabChange, onQuickAdd, onTransfer,
               onClick={() => onTabChange(tab.id)}
             />
           ))}
+          {onOpenReleaseNotes && (
+            <SidebarItem
+              icon={Sparkles}
+              label={t("nav.whatsNew") || "Novedades"}
+              active={false}
+              collapsed={collapsed}
+              onClick={onOpenReleaseNotes}
+            />
+          )}
+          {onOpenShortcuts && (
+            <SidebarItem
+              icon={Keyboard}
+              label={t("nav.keyboardShortcuts") || "Atajos de Teclado"}
+              active={false}
+              collapsed={collapsed}
+              onClick={onOpenShortcuts}
+            />
+          )}
         </div>
       </motion.aside>
     </TooltipProvider>

@@ -37,6 +37,7 @@ function SwipeableTransaction({
   onDelete?: (id: string) => void;
 }) {
   const { maskAmount } = usePrivacy();
+  const { t } = useSettings();
   const [isPendingDelete, setIsPendingDelete] = useState(false);
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const executedRef = useRef(false);
@@ -66,9 +67,9 @@ function SwipeableTransaction({
         }
       }, 4000);
 
-      toast(`"${tx.description}" eliminada`, {
+      toast(t("tx.deleted").replace("{desc}", tx.description), {
         action: {
-          label: "Deshacer",
+          label: t("common.undo"),
           onClick: () => {
             executedRef.current = true;
             if (deleteTimerRef.current) {
@@ -136,16 +137,16 @@ function SwipeableTransaction({
             <span className="text-[14px] text-foreground font-medium truncate block leading-snug">{tx.description}</span>
             <span className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
               <span className="truncate">
-                {tx.category.name} · {isToday(tx.date) ? format(tx.date, "h:mm a") : isYesterday(tx.date) ? `Ayer ${format(tx.date, "h:mm a")}` : format(tx.date, "MMM d")}
+                {tx.category.name} · {isToday(tx.date) ? format(tx.date, "h:mm a") : isYesterday(tx.date) ? `${t("common.yesterday")} ${format(tx.date, "h:mm a")}` : format(tx.date, "MMM d")}
               </span>
               {isFuture(tx.date) && (
                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-500 font-semibold text-[10px] tracking-tight shrink-0">
                   <Clock className="w-2.5 h-2.5 shrink-0" />
                   {differenceInCalendarDays(tx.date, new Date()) === 1
-                    ? "Mañana"
+                    ? t("common.tomorrow")
                     : differenceInCalendarDays(tx.date, new Date()) > 1
-                    ? `en ${differenceInCalendarDays(tx.date, new Date())}d`
-                    : "Programado"}
+                    ? t("common.inDays").replace("{days}", String(differenceInCalendarDays(tx.date, new Date())))
+                    : t("common.scheduled")}
                 </span>
               )}
               {tx.installmentInfo && (
@@ -154,7 +155,7 @@ function SwipeableTransaction({
                 </span>
               )}
               {tx.receiptUrl && (
-                <span className="text-primary/70 shrink-0" title="Tiene comprobante adjunto">
+                <span className="text-primary/70 shrink-0" title={t("tx.hasReceipt")}>
                   📎
                 </span>
               )}
@@ -198,6 +199,7 @@ function StatementGroupRow({
   onToggleExpand: () => void;
   onPay?: (cardId: string, amount: number) => void;
 }) {
+  const { t } = useSettings();
   const { account, periodEnd, total, txs } = group;
 
   return (
@@ -213,14 +215,14 @@ function StatementGroupRow({
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-[14px] text-foreground font-medium truncate block leading-snug">
-                Resumen {account.name}
+                {t("cards.statement")} {account.name}
               </span>
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground font-medium shrink-0">
                 {txs.length}
               </span>
             </div>
             <span className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-              <span className="truncate">Cierre {format(periodEnd, "MMM d")} · {txs.length} consumos</span>
+              <span className="truncate">{t("card.closingDayLabel")} {format(periodEnd, "MMM d")} · {txs.length} {t("cards.charges")}</span>
               <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform duration-200 shrink-0 ${isExpanded ? "rotate-180" : ""}`} />
             </span>
           </div>
@@ -263,7 +265,7 @@ function StatementGroupRow({
             ))}
             {onPay && total > 0 && (
               <div className="py-2.5 px-2 flex items-center justify-between bg-primary/5 rounded-md mt-1">
-                <span className="text-xs text-muted-foreground font-medium">¿Liquidar resumen?</span>
+                <span className="text-xs text-muted-foreground font-medium">{t("tx.settleStatementPrompt")}</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -272,7 +274,7 @@ function StatementGroupRow({
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium active:scale-95 transition-all shadow-xs"
                 >
                   <DollarSign className="w-3.5 h-3.5" />
-                  Pagar {formatAmount(total)}
+                  {t("card.pay")} {formatAmount(total)}
                 </button>
               </div>
             )}
@@ -423,7 +425,7 @@ export function TransactionList({ title, transactions, accounts = [], onSelect, 
                 ? "bg-primary/15 text-primary border-primary/40 shadow-xs"
                 : "bg-secondary/60 text-muted-foreground border-border/50 hover:text-foreground"
             }`}
-            title={showSubtotals ? "Ocultar subtotales diarios" : "Mostrar subtotales por día"}
+            title={showSubtotals ? t("tx.hideSubtotals") : t("tx.showSubtotals")}
           >
             <Calculator className="w-3.5 h-3.5" />
           </button>

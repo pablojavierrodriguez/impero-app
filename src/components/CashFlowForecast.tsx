@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine } from "recharts";
-import { AlertTriangle, TrendingUp, TrendingDown, Calendar, ShieldCheck, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { AlertTriangle, ShieldCheck } from "lucide-react";
 import { useSettings } from "@/lib/settings-store";
 import { Account, Transaction, RecurringTransaction, BillReminder } from "@/lib/types";
 import { calculateCashFlowForecast } from "@/lib/cashflow-forecast";
 import { parseThousandsInput } from "@/lib/utils";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { usePrivacy } from "@/contexts/PrivacyContext";
+import { createTranslator } from "@/lib/i18n";
 
 interface CashFlowForecastProps {
   accounts: Account[];
@@ -18,7 +18,8 @@ interface CashFlowForecastProps {
 
 export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }: CashFlowForecastProps) {
   const { maskAmount } = usePrivacy();
-  const { formatAmount: baseFormatAmount } = useSettings();
+  const { formatAmount: baseFormatAmount, language } = useSettings();
+  const t = createTranslator(language);
   const formatAmount = (n: number, opts?: any) => maskAmount(baseFormatAmount(n, opts));
   const [daysAhead, setDaysAhead] = useState<30 | 60 | 90>(30);
   const [simulatedAmount, setSimulatedAmount] = useState("");
@@ -31,7 +32,7 @@ export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }
 
     return calculateCashFlowForecast(accounts, transactions, recurringTxs, bills, {
       daysAhead,
-      simulatedExpense: simAmount > 0 ? { amount: simAmount, date: simDate, name: "Gasto Simulado" } : undefined,
+      simulatedExpense: simAmount > 0 ? { amount: simAmount, date: simDate, name: t("cashflow.simulatedExpense") } : undefined,
     });
   }, [accounts, transactions, recurringTxs, bills, daysAhead, simulatedAmount]);
 
@@ -45,20 +46,20 @@ export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-[16px] font-display font-semibold text-foreground">
-              Proyección de Flujo de Caja
+              {t("cashflow.title")}
             </h3>
             {isCritical ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive text-[11px] font-semibold">
-                <AlertTriangle className="w-3 h-3" /> Riesgo de Déficit
+                <AlertTriangle className="w-3 h-3" /> {t("cashflow.deficitRisk")}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[11px] font-semibold">
-                <ShieldCheck className="w-3 h-3" /> Liquidez Saludable
+                <ShieldCheck className="w-3 h-3" /> {t("cashflow.healthyLiquidity")}
               </span>
             )}
           </div>
           <p className="text-[12px] text-muted-foreground mt-0.5">
-            Estimación día a día combinando saldo líquido, cuotas, recurrentes y facturas.
+            {t("cashflow.subtitle")}
           </p>
         </div>
 
@@ -83,14 +84,14 @@ export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }
       {/* Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <div className="p-2.5 bg-secondary/40 rounded-xl">
-          <span className="text-[11px] text-muted-foreground block">Saldo Inicial Líquido</span>
+          <span className="text-[11px] text-muted-foreground block">{t("cashflow.startingBalance")}</span>
           <span className="font-mono-data text-[15px] font-semibold text-foreground">
             {formatAmount(forecast.startingBalance)}
           </span>
         </div>
 
         <div className="p-2.5 bg-secondary/40 rounded-xl">
-          <span className="text-[11px] text-muted-foreground block">Mínimo Proyectado</span>
+          <span className="text-[11px] text-muted-foreground block">{t("cashflow.minProjected")}</span>
           <span
             className={`font-mono-data text-[15px] font-semibold ${
               minBalance < 0 ? "text-destructive" : "text-foreground"
@@ -101,14 +102,14 @@ export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }
         </div>
 
         <div className="p-2.5 bg-secondary/40 rounded-xl">
-          <span className="text-[11px] text-muted-foreground block">Ingresos Esperados</span>
+          <span className="text-[11px] text-muted-foreground block">{t("cashflow.expectedIncome")}</span>
           <span className="font-mono-data text-[15px] font-semibold text-emerald-400">
             +{formatAmount(forecast.totalIncomeExpected)}
           </span>
         </div>
 
         <div className="p-2.5 bg-secondary/40 rounded-xl">
-          <span className="text-[11px] text-muted-foreground block">Egresos Comprometidos</span>
+          <span className="text-[11px] text-muted-foreground block">{t("cashflow.committedExpenses")}</span>
           <span className="font-mono-data text-[15px] font-semibold text-foreground">
             -{formatAmount(forecast.totalExpensesExpected)}
           </span>
@@ -162,7 +163,7 @@ export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }
                   <div className="bg-popover/95 border border-border p-2.5 rounded-xl shadow-xl text-xs space-y-1 backdrop-blur-md">
                     <span className="font-semibold text-foreground block">{pt.date}</span>
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-muted-foreground">Saldo estimado:</span>
+                      <span className="text-muted-foreground">{t("cashflow.estimatedBalance")}</span>
                       <span
                         className={`font-mono-data font-bold ${
                           pt.balance < 0 ? "text-destructive" : "text-emerald-400"
@@ -211,14 +212,14 @@ export function CashFlowForecast({ accounts, transactions, recurringTxs, bills }
           onClick={() => setShowSim((prev) => !prev)}
           className="text-[12px] text-primary hover:underline font-medium flex items-center gap-1"
         >
-          {showSim ? "Ocultar Simulador de Compra" : "Simular impacto de un gasto futuro..."}
+          {showSim ? t("cashflow.hideSimulator") : t("cashflow.showSimulator")}
         </button>
 
         {showSim && (
           <div className="flex items-center gap-2">
             <div className="w-32">
               <MoneyInput
-                placeholder="Monto"
+                placeholder={t("cashflow.amountPlaceholder")}
                 value={simulatedAmount}
                 onChange={(val) => setSimulatedAmount(val)}
                 className="h-8 text-[12px]"

@@ -147,8 +147,8 @@ export function TransactionEditSheet({
             }
           }}
           className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 transition-all"
-          title="Duplicar movimiento"
-          aria-label="Duplicar movimiento"
+          title={t("txedit.duplicateLabel")}
+          aria-label={t("txedit.duplicateLabel")}
         >
           <Copy className="w-4 h-4" />
         </button>
@@ -161,8 +161,8 @@ export function TransactionEditSheet({
             ? "bg-destructive/15 text-destructive"
             : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
         }`}
-        title="Eliminar movimiento"
-        aria-label="Eliminar movimiento"
+        title={t("txedit.deleteLabel")}
+        aria-label={t("txedit.deleteLabel")}
       >
         <Trash2 className="w-4 h-4" />
       </button>
@@ -289,7 +289,7 @@ export function TransactionEditSheet({
                           ? "bg-primary text-primary-foreground shadow-xs"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
-                      title={`Moneda: ${c.value}`}
+                      title={`${t("txedit.currencyTitle").replace("{currency}", c.value)}`}
                     >
                       {c.value}
                     </button>
@@ -315,7 +315,7 @@ export function TransactionEditSheet({
               {currentAccount && (
                 <span className="text-[11px] font-mono-data text-muted-foreground mt-1.5 flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${currentAccount.color}`} />
-                  Cuenta: {currentAccount.name} ({currentAccount.currency || "ARS"})
+                  {t("txedit.balanceLabel").replace("{symbol}", currencySymbol).replace("{balance}", currentAccount.balance.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }))}
                 </span>
               )}
             </div>
@@ -330,15 +330,15 @@ export function TransactionEditSheet({
                     </div>
                     <div>
                       <span className="text-[13px] font-semibold text-foreground block">
-                        Compra en Cuotas
+                        {t("txedit.installmentTitle")}
                       </span>
                       <span className="text-[11px] text-muted-foreground font-mono-data">
-                        Cuota {transaction.installmentInfo.current} de {transaction.installmentInfo.total}
+                        {t("txedit.installmentSubtitle").replace("{current}", String(transaction.installmentInfo.current)).replace("{total}", String(transaction.installmentInfo.total))}
                       </span>
                     </div>
                   </div>
                   <span className="font-mono-data text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                    {Math.round((transaction.installmentInfo.current / transaction.installmentInfo.total) * 100)}% pagado
+                    {Math.round((transaction.installmentInfo.current / transaction.installmentInfo.total) * 100)}{t("txedit.installmentPaid")}
                   </span>
                 </div>
 
@@ -350,8 +350,8 @@ export function TransactionEditSheet({
                 </div>
 
                 <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-1 border-t border-border/40 font-mono-data">
-                  <span>Total del plan: <strong className="text-foreground">{transaction.installmentInfo.total} cuotas</strong></span>
-                  <span>Restantes: <strong className="text-foreground">{Math.max(0, transaction.installmentInfo.total - transaction.installmentInfo.current)} cuotas</strong></span>
+                  <span>{t("txedit.installmentPlanTotal").replace("{total}", String(transaction.installmentInfo.total))}</span>
+                  <span>{t("txedit.installmentRemaining").replace("{remaining}", String(Math.max(0, transaction.installmentInfo.total - transaction.installmentInfo.current)))}</span>
                 </div>
               </div>
             )}
@@ -366,7 +366,7 @@ export function TransactionEditSheet({
                   type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Detalle o nota (ej. Almuerzo de trabajo)"
+                  placeholder={t("txedit.descPlaceholder")}
                   className="w-full h-11 px-3.5 rounded-xl bg-secondary/40 border border-border/60 text-foreground text-[14px] placeholder:text-muted-foreground/60 focus:border-primary/60 focus:bg-secondary/60 outline-none transition-all"
                 />
               </div>
@@ -435,7 +435,7 @@ export function TransactionEditSheet({
                 </label>
                 {currentAccount && (
                   <span className="text-[11px] text-muted-foreground font-mono-data">
-                    Saldo: {currencySymbol} {currentAccount.balance.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    {t("txedit.balanceLabel").replace("{symbol}", currencySymbol).replace("{balance}", currentAccount.balance.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }))}
                   </span>
                 )}
               </div>
@@ -467,7 +467,7 @@ export function TransactionEditSheet({
             {/* COMPROBANTE / RECIBO (MICRO-CARD ELEGANTE) */}
             <div className="p-3 rounded-2xl bg-secondary/20 border border-border/40 space-y-2">
               <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider block font-display">
-                Comprobante / Ticket
+                {t("txedit.receiptSection")}
               </span>
               {receiptUrl ? (
                 <div className="flex items-center justify-between gap-3 bg-card p-2.5 rounded-xl border border-border/60 shadow-2xs">
@@ -478,7 +478,7 @@ export function TransactionEditSheet({
                     className="flex items-center gap-2 text-xs text-primary hover:underline truncate"
                   >
                     <FileText className="w-4 h-4 shrink-0 text-primary" />
-                    <span className="truncate font-medium">Ver comprobante adjunto</span>
+                    <span className="truncate font-medium">{t("txedit.viewReceipt")}</span>
                   </a>
                   <button
                     type="button"
@@ -487,8 +487,8 @@ export function TransactionEditSheet({
                       setReceiptUrl(undefined);
                     }}
                     className="p-1 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
-                    title="Quitar archivo"
-                    aria-label="Quitar archivo"
+                    title={t("txedit.removeFile")}
+                    aria-label={t("txedit.removeFile")}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -498,12 +498,12 @@ export function TransactionEditSheet({
                   {uploadingReceipt ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                      <span className="font-medium text-foreground">Subiendo archivo...</span>
+                      <span className="font-medium text-foreground">{t("txedit.uploadingReceipt")}</span>
                     </>
                   ) : (
                     <>
                       <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="font-medium">Adjuntar foto o factura</span>
+                      <span className="font-medium">{t("txedit.attachReceipt")}</span>
                     </>
                   )}
                   <input

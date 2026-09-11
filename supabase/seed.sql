@@ -268,17 +268,42 @@ BEGIN
   -- ---------------------------------------------------------------------------
   -- 6. REGLAS DE CATEGORIZACIÓN (Transaction Rules)
   -- ---------------------------------------------------------------------------
+  -- 6. REGLAS DE TRANSACCIONES (Motor declarativo de automatizaciones)
+  -- ---------------------------------------------------------------------------
   INSERT INTO public.transaction_rules (id, user_id, name, is_active, priority, conditions, actions, created_at)
   VALUES
     (
+      'rule-salary-' || p_user_id,
+      p_user_id,
+      'Sueldos y Haberes Laborales',
+      true,
+      100,
+      jsonb_build_array(
+        jsonb_build_object('field', 'description', 'operator', 'contains_any', 'value', 'sueldo, haberes, remuneracion, honorarios, sueldos op.')
+      ),
+      jsonb_build_object('setCategoryId', v_cat_salary, 'setType', 'income'),
+      now() - interval '25 days'
+    ),
+    (
+      'rule-invest-' || p_user_id,
+      p_user_id,
+      'Intereses y Rendimientos',
+      true,
+      95,
+      jsonb_build_array(
+        jsonb_build_object('field', 'description', 'operator', 'contains_any', 'value', 'interes, intereses ganados, rendimiento, plazo fijo')
+      ),
+      jsonb_build_object('setCategoryId', v_cat_investments, 'setType', 'income'),
+      now() - interval '24 days'
+    ),
+    (
       'rule-coto-' || p_user_id,
       p_user_id,
-      'Auto-categorizar Coto & Carrefour',
+      'Supermercados Coto, Carrefour & Día',
       true,
-      10,
+      90,
       jsonb_build_array(
-        jsonb_build_object('field', 'description', 'operator', 'contains', 'value', 'coto'),
-        jsonb_build_object('field', 'description', 'operator', 'contains', 'value', 'carrefour')
+        jsonb_build_object('field', 'description', 'operator', 'contains_any', 'value', 'coto, carrefour, dia %, jumbo, disco, vea')
       ),
       jsonb_build_object('setCategoryId', v_sub_super, 'addTags', jsonb_build_array(v_tag_super)),
       now() - interval '20 days'
@@ -288,11 +313,11 @@ BEGIN
       p_user_id,
       'Combustible YPF / Shell',
       true,
-      8,
+      85,
       jsonb_build_array(
-        jsonb_build_object('field', 'description', 'operator', 'contains', 'value', 'ypf')
+        jsonb_build_object('field', 'description', 'operator', 'contains_any', 'value', 'ypf, shell, axion, puma energy')
       ),
-      jsonb_build_object('setCategoryId', v_sub_fuel, 'cleanDescription', 'YPF Combustible'),
+      jsonb_build_object('setCategoryId', v_sub_fuel, 'cleanDescription', 'Combustible'),
       now() - interval '18 days'
     ),
     (
@@ -300,12 +325,24 @@ BEGIN
       p_user_id,
       'Viajes en Uber / Cabify',
       true,
-      5,
+      80,
       jsonb_build_array(
-        jsonb_build_object('field', 'description', 'operator', 'contains', 'value', 'uber')
+        jsonb_build_object('field', 'description', 'operator', 'contains_any', 'value', 'uber, cabify, didi')
       ),
       jsonb_build_object('setCategoryId', v_sub_rides),
       now() - interval '15 days'
+    ),
+    (
+      'rule-card-pay-' || p_user_id,
+      p_user_id,
+      'Pagos de Resumen de Tarjeta',
+      true,
+      75,
+      jsonb_build_array(
+        jsonb_build_object('field', 'description', 'operator', 'contains_any', 'value', 'pago de tarjeta, pago tarjeta, pago visa, pago mastercard, su pago en pesos')
+      ),
+      jsonb_build_object('setIsCardPayment', true, 'cleanDescription', 'Pago de Resumen de Tarjeta'),
+      now() - interval '10 days'
     );
 
   -- ---------------------------------------------------------------------------

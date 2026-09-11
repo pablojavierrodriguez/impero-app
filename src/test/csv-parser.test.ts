@@ -239,4 +239,106 @@ describe("csv-parser module", () => {
       })
     ).toBe(true);
   });
+
+  it("applies declarative rules in rowsToTransactions with real UUID categories", () => {
+    const userCategories = [
+      { id: "uuid-salary-1234", name: "Sueldos & Honorarios", color: "bg-emerald-500", type: "income" as const },
+      { id: "uuid-groceries-5678", name: "Supermercado", color: "bg-orange-500", type: "expense" as const },
+    ];
+
+    const rules = [
+      {
+        id: "rule-salary",
+        name: "Sueldo",
+        isActive: true,
+        priority: 10,
+        conditions: [
+          { field: "description" as const, operator: "contains_any" as const, value: "sueldos op, haberes" },
+        ],
+        actions: {
+          setCategoryId: "uuid-salary-1234",
+          setType: "income" as const,
+        },
+        createdAt: new Date(),
+      },
+    ];
+
+    const rows = [
+      { Fecha: "01/09/2026", Concepto: "SUELDOS OP.4033741", Importe: "4105530,00" },
+      { Fecha: "02/09/2026", Concepto: "COTO SUCURSAL 12", Importe: "-15000,00" },
+    ];
+
+    const mapping = {
+      date: "Fecha",
+      description: "Concepto",
+      amount: "Importe",
+      type: "",
+    };
+
+    const txs = rowsToTransactions(rows, mapping, "acc-bank", userCategories, "ARS", rules);
+    expect(txs[0].category.id).toBe("uuid-salary-1234");
+    expect(txs[0].category.name).toBe("Sueldos & Honorarios");
+    expect(txs[0].type).toBe("income");
+    expect(txs[0].amount).toBe(4105530);
+
+    expect(txs[1].category.id).toBe("uuid-groceries-5678");
+    expect(txs[1].type).toBe("expense");
+  });
+
+  it("classifies 'INTERESES GANADOS' as income category and NEVER as an expense category like Alimentación", () => {
+    const userCategories = [
+      { id: "cat-food", name: "Alimentación", color: "bg-orange-500", type: "expense" as const },
+      { id: "cat-invest", name: "Rendimientos & Inversiones", color: "bg-cyan-500", type: "income" as const },
+      { id: "cat-salary", name: "Sueldos", color: "bg-emerald-500", type: "income" as const },
+    ];
+
+    // 1. Test unitario directo de guessCategory con type === "income"
+    const guessed = guessCategory("INTERESES GANADOS CA$ 339-630726/9", userCategories, "income");
+    expect(guessed.type).toBe("income");
+    expect(guessed.id).toBe("cat-invest");
+    expect(guessed.name).toBe("Rendimientos & Inversiones");
+
+    // 2. Test en rowsToTransactions con extracto de banco BBVA (Débito vacío, Crédito con monto)
+    const bbvaRows = [
+      {
+        Fecha: "28/08/2026",
+        Concepto: "INTERESES GANADOS CA$ 339-630726/9",
+        Comprobante: "00000000",
+        "Débito": "",
+        "Crédito": "450,25",
+        Saldo: "150450,25",
+      },
+    ];
+
+    const bbvaMapping = {
+      date: "Fecha",
+      description: "Concepto",
+      amount: "",
+      debit: "Débito",
+      credit: "Crédito",
+      type: "",
+    };
+
+    const parsed = rowsToTransactions(bbvaRows, bbvaMapping, "acc-bbva", userCategories, "ARS", []);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].type).toBe("income");
+    expect(parsed[0].amount).toBe(450.25);
+    expect(parsed[0].category.type).toBe("income");
+    expect(parsed[0].category.id).toBe("cat-invest");
+    expect(parsed[0].category.name).not.toBe("Alimentación");
+  });
+
+  it("guarantees income fallback never defaults to an expense category", () => {
+    const userCategories = [
+      { id: "cat-food", name: "Alimentación", color: "bg-orange-500", type: "expense" as const },
+      { id: "cat-transport", name: "Transporte", color: "bg-sky-500", type: "expense" as const },
+      { id: "cat-other-inc", name: "Otros Ingresos", color: "bg-emerald-500", type: "income" as const },
+    ];
+
+    // Transacción de ingreso con concepto no reconocido
+    const guessed = guessCategory("CONCEPTO DESCONOCIDO POSITIVO", userCategories, "income");
+    expect(guessed.type).toBe("income");
+    expect(guessed.name).toBe("Otros Ingresos");
+    expect(guessed.name).not.toBe("Alimentación");
+  });
 });

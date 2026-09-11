@@ -2,9 +2,15 @@ import { useState, useMemo } from "react";
 import { useSettings } from "@/lib/settings-store";
 import { Transaction, Account, Category } from "@/lib/types";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
-import { TrendingUp, TrendingDown, Download, PiggyBank, Calendar } from "lucide-react";
-import { generateTransactionsCsv, downloadCsvFile } from "@/lib/export-utils";
+import { TrendingUp, TrendingDown, Download, PiggyBank, Calendar, FileSpreadsheet, FileText, ChevronDown } from "lucide-react";
+import { generateTransactionsCsv, downloadCsvFile, generateTransactionsExcel, downloadExcelFile } from "@/lib/export-utils";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { CashFlowForecast } from "./CashFlowForecast";
 import { RecurringTransaction, BillReminder } from "@/lib/types";
@@ -88,20 +94,36 @@ export function ReportsPage({
     balance: m.income - m.expenses,
   }));
 
-  // Exportar a CSV
+  const getAccountsMap = () => {
+    return accounts.reduce<Record<string, string>>((acc, a) => {
+      acc[a.id] = a.name;
+      return acc;
+    }, {});
+  };
+
+  // Exportar a Excel (.xlsx)
+  const handleExportExcel = () => {
+    try {
+      const accountsMap = getAccountsMap();
+      const excelBuffer = generateTransactionsExcel(filteredTransactions, accountsMap);
+      const filename = `impero_transacciones_${dateRange}_${new Date().toISOString().split("T")[0]}.xlsx`;
+      downloadExcelFile(excelBuffer, filename);
+      toast.success(t("report.exportSuccessExcel"));
+    } catch {
+      toast.error(t("report.exportErrorExcel"));
+    }
+  };
+
+  // Exportar a CSV (.csv)
   const handleExportCsv = () => {
     try {
-      const accountsMap = accounts.reduce<Record<string, string>>((acc, a) => {
-        acc[a.id] = a.name;
-        return acc;
-      }, {});
-
+      const accountsMap = getAccountsMap();
       const csvContent = generateTransactionsCsv(filteredTransactions, accountsMap);
       const filename = `impero_transacciones_${dateRange}_${new Date().toISOString().split("T")[0]}.csv`;
       downloadCsvFile(csvContent, filename);
-      toast.success(t("report.exportSuccess"));
+      toast.success(t("report.exportSuccessCsv"));
     } catch {
-      toast.error("Error al generar el archivo de exportación.");
+      toast.error(t("report.exportErrorCsv"));
     }
   };
 
@@ -113,15 +135,42 @@ export function ReportsPage({
           <h1 className="text-[20px] font-display font-semibold text-foreground">{t("report.title")}</h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">{t("report.subtitle")}</p>
         </div>
-        <Button
-          onClick={handleExportCsv}
-          variant="outline"
-          size="sm"
-          className="h-9 gap-1.5 self-start sm:self-auto border-border text-foreground hover:bg-secondary active:scale-95 transition-all text-[12px]"
-        >
-          <Download className="w-3.5 h-3.5 text-primary" />
-          <span>{t("report.exportCsv")}</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 self-start sm:self-auto border-border text-foreground hover:bg-secondary active:scale-95 transition-all text-[12px] font-medium"
+              aria-label={t("report.exportCsv")}
+            >
+              <Download className="w-3.5 h-3.5 text-primary" />
+              <span>{t("report.export") || "Exportar"}</span>
+              <ChevronDown className="w-3 h-3 text-muted-foreground ml-0.5 opacity-70" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuItem
+              onClick={handleExportExcel}
+              className="gap-2.5 cursor-pointer text-xs py-2"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+              <div className="flex flex-col">
+                <span className="font-medium text-foreground">Excel (.xlsx)</span>
+                <span className="text-[10px] text-muted-foreground">{t("reports.exportXlsxDesc")}</span>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleExportCsv}
+              className="gap-2.5 cursor-pointer text-xs py-2"
+            >
+              <FileText className="w-4 h-4 text-sky-500" />
+              <div className="flex flex-col">
+                <span className="font-medium text-foreground">CSV (.csv)</span>
+                <span className="text-[10px] text-muted-foreground">{t("reports.exportCsvDesc")}</span>
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Date Range Selector */}

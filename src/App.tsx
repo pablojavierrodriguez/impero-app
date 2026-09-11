@@ -12,6 +12,7 @@ import LandingPage from "./pages/Landing.tsx";
 import { SettingsProvider, useSettings } from "@/lib/settings-store";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { PrivacyProvider } from "@/contexts/PrivacyContext";
+import { BiometricLockOverlay } from "@/components/BiometricLockOverlay";
 
 const queryClient = new QueryClient();
 
@@ -127,6 +128,7 @@ const App = () => (
             <TooltipProvider>
               <Toaster />
               <Sonner />
+              <BiometricLockOverlay />
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <AppRoutes />
               </BrowserRouter>

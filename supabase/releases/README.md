@@ -22,8 +22,8 @@ supabase/
 ├── releases/                                   ← Resúmenes consolidados por versión de producto
 │   ├── release_v1.0.0_core_foundation.sql
 │   └── release_v1.1.0_ai_whatsapp_and_multicurrency.sql
-└── snippets/                                   ← Queries ad-hoc de Studio (no son migraciones)
-    └── deltas/                                 ← Deltas históricos aplicados manualmente (referencia)
+└── snippets/                                   ← Scripts utilitarios puntuales (no son migraciones)
+    └── README.md
 ```
 
 ---

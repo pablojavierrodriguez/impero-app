@@ -2,6 +2,71 @@
 
 ---
 
+## [Unreleased] — En Desarrollo (Próxima Versión)
+
+### 🎯 Resumen
+Próximos desarrollos de producto y mejoras continuas.
+
+### ✨ Nuevas Funcionalidades y Mejoras
+- Ningún cambio registrado aún.
+
+---
+
+## [0.3.0] — 2026-09-11 🚀 Motor Offline-First Global, Internacionalización Bilingüe (ES/EN) y Fluidez Háptica
+
+### 🎯 Resumen
+Consolidación de capacidades de resiliencia y experiencia de usuario de clase mundial: internacionalización completa (ES / EN) de punta a punta con erradicación total de textos hardcodeados; resiliencia offline-first con sincronización diferida en listas de compras; seguridad biométrica WebAuthn con bloqueo por inactividad; buscador omnicanal global (`⌘K`); sistema completo de atajos de teclado (`?`); transiciones cinemáticas de vistas a 60 FPS (`Framer Motion`); gesto nativo de Pull-to-Refresh móvil con respuesta háptica; sparklines de tendencia acumulada en métricas del dashboard; y centro de novedades in-app.
+
+### ✨ Nuevas Funcionalidades y Mejoras
+
+#### 🌐 Internacionalización Integral y Paridad Estricta (ES / EN)
+- **Localización Completa y Erradicación de Textos en Bruto (`i18n.ts`, Vistas, Componentes y Stores):**
+  - Expansión del diccionario bilingüe a **1.105 claves idénticas** con 100% de paridad estricta, 0 claves huérfanas y validación automatizada (`scripts/check-i18n.cjs`).
+  - Cobertura integral en vistas críticas: flujos de autenticación, recuperación de credenciales, perfil de usuario, conciliación y ciclos de tarjetas de crédito, importación asistida de extractos bancarios y compromisos periódicos.
+  - Filtros temporales dinámicos (*Hoy*, *Esta semana*, *Este mes*, *Próximos 30 días*, *Mes anterior*, *Este año*) y prefijos contextuales localizados automáticamente según el idioma de la sesión.
+  - Notificaciones reactivas (`sonner`) disparadas desde el gestor de persistencia y cola de sincronización completamente internacionalizadas.
+
+#### 🛡️ Seguridad y Privacidad
+- **Bloqueo Biométrico WebAuthn (`PrivacyContext`, `webauthn-guard` & `BiometricLockOverlay`):**
+  - Autenticación táctil/facial nativa en hardware compatible (TouchID, FaceID, PIN de dispositivo).
+  - Bloqueo automático por inactividad configurable (1, 5, 15, 30 min) y protección ante cambio de pestaña o suspensión (`visibilitychange`).
+
+#### 🛒 Resiliencia Offline-First
+- **Motor Global de Sincronización Offline & Outbox Pattern (`sync-queue.service`, `finance-store` & `BalanceHeader`):**
+  - Carga instantánea a 0ms (Stale-While-Revalidate) de todas las entidades de dominio (cuentas, categorías, transacciones, presupuestos, metas, facturas, transacciones recurrentes, etiquetas y reglas) desde caché local antes de cualquier consulta remota.
+  - Generación de identificadores universales UUID v4 del lado cliente (`crypto.randomUUID()`), garantizando inserciones inmediatas, relaciones foráneas íntegras en memoria y persistencia idempotente (`upsert` con `onConflict: "id"`).
+  - Eliminación de rollbacks destructivos en toda la aplicación: ante caídas de red o conexión inestable, las operaciones se persisten localmente y se acumulan en la cola de sincronización diferida (`impero-global-sync-queue`).
+  - Drenado automático y secuencial (FIFO) de la cola con reintentos ordenados al detectar reconexión (`window.ononline`) y botón manual de sincronización con chip visual interactivo en la cabecera (`BalanceHeader`).
+- **Caché Local Instantáneo & Cola Diferida en Listas de Compras (`ShoppingListManager` & `shopping.service`):**
+  - Hidratación instantánea (0ms) de listas de compras desde almacenamiento local antes de cualquier llamada remota.
+  - Cola de sincronización transparente que acumula mutaciones en modo desconectado y las despacha automáticamente al recuperar conectividad (`window.ononline`).
+  - Chip de estado en cabecera indicando sincronización al día o cantidad de operaciones pendientes.
+- **Ciclo de Vida Completo y UX Unificada en Listas de Compras (`ShoppingListManager`):**
+  - Acceso a listas archivadas mediante ícono discreto condicional en cabecera (patrón homogéneo con Cuentas y Categorías).
+  - Archivación y reactivación fluida desde el menú contextual (`MoreVertical`), sin recargar visualmente la interfaz ni interferir con la acción primaria de compra.
+  - Eliminación sin bloqueos de cualquier lista (incluidas listas vacías) con confirmación destructiva segura en `AlertDialog`.
+  - Renombrado de listas y edición en línea de nombre, cantidad y precio unitario de artículos.
+
+#### ⚡ Ergonomía y Navegación Power-User
+- **Buscador Omnicanal Global (`GlobalCommandMenu` con `⌘K` / `Ctrl+K`):**
+  - Búsqueda en vivo de transacciones, cuentas bancarias con saldo y salto directo a cualquier vista.
+  - Accesible mediante atajo de teclado global, trigger en barra lateral desktop y cabecera en versión móvil.
+- **Atajos de Teclado Globales & Cheat Sheet Modal (`KeyboardShortcutsModal` con tecla `?`):**
+  - Panel de referencia rápida con secuencias de navegación `G + [D/T/C/B/S/R/A/O/P]` y acciones globales `N` (nueva transacción) y `H` (modo privacidad).
+  - Inmunidad inteligente de foco: no interfiere con el tipeo en inputs, textareas o selects.
+- **Pull-To-Refresh Móvil con Respuesta Háptica (`PullToRefresh`):**
+  - Gesto de arrastre elástico descendente en dispositivos táctiles con confirmación sensorial háptica (`navigator.vibrate`) y actualización instantánea en segundo plano de balances, cuentas y cola de sincronización.
+
+#### 📊 Micro-Visualización y Estética Financiera
+- **Transiciones Cinemáticas de Vistas (`PageTransition` con `Framer Motion`):**
+  - Navegación fluida y sin saltos ("layout snap") a 60 FPS con curva orgánica `easeOut` entre pestañas del sistema, con detección y respeto automático a preferencias de accesibilidad (`prefers-reduced-motion`).
+- **Sparklines de Tendencia en Dashboard (`DashboardSparkline` & `BalanceHeader`):**
+  - Curvas de trayectoria acumulada diaria para Ingresos, Gastos y Resultado Neto ($\Delta$) embebidas con opacidad calibrada en las cápsulas de métricas.
+- **Centro de Novedades In-App (`ReleaseNotesModal`):**
+  - Modal interactivo con highlights del release, apertura controlada por versión vista en `localStorage` y accesos directos en barra lateral y ajustes.
+
+---
+
 ## [0.2.0] — 2026-09-10 🚀 Sincronización Cloud, Ingestión Masiva de Extractos y Navegación PWA
 
 ### 🎯 Resumen

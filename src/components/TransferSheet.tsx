@@ -148,14 +148,14 @@ export function TransferSheet({ open, onClose, accounts, onTransfer }: TransferS
             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1">
                 <RefreshCw className="w-3 h-3 text-primary animate-spin-slow" />
-                Conversión Bimonetaria ({fromCurr} → {toCurr})
+                {t("transfer.bimonetaryConversion")} ({fromCurr} → {toCurr})
               </span>
-              <span>Tasa implícita</span>
+              <span>{t("transfer.implicitRate")}</span>
             </div>
 
             <div>
               <label className="text-[11px] text-muted-foreground block mb-1">
-                Monto a Acreditar en {toAccount?.name} ({toCurr})
+                {t("transfer.amountToCredit").replace("{account}", toAccount?.name || "").replace("{currency}", toCurr)}
               </label>
               <input
                 type="text"

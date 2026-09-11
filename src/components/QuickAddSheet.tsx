@@ -236,7 +236,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
             }`}>
               <div className="flex items-center justify-between px-3 mb-1">
                 <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                  {type === "expense" ? "Salida de dinero" : "Entrada de dinero"}
+                  {type === "expense" ? t("quickadd.moneyOut") : t("quickadd.moneyIn")}
                 </span>
                 {/* Selector táctil de divisa para el gasto */}
                 <div className="flex items-center gap-0.5 bg-background/60 p-0.5 rounded-full border border-border/40">
@@ -253,7 +253,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
                           ? "bg-primary text-primary-foreground shadow-xs"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
-                      title={`Registrar en ${c.value}`}
+                      title={t("quickadd.registerIn").replace("{currency}", c.value)}
                     >
                       {c.value}
                     </button>
@@ -341,16 +341,16 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[12px] text-muted-foreground font-medium flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-primary" />
-                  Fecha del {type === "expense" ? "gasto" : "ingreso"}
+                  {t("quickadd.dateLabel").replace("{type}", type === "expense" ? t("quickadd.expense_type") : t("quickadd.income_type"))}
                 </span>
                 <span className="text-[11px] font-mono-data text-muted-foreground">
                   {formDate === format(new Date(), "yyyy-MM-dd")
-                    ? "Hoy"
+                    ? t("quickadd.today")
                     : formDate === format(addDays(new Date(), 1), "yyyy-MM-dd")
-                    ? "Mañana (Programado)"
+                    ? t("quickadd.scheduledTomorrow")
                     : formDate > format(new Date(), "yyyy-MM-dd")
-                    ? "Programado"
-                    : "Fecha pasada"}
+                    ? t("quickadd.programmed")
+                    : t("quickadd.pastDate")}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -366,7 +366,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
                       : "bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
                   }`}
                 >
-                  Hoy
+                  {t("quickadd.today")}
                 </button>
                 <button
                   type="button"
@@ -380,7 +380,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
                       : "bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
                   }`}
                 >
-                  Mañana
+                  {t("quickadd.tomorrow")}
                 </button>
                 <div className="relative flex-1 min-w-[130px]">
                   <input
@@ -474,7 +474,7 @@ export function QuickAddSheet({ open, onClose, onSubmit, accounts, categories, t
                           : "bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
                       }`}
                     >
-                      {n === 1 ? "1 pago" : `${n} cuotas`}
+                      {n === 1 ? t("quickadd.oncePayment") : t("quickadd.installmentCount").replace("{n}", String(n))}
                     </button>
                   ))}
                 </div>

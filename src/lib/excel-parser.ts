@@ -7,7 +7,9 @@ export interface ParsedExcelSheet {
   rows: CsvRow[];
   metadata?: {
     accountInfo?: string;
-    detectedType?: "santander" | "generic_card" | "generic";
+    detectedType?: "bbva" | "generic_card" | "generic";
+    accountNumber?: string;
+    accountType?: "savings" | "checking" | "credit";
   };
 }
 
@@ -52,8 +54,10 @@ export function parseExcelBuffer(buffer: ArrayBuffer): ParsedExcelSheet[] {
     if (rawData.length === 0) continue;
 
     let accountInfo = "";
+    let accountNumber = "";
+    let detectedAccountType: "savings" | "checking" | "credit" | undefined;
     let headerRowIdx = -1;
-    let detectedType: "santander" | "generic_card" | "generic" = "generic";
+    let detectedType: "bbva" | "generic_card" | "generic" = "generic";
 
     // 1. Escanear primeras 15 filas para detectar metadatos y la fila de encabezados real
     for (let i = 0; i < Math.min(rawData.length, 15); i++) {
@@ -62,14 +66,29 @@ export function parseExcelBuffer(buffer: ArrayBuffer): ParsedExcelSheet[] {
 
       const rowText = row.map(formatCellValue).join(" ").toLowerCase();
 
-      // Chequeo de Santander (ej: "detalle de movimientos de cuenta: ca 399-630726/9")
-      if (rowText.includes("detalle de movimientos") || rowText.includes("339-") || rowText.includes("ca ") || rowText.includes("banca online")) {
+      // Extracción de número de cuenta si existe (ej: 339-630726/9)
+      const accMatch = rowText.match(/\b(\d{3}[-\s]\d{5,8}[\/\-]?\d?)\b/);
+      if (accMatch && !accountNumber) {
+        accountNumber = accMatch[1].replace(/\s/g, "-");
+      }
+
+      if (rowText.includes("ca$") || rowText.includes("caja de ahorro") || rowText.includes("ca ")) {
+        detectedAccountType = "savings";
+      } else if (rowText.includes("cc$") || rowText.includes("cuenta corriente")) {
+        detectedAccountType = "checking";
+      }
+
+      // Chequeo de BBVA (ej: "detalle de movimientos de cuenta: ca$ 339-630726/9" o mención a BBVA / Datanet)
+      if (
+        rowText.includes("bbva") ||
+        (rowText.includes("detalle de movimientos") && (rowText.includes("ca$") || rowText.includes("339-") || rowText.includes("datanet")))
+      ) {
         accountInfo = row.map(formatCellValue).filter(Boolean).join(" ");
-        detectedType = "santander";
+        detectedType = "bbva";
       }
 
       // Chequeo de Tarjeta con cuotas (ej: "últimos movimientos", "cuota", "movimientos")
-      if (rowText.includes("últimos movimientos") || rowText.includes("movimientos") && rowText.includes("cuota")) {
+      if (rowText.includes("últimos movimientos") || (rowText.includes("movimientos") && rowText.includes("cuota"))) {
         detectedType = "generic_card";
       }
 
@@ -142,6 +161,8 @@ export function parseExcelBuffer(buffer: ArrayBuffer): ParsedExcelSheet[] {
       metadata: {
         accountInfo,
         detectedType,
+        accountNumber,
+        accountType: detectedAccountType,
       },
     });
   }

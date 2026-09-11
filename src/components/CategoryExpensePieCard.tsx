@@ -283,16 +283,16 @@ export function CategoryExpensePieCard({
               <button
                 onClick={handleGoBack}
                 className="p-1 -ml-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary active:scale-95 transition-all flex items-center gap-1 text-[12px] font-medium"
-                title="Volver a todas las categorías"
+                title={t("category.backToAll")}
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>{t("common.back") || "Atrás"}</span>
+                <span>{t("common.back")}</span>
               </button>
             ) : (
               <div className="flex items-center gap-1.5">
                 <PieIcon className="w-4 h-4 text-primary" />
                 <h3 className="text-[13px] font-medium text-foreground">
-                  {title || t("report.topCategories") || "Gastos por Categoría"}
+                  {title || t("report.topCategories")}
                 </h3>
               </div>
             )}
@@ -384,13 +384,13 @@ export function CategoryExpensePieCard({
                     className="flex flex-col items-center max-w-[110px]"
                   >
                     <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                      {activeParent ? "Total Categoría" : "Total Gastos"}
+                      {activeParent ? (t("pie.totalCategory") || "Total Categoría") : (t("pie.totalExpenses") || "Total Gastos")}
                     </span>
                     <span className="text-[14px] font-bold font-mono-data text-foreground leading-tight mt-0.5">
                       {formatAmount(currentTotalAmount)}
                     </span>
                     <span className="text-[10px] text-muted-foreground/80 mt-0.5">
-                      {currentPieData.length} {currentPieData.length === 1 ? "rubro" : "rubros"}
+                      {currentPieData.length} {currentPieData.length === 1 ? (t("pie.item") || "rubro") : (t("pie.items") || "rubros")}
                     </span>
                   </motion.div>
                 )}
@@ -401,8 +401,8 @@ export function CategoryExpensePieCard({
           {/* Hint de navegación rápida si estamos en nivel raíz */}
           {!activeParent && (
             <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-2 px-1">
-              <span>Categoría</span>
-              <span>% Total / Monto</span>
+              <span>{t("pie.category") || "Categoría"}</span>
+              <span>{t("pie.totalPct") || "% Total / Monto"}</span>
             </div>
           )}
 
@@ -538,13 +538,13 @@ export function CategoryExpensePieCard({
                           className="overflow-hidden ml-7 mt-2 pl-3 border-l-2 border-border/50 space-y-1.5"
                         >
                           <div className="flex items-center justify-between text-[11px] text-muted-foreground pb-0.5 font-medium">
-                            <span>Subcategorías</span>
+                            <span>{t("pie.subcategories") || "Subcategorías"}</span>
                             <button
                               type="button"
                               onClick={() => handleDrillDown(cat.id)}
                               className="text-primary hover:underline flex items-center gap-0.5 text-[10px]"
                             >
-                              <span>Ver en torta</span>
+                              <span>{t("pie.viewInPie") || "Ver en torta"}</span>
                               <ChevronRight className="w-3 h-3" />
                             </button>
                           </div>
@@ -557,7 +557,7 @@ export function CategoryExpensePieCard({
                               </div>
                               <div className="flex items-center gap-2 font-mono-data text-[11px] shrink-0">
                                 <span className="text-muted-foreground">
-                                  {sub.percentageOfParent.toFixed(0)}% del rubro
+                                  {sub.percentageOfParent.toFixed(0)}% {t("pie.ofCategory") || "del rubro"}
                                 </span>
                                 <span className="text-foreground font-medium">
                                   {formatAmount(sub.amount)}

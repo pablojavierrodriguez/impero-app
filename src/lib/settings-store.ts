@@ -193,10 +193,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   return React.createElement(SettingsContext.Provider, { value }, children);
 }
 
+const fallbackTranslator = createTranslator("es");
+
+const fallbackSettingsContext: SettingsContextType = {
+  settings: DEFAULT_SETTINGS,
+  updateSettings: () => {},
+  toggleHomeSection: () => {},
+  reorderHomeSections: () => {},
+  resetHomeSections: () => {},
+  resetSettings: () => {},
+  currencySymbol: "$",
+  convertAmount: (a) => a,
+  formatAmount: (a) => a.toLocaleString("es-AR", { minimumFractionDigits: 2 }),
+  t: fallbackTranslator,
+  isSectionEnabled: () => true,
+  exchangeRates: DEFAULT_EXCHANGE_RATES,
+  updateExchangeRate: () => {},
+};
+
 export function useSettings(): SettingsContextType {
   const ctx = useContext(SettingsContext);
-  if (!ctx) throw new Error("useSettings must be used within SettingsProvider");
-  return ctx;
+  return ctx || fallbackSettingsContext;
 }
 
 export function useSettingsStore() {

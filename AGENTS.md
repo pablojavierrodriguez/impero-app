@@ -120,3 +120,16 @@
 - **RLS obligatorio:** Toda tabla en `public` debe tener Row Level Security activado.
 - **Funciones SECURITY DEFINER:** Siempre especificar `SET search_path = public, pg_temp`.
 - **Subqueries en Auth:** Envolver llamadas a funciones de auth en subqueries: `(select auth.uid())`.
+- **Taxonomía y Organización de `supabase/`:**
+  - `migrations/00000000000000_schema_foundation.sql`: **Única fuente de verdad** del esquema completo para desarrollo local e inicialización determinista (`supabase db reset`). Prohibido crear migraciones parche para el entorno local.
+  - `migrations/delta/YYYYMMDD_<nombre>.sql`: Deltas SQL idempotentes exclusivos para aplicar en Supabase Cloud / Producción.
+  - `migrations/archive/`: Migraciones históricas previas a la consolidación (solo referencia histórica, no se ejecutan).
+  - `seed.sql`: Datos semilla oficiales para desarrollo local.
+  - `releases/`: Snapshots y documentación de esquemas consolidados por versión de producto.
+  - `functions/`: Edge Functions en Deno (`Deno.serve`).
+  - `templates/`: Plantillas HTML oficiales de correos transaccionales y Auth.
+  - `snippets/`: Scripts utilitarios puntuales, nombrados y documentados (ej: `clear_seed_data.sql`).
+- **Higiene estricta de `supabase/`:**
+  - **Prohibido commitear `Untitled query *.sql`:** Si se usa Supabase Studio para consultas de prueba, cerrar o eliminar las pestañas temporales antes de cerrar la tarea. Si una consulta tiene valor recurrente, debe nombrarse y documentarse descriptivamente en `snippets/`.
+  - **Prohibido crear subcarpetas `deltas` en `snippets/`:** Todo delta para Cloud reside obligatoriamente en `supabase/migrations/delta/`.
+

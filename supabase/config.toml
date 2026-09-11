@@ -243,16 +243,38 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Customize email templates for IMPERO
+[auth.email.template.invite]
+subject = "🚀 Te damos la bienvenida a IMPERO"
+content_path = "./supabase/templates/invite.html"
 
-# Uncomment to customize notification email template
-# [auth.email.notification.password_changed]
-# enabled = true
-# subject = "Your password has been changed"
-# content_path = "./templates/password_changed_notification.html"
+[auth.email.template.confirmation]
+subject = "📩 Confirmá tu registro en IMPERO"
+content_path = "./supabase/templates/confirm_signup.html"
+
+[auth.email.template.recovery]
+subject = "🔑 Restablecer tu contraseña de IMPERO"
+content_path = "./supabase/templates/reset_password.html"
+
+[auth.email.template.magic_link]
+subject = "✨ Tu enlace de acceso a IMPERO"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "📫 Confirmación de cambio de correo electrónico — IMPERO"
+content_path = "./supabase/templates/change_email.html"
+
+# Customize notification email templates
+[auth.email.notification.email_changed]
+enabled = true
+subject = "📫 Tu correo en IMPERO ha sido actualizado"
+content_path = "./supabase/templates/email_changed_notification.html"
+
+[auth.email.notification.password_changed]
+enabled = true
+subject = "🔐 Tu contraseña de IMPERO ha sido cambiada"
+content_path = "./supabase/templates/password_changed_notification.html"
+
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.

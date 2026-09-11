@@ -9,6 +9,7 @@ import {
 import { Currency, DEFAULT_EXCHANGE_RATES } from "./settings-types";
 import { applyRulesToTransaction } from "./rules-engine";
 import { useAuth } from "./auth-context";
+import { useSettings } from "./settings-store";
 import { fetchAccounts, insertAccount, updateAccountRemote, deleteAccountRemote } from "@/services/accounts.service";
 import { fetchCategories, insertCategory, updateCategoryRemote, deleteCategoryRemote, seedDefaultCategoriesRemote } from "@/services/categories.service";
 import { fetchTransactions, insertTransaction, insertTransactionsBatch, updateTransactionRemote, deleteTransactionRemote, deleteTransactionsByGroupIdRemote } from "@/services/transactions.service";
@@ -19,7 +20,18 @@ import {
   fetchRecurringTransactions, insertRecurringTransaction, updateRecurringTransactionRemote, deleteRecurringTransactionRemote
 } from "@/services/planning.service";
 import { fetchTags, insertTag, updateTagRemote, deleteTagRemote } from "@/services/tags.service";
-import { fetchRules, insertRule, updateRuleRemote, deleteRuleRemote } from "@/services/rules.service";
+import { fetchRules, insertRule, insertRulesBatch, updateRuleRemote, deleteRuleRemote, createDefaultRulesTemplates } from "@/services/rules.service";
+import { purgeAllUserData as purgeUserDataService } from "@/services/user-data.service";
+
+import {
+  CACHE_KEYS,
+  getCachedData,
+  setCachedData,
+  enqueueGlobalSyncOp,
+  syncPendingGlobalQueue,
+  getPendingGlobalSyncCount,
+  generateUUID,
+} from "@/services/sync-queue.service";
 
 function loadJSON<T>(key: string, fallback: T): T {
   try {
@@ -47,16 +59,32 @@ function getNextDate(from: Date, freq: RecurrenceFrequency): Date {
 
 export function useFinanceStore() {
   const { user } = useAuth();
+  const { t } = useSettings();
   const now = new Date();
-  const [loading, setLoading] = useState(true);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [recurringTxs, setRecurringTxs] = useState<RecurringTransaction[]>([]);
-  const [bills, setBills] = useState<BillReminder[]>([]);
+
+  // Hidratación instantánea (0ms) desde caché local persistido
+  const initialAccounts = getCachedData<Account[]>(CACHE_KEYS.ACCOUNTS, []);
+  const initialCategories = getCachedData<Category[]>(CACHE_KEYS.CATEGORIES, []);
+  const initialBudgets = getCachedData<Budget[]>(CACHE_KEYS.BUDGETS, []);
+  const initialGoals = getCachedData<Goal[]>(CACHE_KEYS.GOALS, []);
+  const initialBills = getCachedData<BillReminder[]>(CACHE_KEYS.BILLS, []);
+  const initialRecurring = getCachedData<RecurringTransaction[]>(CACHE_KEYS.RECURRING, []);
+  const initialTransactions = getCachedData<any[]>(CACHE_KEYS.TRANSACTIONS, []).map((t: any) => ({
+    ...t,
+    date: new Date(t.date),
+  }));
+
+  const [loading, setLoading] = useState(() => initialAccounts.length === 0 && initialCategories.length === 0);
+  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
+  const [goals, setGoals] = useState<Goal[]>(initialGoals);
+  const [recurringTxs, setRecurringTxs] = useState<RecurringTransaction[]>(initialRecurring);
+  const [bills, setBills] = useState<BillReminder[]>(initialBills);
   const [tags, setTags] = useState<Tag[]>(() => loadJSON("tags", []));
+  const [pendingGlobalSyncCount, setPendingGlobalSyncCount] = useState<number>(() => getPendingGlobalSyncCount());
+  const [isGlobalSyncing, setIsGlobalSyncing] = useState(false);
   const RULES_STORAGE_KEY = "impero-transaction-rules";
   const LEGACY_RULES_STORAGE_KEY = "m3-transaction-rules";
 
@@ -71,7 +99,7 @@ export function useFinanceStore() {
     saveJSON(RULES_STORAGE_KEY, newRules);
   }, []);
 
-  // Cargar datos desde Supabase al autenticarse
+  // Cargar datos desde Supabase al autenticarse (Stale-While-Revalidate en segundo plano)
   useEffect(() => {
     if (!user) {
       setAccounts([]);
@@ -88,7 +116,9 @@ export function useFinanceStore() {
     let isMounted = true;
     async function loadData() {
       try {
-        setLoading(true);
+        if (initialAccounts.length === 0 && initialCategories.length === 0) {
+          setLoading(true);
+        }
         const [accs, cats, bds, gls, bls, remoteTags, remoteRules] = await Promise.all([
           fetchAccounts(),
           fetchCategories(),
@@ -117,6 +147,15 @@ export function useFinanceStore() {
         setTags(remoteTags);
         setRules(remoteRules);
 
+        // Guardar snapshot actualizado en caché local
+        setCachedData(CACHE_KEYS.ACCOUNTS, accs);
+        setCachedData(CACHE_KEYS.CATEGORIES, cats);
+        setCachedData(CACHE_KEYS.BUDGETS, bds);
+        setCachedData(CACHE_KEYS.GOALS, gls);
+        setCachedData(CACHE_KEYS.BILLS, bls);
+        setCachedData(CACHE_KEYS.TAGS, remoteTags);
+        setCachedData(CACHE_KEYS.RULES, remoteRules);
+
         // Fetch transactions and recurring transactions with resolved categories
         const [txs, recTxs] = await Promise.all([
           fetchTransactions(cats),
@@ -125,15 +164,40 @@ export function useFinanceStore() {
         if (!isMounted) return;
         setTransactions(txs);
         setRecurringTxs(recTxs);
+        setCachedData(CACHE_KEYS.TRANSACTIONS, txs);
+        setCachedData(CACHE_KEYS.RECURRING, recTxs);
+
+        // Disparar sincronización de cualquier operación encolada previa
+        syncPendingGlobalQueue().then(({ remaining }) => {
+          if (isMounted) setPendingGlobalSyncCount(remaining);
+        }).catch(console.warn);
       } catch (err) {
-        console.error("Error loading Supabase financial data:", err);
+        console.warn("Error loading remote data, utilizing instant offline cache:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
     }
 
     loadData();
-    return () => { isMounted = false; };
+
+    // Auto-sincronización al reconectar
+    const handleOnline = () => {
+      syncPendingGlobalQueue().then(({ processed, remaining }) => {
+        if (isMounted) {
+          setPendingGlobalSyncCount(remaining);
+          if (processed > 0) {
+            toast.success(`${processed} operaciones sincronizadas con la nube`);
+            loadData();
+          }
+        }
+      }).catch(console.warn);
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("online", handleOnline);
+    };
   }, [user]);
 
   // Persist helpers
@@ -186,24 +250,25 @@ export function useFinanceStore() {
     const newBalance = currentBalance + balanceDelta;
 
     // Actualización optimista del balance
-    setAccounts(prev => prev.map(acc => {
-      if (acc.id === accountId) {
-        updateAccountRemote(acc.id, { balance: newBalance }).catch(err => console.error(err));
-        return { ...acc, balance: newBalance };
-      }
-      return acc;
-    }));
-
-    // Rollback automático si la inserción falla — evita divergencia entre balance y transacciones
-    const rollback = () => {
-      setAccounts(prev => prev.map(acc => {
+    setAccounts(prev => {
+      const next = prev.map(acc => {
         if (acc.id === accountId) {
-          updateAccountRemote(acc.id, { balance: currentBalance }).catch(console.error);
-          return { ...acc, balance: currentBalance };
+          updateAccountRemote(acc.id, { balance: newBalance }).catch(err => {
+            console.warn("[updateAccountRemote] Fallo remoto, encolando balance:", err);
+            enqueueGlobalSyncOp({
+              type: "update_account_balance",
+              id: acc.id,
+              balance: newBalance,
+            });
+            setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+          });
+          return { ...acc, balance: newBalance };
         }
         return acc;
-      }));
-    };
+      });
+      setCachedData(CACHE_KEYS.ACCOUNTS, next);
+      return next;
+    });
 
     if (extras?.installments && extras.installments > 1) {
       const groupId = Date.now().toString();
@@ -215,12 +280,13 @@ export function useFinanceStore() {
       // Si la tarjeta cerró este mes (día actual > closingDay), la primera cuota vence en el resumen siguiente (+1 mes)
       const shouldShiftNextMonth = isCredit && now.getDate() > closingDay;
 
-      const newTxsToInsert: Omit<Transaction, "id">[] = [];
+      const newTxsToInsert: Transaction[] = [];
       for (let i = 0; i < extras.installments; i++) {
         const txDate = new Date();
         const monthOffset = (shouldShiftNextMonth ? 1 : 0) + i;
         txDate.setMonth(txDate.getMonth() + monthOffset);
         newTxsToInsert.push({
+          id: generateUUID(),
           amount: perInstallment,
           description: `${effDesc} (${i + 1}/${extras.installments})`,
           category: effCategory, date: txDate, type, accountId,
@@ -230,12 +296,37 @@ export function useFinanceStore() {
         });
       }
 
+      // Inserción optimista en memoria y caché local
+      setTransactions(prev => {
+        const next = [...newTxsToInsert, ...prev];
+        setCachedData(CACHE_KEYS.TRANSACTIONS, next);
+        return next;
+      });
+
       insertTransactionsBatch(newTxsToInsert)
-        .then(() => fetchTransactions(categories).then(setTransactions))
         .catch(err => {
-          console.error("[addTransaction] Error insertando cuotas:", err?.message || err, { accountId, amount, description });
-          toast.error(`Error al guardar cuotas: ${err?.message || "Error desconocido"}`);
-          rollback();
+          console.warn("[addTransaction] Sin conexión o fallo remoto en cuotas. Encolando para sync:", err);
+          for (const tx of newTxsToInsert) {
+            enqueueGlobalSyncOp({
+              type: "insert_transaction",
+              payload: {
+                id: tx.id,
+                amount: tx.amount,
+                description: tx.description,
+                categoryId: tx.category?.id,
+                date: tx.date.toISOString(),
+                type: tx.type,
+                accountId: tx.accountId,
+                currency: tx.currency,
+                tags: tx.tags,
+                note: tx.note,
+                receiptUrl: tx.receiptUrl,
+                installmentInfo: tx.installmentInfo,
+              },
+            });
+          }
+          setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+          toast.info(t("toast.offlineInstallmentsSaved"));
         });
     } else {
       // Usar la fecha especificada por el usuario (si existe) o la fecha actual
@@ -249,72 +340,139 @@ export function useFinanceStore() {
 
       if (!accountId) {
         console.error("[addTransaction] ERROR: accountId vacío, abortando insert", { amount, description, type });
-        rollback();
         return;
       }
 
-      const newTx: Omit<Transaction, "id"> = {
+      const clientTxId = generateUUID();
+      const newTx: Transaction = {
+        id: clientTxId,
         amount, description: effDesc, category: effCategory, date: singleTxDate, type, accountId,
         currency: txCurrency,
         tags: effTags, note: extras?.note, receiptUrl: extras?.receiptUrl,
       };
 
+      // Inserción optimista garantizada en memoria y caché
+      setTransactions(prev => {
+        const next = [newTx, ...prev];
+        setCachedData(CACHE_KEYS.TRANSACTIONS, next);
+        return next;
+      });
+
       insertTransaction(newTx)
-        .then((inserted) => setTransactions(prev => [inserted, ...prev]))
         .catch(err => {
-          console.error("[addTransaction] Error Supabase:", err?.message || err, { accountId, amount, description });
-          toast.error(`Error al guardar: ${err?.message || "Error desconocido"}`);
-          rollback();
+          console.warn("[addTransaction] Sin conexión o fallo remoto. Encolando para sync diferido:", err);
+          enqueueGlobalSyncOp({
+            type: "insert_transaction",
+            payload: {
+              id: clientTxId,
+              amount,
+              description: effDesc,
+              categoryId: effCategory?.id,
+              date: singleTxDate.toISOString(),
+              type,
+              accountId,
+              currency: txCurrency,
+              tags: effTags,
+              note: extras?.note,
+              receiptUrl: extras?.receiptUrl,
+            },
+          });
+          setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+          toast.info(t("toast.offlineTxSaved"));
         });
     }
-  }, [categories, accounts, rules]);
+  }, [categories, accounts, rules, t]);
 
   const updateTransaction = useCallback((id: string, updates: Partial<Transaction>) => {
-    updateTransactionRemote(id, updates).catch(err => console.error(err));
-    setTransactions(prev => prev.map(t => {
-      if (t.id === id) {
-        const updated = { ...t, ...updates };
-        if (updates.amount !== undefined && updates.amount !== t.amount) {
-          const diff = updates.amount - t.amount;
-          setAccounts(accs => accs.map(acc => {
-            if (acc.id === updated.accountId) {
-              // Para tarjetas de crédito: expense aumenta deuda (balance+), income reduce deuda
-              const isCredit = acc.type === "credit";
-              const newBal = isCredit
-                ? (updated.type === "expense" ? acc.balance + diff : acc.balance - diff)
-                : (updated.type === "income" ? acc.balance + diff : acc.balance - diff);
-              updateAccountRemote(acc.id, { balance: newBal }).catch(console.error);
-              return { ...acc, balance: newBal };
-            }
-            return acc;
-          }));
+    updateTransactionRemote(id, updates).catch(err => {
+      console.warn("[updateTransaction] Fallo remoto, encolando:", err);
+      enqueueGlobalSyncOp({
+        type: "update_transaction",
+        id,
+        payload: {
+          amount: updates.amount,
+          description: updates.description,
+          categoryId: updates.category?.id,
+          date: updates.date ? (typeof updates.date === "string" ? updates.date : updates.date.toISOString()) : undefined,
+          type: updates.type,
+          accountId: updates.accountId,
+          currency: updates.currency,
+          tags: updates.tags,
+          note: updates.note,
+        },
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
+
+    setTransactions(prev => {
+      const next = prev.map(t => {
+        if (t.id === id) {
+          const updated = { ...t, ...updates };
+          if (updates.amount !== undefined && updates.amount !== t.amount) {
+            const diff = updates.amount - t.amount;
+            setAccounts(accs => {
+              const nextAccs = accs.map(acc => {
+                if (acc.id === updated.accountId) {
+                  const isCredit = acc.type === "credit";
+                  const newBal = isCredit
+                    ? (updated.type === "expense" ? acc.balance + diff : acc.balance - diff)
+                    : (updated.type === "income" ? acc.balance + diff : acc.balance - diff);
+                  updateAccountRemote(acc.id, { balance: newBal }).catch(err => {
+                    enqueueGlobalSyncOp({ type: "update_account_balance", id: acc.id, balance: newBal });
+                    setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+                  });
+                  return { ...acc, balance: newBal };
+                }
+                return acc;
+              });
+              setCachedData(CACHE_KEYS.ACCOUNTS, nextAccs);
+              return nextAccs;
+            });
+          }
+          return updated;
         }
-        return updated;
-      }
-      return t;
-    }));
+        return t;
+      });
+      setCachedData(CACHE_KEYS.TRANSACTIONS, next);
+      return next;
+    });
   }, []);
 
   const deleteTransaction = useCallback((id: string) => {
-    deleteTransactionRemote(id).catch(err => console.error(err));
+    deleteTransactionRemote(id).catch(err => {
+      console.warn("[deleteTransaction] Fallo remoto, encolando:", err);
+      enqueueGlobalSyncOp({
+        type: "delete_transaction",
+        id,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
+
     setTransactions(prev => {
       const tx = prev.find(t => t.id === id);
       if (tx) {
-        setAccounts(accs => accs.map(acc => {
-          if (acc.id === tx.accountId) {
-            // Para tarjetas de crédito: revertir un expense REDUCE la deuda (balance-)
-            // Para cuentas normales: revertir un expense AUMENTA el saldo (balance+)
-            const isCredit = acc.type === "credit";
-            const newBal = isCredit
-              ? (tx.type === "expense" ? acc.balance - tx.amount : acc.balance + tx.amount)
-              : (tx.type === "income" ? acc.balance - tx.amount : acc.balance + tx.amount);
-            updateAccountRemote(acc.id, { balance: newBal }).catch(console.error);
-            return { ...acc, balance: newBal };
-          }
-          return acc;
-        }));
+        setAccounts(accs => {
+          const nextAccs = accs.map(acc => {
+            if (acc.id === tx.accountId) {
+              const isCredit = acc.type === "credit";
+              const newBal = isCredit
+                ? (tx.type === "expense" ? acc.balance - tx.amount : acc.balance + tx.amount)
+                : (tx.type === "income" ? acc.balance - tx.amount : acc.balance + tx.amount);
+              updateAccountRemote(acc.id, { balance: newBal }).catch(err => {
+                enqueueGlobalSyncOp({ type: "update_account_balance", id: acc.id, balance: newBal });
+                setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+              });
+              return { ...acc, balance: newBal };
+            }
+            return acc;
+          });
+          setCachedData(CACHE_KEYS.ACCOUNTS, nextAccs);
+          return nextAccs;
+        });
       }
-      return prev.filter(t => t.id !== id);
+      const nextTxs = prev.filter(t => t.id !== id);
+      setCachedData(CACHE_KEYS.TRANSACTIONS, nextTxs);
+      return nextTxs;
     });
   }, []);
 
@@ -407,43 +565,93 @@ export function useFinanceStore() {
 
   // ===== CATEGORIES =====
   const addCategory = useCallback((cat: Category) => {
-    insertCategory(cat)
-      .then(inserted => setCategories(prev => [...prev, inserted]))
-      .catch(console.error);
+    const categoryId = cat.id || generateUUID();
+    const newCat = { ...cat, id: categoryId };
+    setCategories(prev => {
+      const next = [...prev, newCat];
+      setCachedData(CACHE_KEYS.CATEGORIES, next);
+      return next;
+    });
+
+    insertCategory(newCat)
+      .catch(err => {
+        console.warn("[addCategory] Offline/remote failure, enqueuing:", err);
+        enqueueGlobalSyncOp({
+          type: "insert_category",
+          payload: {
+            id: categoryId,
+            name: newCat.name,
+            color: newCat.color,
+            type: newCat.type,
+            icon: newCat.icon || null,
+            parentId: newCat.parentId || null,
+            archived: newCat.archived || false,
+            order: newCat.order || 0,
+          },
+        });
+        setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+      });
   }, []);
 
   const updateCategory = useCallback((id: string, updates: Partial<Category>) => {
-    updateCategoryRemote(id, updates).catch(console.error);
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-    setTransactions(prev => prev.map(t => t.category.id === id ? { ...t, category: { ...t.category, ...updates } } : t));
+    setCategories(prev => {
+      const next = prev.map(c => c.id === id ? { ...c, ...updates } : c);
+      setCachedData(CACHE_KEYS.CATEGORIES, next);
+      return next;
+    });
+    setTransactions(prev => {
+      const next = prev.map(t => t.category.id === id ? { ...t, category: { ...t.category, ...updates } } : t);
+      setCachedData(CACHE_KEYS.TRANSACTIONS, next);
+      return next;
+    });
+
+    updateCategoryRemote(id, updates).catch(err => {
+      console.warn("[updateCategory] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "update_category",
+        id,
+        payload: updates,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const archiveCategory = useCallback((id: string) => {
-    updateCategoryRemote(id, { archived: true }).catch(console.error);
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, archived: true } : c));
-  }, []);
+    updateCategory(id, { archived: true });
+  }, [updateCategory]);
 
   const unarchiveCategory = useCallback((id: string) => {
-    updateCategoryRemote(id, { archived: false }).catch(console.error);
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, archived: false } : c));
-  }, []);
+    updateCategory(id, { archived: false });
+  }, [updateCategory]);
 
   const deleteCategory = useCallback((id: string) => {
-    deleteCategoryRemote(id).catch(console.error);
-    setCategories(prev => prev.filter(c => c.id !== id && c.parentId !== id));
+    setCategories(prev => {
+      const next = prev.filter(c => c.id !== id && c.parentId !== id);
+      setCachedData(CACHE_KEYS.CATEGORIES, next);
+      return next;
+    });
+
+    deleteCategoryRemote(id).catch(err => {
+      console.warn("[deleteCategory] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "delete_category",
+        id,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const seedDefaultCategories = useCallback(async () => {
     try {
       const seeded = await seedDefaultCategoriesRemote();
       setCategories(prev => [...prev, ...seeded]);
-      toast.success("Categorías recomendadas cargadas correctamente");
+      toast.success(t("toast.categoriesSeededSuccess"));
     } catch (err) {
       console.error("Error seeding default categories:", err);
-      toast.error("Error al cargar categorías recomendadas");
+      toast.error(t("toast.categoriesSeededError"));
       throw err;
     }
-  }, []);
+  }, [t]);
 
   const reassignTransactions = useCallback((fromCategoryId: string, toCategoryId: string) => {
     setTransactions(prev => prev.map(t => {
@@ -466,24 +674,81 @@ export function useFinanceStore() {
 
   // ===== ACCOUNTS =====
   const addAccount = useCallback((account: Account) => {
-    insertAccount(account)
-      .then(inserted => setAccounts(prev => [...prev, inserted]))
-      .catch(console.error);
+    const accountId = account.id || generateUUID();
+    const newAcc = { ...account, id: accountId };
+    setAccounts(prev => {
+      const next = [...prev, newAcc];
+      setCachedData(CACHE_KEYS.ACCOUNTS, next);
+      return next;
+    });
+
+    insertAccount(newAcc)
+      .catch(err => {
+        console.warn("[addAccount] Offline/remote failure, enqueuing:", err);
+        enqueueGlobalSyncOp({
+          type: "insert_account",
+          payload: {
+            id: accountId,
+            name: newAcc.name,
+            balance: newAcc.balance,
+            type: newAcc.type,
+            color: newAcc.color,
+            icon: newAcc.icon || null,
+            archived: newAcc.archived || false,
+            creditLimit: newAcc.creditLimit || null,
+            closingDay: newAcc.closingDay || null,
+            paymentDay: newAcc.paymentDay || null,
+            brand: newAcc.brand || null,
+            customBrandName: newAcc.customBrandName || null,
+            currency: newAcc.currency || "ARS",
+            creditCardViewMode: newAcc.creditCardViewMode || "statement_cycles",
+          },
+        });
+        setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+      });
   }, []);
 
   const updateAccount = useCallback((id: string, updates: Partial<Account>) => {
-    updateAccountRemote(id, updates).catch(console.error);
-    setAccounts(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+    setAccounts(prev => {
+      const next = prev.map(a => a.id === id ? { ...a, ...updates } : a);
+      setCachedData(CACHE_KEYS.ACCOUNTS, next);
+      return next;
+    });
+
+    updateAccountRemote(id, updates).catch(err => {
+      console.warn("[updateAccount] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "update_account",
+        id,
+        payload: updates,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const archiveAccount = useCallback((id: string) => {
-    updateAccountRemote(id, { archived: true }).catch(console.error);
-    setAccounts(prev => prev.map(a => a.id === id ? { ...a, archived: true } : a));
-  }, []);
+    updateAccount(id, { archived: true });
+  }, [updateAccount]);
 
   const unarchiveAccount = useCallback((id: string) => {
-    updateAccountRemote(id, { archived: false }).catch(console.error);
-    setAccounts(prev => prev.map(a => a.id === id ? { ...a, archived: false } : a));
+    updateAccount(id, { archived: false });
+  }, [updateAccount]);
+
+  const deleteAccount = useCallback((id: string) => {
+    setAccounts(prev => {
+      const next = prev.filter(a => a.id !== id);
+      setCachedData(CACHE_KEYS.ACCOUNTS, next);
+      return next;
+    });
+
+    deleteAccountRemote(id).catch(err => {
+      console.warn("[deleteAccount] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "delete_account",
+        id,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const adjustAccountBalance = useCallback((accountId: string, newBalance: number) => {
@@ -492,8 +757,13 @@ export function useFinanceStore() {
       if (!account) return prev;
       const diff = newBalance - account.balance;
       if (diff === 0) return prev;
-      updateAccountRemote(accountId, { balance: newBalance }).catch(console.error);
-      return prev.map(a => a.id === accountId ? { ...a, balance: newBalance } : a);
+      updateAccountRemote(accountId, { balance: newBalance }).catch(err => {
+        enqueueGlobalSyncOp({ type: "update_account_balance", id: accountId, balance: newBalance });
+        setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+      });
+      const next = prev.map(a => a.id === accountId ? { ...a, balance: newBalance } : a);
+      setCachedData(CACHE_KEYS.ACCOUNTS, next);
+      return next;
     });
   }, []);
 
@@ -697,19 +967,65 @@ export function useFinanceStore() {
 
   // ===== BUDGETS =====
   const addBudget = useCallback((budget: Budget) => {
-    insertBudget(budget)
-      .then(inserted => setBudgets(prev => [...prev, inserted]))
-      .catch(console.error);
+    const budgetId = budget.id || generateUUID();
+    const newBudget = { ...budget, id: budgetId };
+    setBudgets(prev => {
+      const next = [...prev, newBudget];
+      setCachedData(CACHE_KEYS.BUDGETS, next);
+      return next;
+    });
+
+    insertBudget(newBudget).catch(err => {
+      console.warn("[addBudget] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "insert_budget",
+        payload: {
+          id: budgetId,
+          categoryId: newBudget.categoryId,
+          amount: newBudget.amount,
+          month: newBudget.month,
+          year: newBudget.year,
+          enableRollover: newBudget.enableRollover,
+          accumulatedRollover: newBudget.accumulatedRollover,
+        },
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const updateBudget = useCallback((id: string, updates: Partial<Budget>) => {
-    updateBudgetRemote(id, updates).catch(console.error);
-    setBudgets(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+    setBudgets(prev => {
+      const next = prev.map(b => b.id === id ? { ...b, ...updates } : b);
+      setCachedData(CACHE_KEYS.BUDGETS, next);
+      return next;
+    });
+
+    updateBudgetRemote(id, updates).catch(err => {
+      console.warn("[updateBudget] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "update_budget",
+        id,
+        payload: updates,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const deleteBudget = useCallback((id: string) => {
-    deleteBudgetRemote(id).catch(console.error);
-    setBudgets(prev => prev.filter(b => b.id !== id));
+    setBudgets(prev => {
+      const next = prev.filter(b => b.id !== id);
+      setCachedData(CACHE_KEYS.BUDGETS, next);
+      return next;
+    });
+
+    deleteBudgetRemote(id).catch(err => {
+      console.warn("[deleteBudget] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "delete_budget",
+        id,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const getBudgetSpent = useCallback((categoryId: string, month: number, year: number) => {
@@ -726,31 +1042,84 @@ export function useFinanceStore() {
 
   // ===== GOALS =====
   const addGoal = useCallback((goal: Goal) => {
-    insertGoal(goal)
-      .then(inserted => setGoals(prev => [inserted, ...prev]))
-      .catch(console.error);
+    const goalId = goal.id || generateUUID();
+    const newGoal = { ...goal, id: goalId };
+    setGoals(prev => {
+      const next = [newGoal, ...prev];
+      setCachedData(CACHE_KEYS.GOALS, next);
+      return next;
+    });
+
+    insertGoal(newGoal).catch(err => {
+      console.warn("[addGoal] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "insert_goal",
+        payload: {
+          id: goalId,
+          name: newGoal.name,
+          targetAmount: newGoal.targetAmount,
+          currentAmount: newGoal.currentAmount,
+          color: newGoal.color,
+          icon: newGoal.icon || null,
+          deadline: newGoal.deadline ? newGoal.deadline.toISOString() : null,
+        },
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const updateGoal = useCallback((id: string, updates: Partial<Goal>) => {
-    updateGoalRemote(id, updates).catch(console.error);
-    setGoals(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
+    setGoals(prev => {
+      const next = prev.map(g => g.id === id ? { ...g, ...updates } : g);
+      setCachedData(CACHE_KEYS.GOALS, next);
+      return next;
+    });
+
+    updateGoalRemote(id, updates).catch(err => {
+      console.warn("[updateGoal] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "update_goal",
+        id,
+        payload: updates,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const deleteGoal = useCallback((id: string) => {
-    deleteGoalRemote(id).catch(console.error);
-    setGoals(prev => prev.filter(g => g.id !== id));
+    setGoals(prev => {
+      const next = prev.filter(g => g.id !== id);
+      setCachedData(CACHE_KEYS.GOALS, next);
+      return next;
+    });
+
+    deleteGoalRemote(id).catch(err => {
+      console.warn("[deleteGoal] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "delete_goal",
+        id,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const contributeToGoal = useCallback((id: string, amount: number, accountId?: string) => {
     let goalName = "Meta de Ahorro";
-    setGoals(prev => prev.map(g => {
-      if (g.id !== id) return g;
-      goalName = g.name;
-      const next = g.currentAmount + amount;
-      const completed = next >= g.targetAmount;
-      updateGoalRemote(id, { currentAmount: next, completed }).catch(console.error);
-      return { ...g, currentAmount: next, completed };
-    }));
+    setGoals(prev => {
+      const next = prev.map(g => {
+        if (g.id !== id) return g;
+        goalName = g.name;
+        const nextAmt = g.currentAmount + amount;
+        const completed = nextAmt >= g.targetAmount;
+        updateGoalRemote(id, { currentAmount: nextAmt, completed }).catch(err => {
+          enqueueGlobalSyncOp({ type: "update_goal", id, payload: { currentAmount: nextAmt, completed } });
+          setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+        });
+        return { ...g, currentAmount: nextAmt, completed };
+      });
+      setCachedData(CACHE_KEYS.GOALS, next);
+      return next;
+    });
 
     if (accountId) {
       const goalCat = categories.find(c => c.id === "savings" || c.id === "investments") || {
@@ -766,14 +1135,21 @@ export function useFinanceStore() {
 
   const withdrawFromGoal = useCallback((id: string, amount: number, accountId?: string) => {
     let goalName = "Meta de Ahorro";
-    setGoals(prev => prev.map(g => {
-      if (g.id !== id) return g;
-      goalName = g.name;
-      const next = Math.max(0, g.currentAmount - amount);
-      const completed = next >= g.targetAmount;
-      updateGoalRemote(id, { currentAmount: next, completed }).catch(console.error);
-      return { ...g, currentAmount: next, completed };
-    }));
+    setGoals(prev => {
+      const next = prev.map(g => {
+        if (g.id !== id) return g;
+        goalName = g.name;
+        const nextAmt = Math.max(0, g.currentAmount - amount);
+        const completed = nextAmt >= g.targetAmount;
+        updateGoalRemote(id, { currentAmount: nextAmt, completed }).catch(err => {
+          enqueueGlobalSyncOp({ type: "update_goal", id, payload: { currentAmount: nextAmt, completed } });
+          setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+        });
+        return { ...g, currentAmount: nextAmt, completed };
+      });
+      setCachedData(CACHE_KEYS.GOALS, next);
+      return next;
+    });
 
     if (accountId) {
       const goalCat = categories.find(c => c.id === "savings" || c.id === "investments") || {
@@ -789,19 +1165,68 @@ export function useFinanceStore() {
 
   // ===== BILLS =====
   const addBill = useCallback((bill: BillReminder) => {
-    insertBill(bill)
-      .then(inserted => setBills(prev => [...prev, inserted]))
-      .catch(console.error);
+    const billId = bill.id || generateUUID();
+    const newBill = { ...bill, id: billId };
+    setBills(prev => {
+      const next = [...prev, newBill];
+      setCachedData(CACHE_KEYS.BILLS, next);
+      return next;
+    });
+
+    insertBill(newBill).catch(err => {
+      console.warn("[addBill] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "insert_bill",
+        payload: {
+          id: billId,
+          name: newBill.name,
+          amount: newBill.amount,
+          dueDate: newBill.dueDate.toISOString(),
+          frequency: newBill.frequency,
+          categoryId: newBill.categoryId || null,
+          category: newBill.categoryId || null,
+          accountId: newBill.accountId || null,
+          isPaid: newBill.status === "paid",
+          autoDebit: newBill.autoPay,
+        },
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const updateBill = useCallback((id: string, updates: Partial<BillReminder>) => {
-    updateBillRemote(id, updates).catch(console.error);
-    setBills(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+    setBills(prev => {
+      const next = prev.map(b => b.id === id ? { ...b, ...updates } : b);
+      setCachedData(CACHE_KEYS.BILLS, next);
+      return next;
+    });
+
+    updateBillRemote(id, updates).catch(err => {
+      console.warn("[updateBill] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "update_bill",
+        id,
+        payload: updates,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const deleteBill = useCallback((id: string) => {
-    deleteBillRemote(id).catch(console.error);
-    setBills(prev => prev.filter(b => b.id !== id));
+    setBills(prev => {
+      const next = prev.filter(b => b.id !== id);
+      setCachedData(CACHE_KEYS.BILLS, next);
+      return next;
+    });
+
+    deleteBillRemote(id).catch(err => {
+      console.warn("[deleteBill] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "delete_bill",
+        id,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const markBillPaid = useCallback((id: string, accountId: string) => {
@@ -817,8 +1242,15 @@ export function useFinanceStore() {
     // Update bill: mark paid and advance due date (if recurring)
     const isOnce = bill.frequency === "once";
     const nextDue = isOnce ? new Date(bill.dueDate) : getNextDate(new Date(bill.dueDate), bill.frequency);
-    updateBillRemote(id, { status: "paid", dueDate: nextDue }).catch(console.error);
-    setBills(prev => prev.map(b => b.id === id ? { ...b, status: "paid" as const, dueDate: nextDue } : b));
+    updateBillRemote(id, { status: "paid", dueDate: nextDue }).catch(err => {
+      enqueueGlobalSyncOp({ type: "update_bill", id, payload: { status: "paid", dueDate: nextDue.toISOString() } });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
+    setBills(prev => {
+      const next = prev.map(b => b.id === id ? { ...b, status: "paid" as const, dueDate: nextDue } : b);
+      setCachedData(CACHE_KEYS.BILLS, next);
+      return next;
+    });
   }, [bills, categories, addTransaction]);
 
   const getPendingBills = useCallback(() => {
@@ -835,22 +1267,68 @@ export function useFinanceStore() {
 
   // ===== RECURRING TRANSACTIONS =====
   const addRecurringTx = useCallback((rtx: RecurringTransaction) => {
-    insertRecurringTransaction(rtx)
-      .then(inserted => setRecurringTxs(prev => [...prev, inserted]))
-      .catch(err => {
-        console.error("Error inserting recurring transaction:", err);
-        toast.error("Error al guardar transacción recurrente");
+    const rtxId = rtx.id || generateUUID();
+    const newRtx = { ...rtx, id: rtxId };
+    setRecurringTxs(prev => {
+      const next = [...prev, newRtx];
+      setCachedData(CACHE_KEYS.RECURRING, next);
+      return next;
+    });
+
+    insertRecurringTransaction(newRtx).catch(err => {
+      console.warn("[addRecurringTx] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "insert_recurring",
+        payload: {
+          id: rtxId,
+          amount: newRtx.amount,
+          description: newRtx.description,
+          categoryId: newRtx.category.id !== "uncategorized" ? newRtx.category.id : null,
+          accountId: newRtx.accountId,
+          type: newRtx.type,
+          frequency: newRtx.frequency,
+          nextDate: newRtx.nextDate.toISOString(),
+          isPaused: newRtx.paused,
+          autoProcess: false,
+        },
       });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const updateRecurringTx = useCallback((id: string, updates: Partial<RecurringTransaction>) => {
-    updateRecurringTransactionRemote(id, updates).catch(err => console.error("Error updating recurring transaction:", err));
-    setRecurringTxs(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+    setRecurringTxs(prev => {
+      const next = prev.map(r => r.id === id ? { ...r, ...updates } : r);
+      setCachedData(CACHE_KEYS.RECURRING, next);
+      return next;
+    });
+
+    updateRecurringTransactionRemote(id, updates).catch(err => {
+      console.warn("[updateRecurringTx] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "update_recurring",
+        id,
+        payload: updates,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const deleteRecurringTx = useCallback((id: string) => {
-    deleteRecurringTransactionRemote(id).catch(err => console.error("Error deleting recurring transaction:", err));
-    setRecurringTxs(prev => prev.filter(r => r.id !== id));
+    setRecurringTxs(prev => {
+      const next = prev.filter(r => r.id !== id);
+      setCachedData(CACHE_KEYS.RECURRING, next);
+      return next;
+    });
+
+    deleteRecurringTransactionRemote(id).catch(err => {
+      console.warn("[deleteRecurringTx] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "delete_recurring",
+        id,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const toggleRecurringPause = useCallback((id: string) => {
@@ -858,8 +1336,13 @@ export function useFinanceStore() {
       const target = prev.find(r => r.id === id);
       if (!target) return prev;
       const nextPaused = !target.paused;
-      updateRecurringTransactionRemote(id, { paused: nextPaused }).catch(err => console.error(err));
-      return prev.map(r => r.id === id ? { ...r, paused: nextPaused } : r);
+      updateRecurringTransactionRemote(id, { paused: nextPaused }).catch(err => {
+        enqueueGlobalSyncOp({ type: "update_recurring", id, payload: { paused: nextPaused } });
+        setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+      });
+      const next = prev.map(r => r.id === id ? { ...r, paused: nextPaused } : r);
+      setCachedData(CACHE_KEYS.RECURRING, next);
+      return next;
     });
   }, []);
 
@@ -929,40 +1412,54 @@ export function useFinanceStore() {
 
   // ===== TAGS =====
   const addTag = useCallback((tag: Tag) => {
-    insertTag(tag)
-      .then(inserted => {
-        setTags(prev => {
-          const updated = [...prev.filter(t => t.id !== tag.id), inserted];
-          saveJSON("tags", updated);
-          return updated;
-        });
-      })
-      .catch(err => {
-        console.error("Error inserting remote tag:", err);
-        // Fallback local
-        setTags(prev => {
-          const updated = [...prev, tag];
-          saveJSON("tags", updated);
-          return updated;
-        });
+    const tagId = tag.id || generateUUID();
+    const newTag = { ...tag, id: tagId };
+    setTags(prev => {
+      const updated = [...prev.filter(t => t.id !== tagId), newTag];
+      setCachedData(CACHE_KEYS.TAGS, updated);
+      saveJSON("tags", updated);
+      return updated;
+    });
+
+    insertTag(newTag).catch(err => {
+      console.warn("[addTag] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "insert_tag",
+        payload: {
+          id: tagId,
+          name: newTag.name,
+          color: newTag.color || null,
+        },
       });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const updateTag = useCallback((id: string, updates: Partial<Tag>) => {
     updateTagRemote(id, updates).catch(err => console.error("Error updating remote tag:", err));
     setTags(prev => {
       const updated = prev.map(t => t.id === id ? { ...t, ...updates } : t);
+      setCachedData(CACHE_KEYS.TAGS, updated);
       saveJSON("tags", updated);
       return updated;
     });
   }, []);
 
   const deleteTag = useCallback((id: string) => {
-    deleteTagRemote(id).catch(err => console.error("Error deleting remote tag:", err));
     setTags(prev => {
       const updated = prev.filter(t => t.id !== id);
+      setCachedData(CACHE_KEYS.TAGS, updated);
       saveJSON("tags", updated);
       return updated;
+    });
+
+    deleteTagRemote(id).catch(err => {
+      console.warn("[deleteTag] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "delete_tag",
+        id,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
     });
   }, []);
 
@@ -1028,39 +1525,66 @@ export function useFinanceStore() {
 
   // ===== RULES ENGINE (P10) =====
   const addRule = useCallback((rule: TransactionRule) => {
-    insertRule(rule)
-      .then(inserted => {
-        setRules(prev => {
-          const updated = [...prev.filter(r => r.id !== rule.id), inserted];
-          saveJSON(RULES_STORAGE_KEY, updated);
-          return updated;
-        });
-      })
-      .catch(err => {
-        console.error("Error inserting remote rule:", err);
-        setRules(prev => {
-          const updated = [...prev, rule];
-          saveJSON(RULES_STORAGE_KEY, updated);
-          return updated;
-        });
+    const ruleId = rule.id || generateUUID();
+    const newRule = { ...rule, id: ruleId };
+    setRules(prev => {
+      const updated = [...prev.filter(r => r.id !== ruleId), newRule];
+      setCachedData(CACHE_KEYS.RULES, updated);
+      saveJSON(RULES_STORAGE_KEY, updated);
+      return updated;
+    });
+
+    insertRule(newRule).catch(err => {
+      console.warn("[addRule] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "insert_rule",
+        payload: {
+          id: ruleId,
+          name: newRule.name,
+          isActive: newRule.isActive,
+          priority: newRule.priority || 0,
+          conditions: newRule.conditions || [],
+          actions: newRule.actions || {},
+        },
       });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+    });
   }, []);
 
   const updateRule = useCallback((id: string, updates: Partial<TransactionRule>) => {
-    updateRuleRemote(id, updates).catch(err => console.error("Error updating remote rule:", err));
     setRules(prev => {
       const updated = prev.map(r => r.id === id ? { ...r, ...updates } : r);
+      setCachedData(CACHE_KEYS.RULES, updated);
       saveJSON(RULES_STORAGE_KEY, updated);
       return updated;
+    });
+
+    updateRuleRemote(id, updates).catch(err => {
+      console.warn("[updateRule] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "update_rule",
+        id,
+        payload: updates,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
     });
   }, []);
 
   const deleteRule = useCallback((id: string) => {
-    deleteRuleRemote(id).catch(err => console.error("Error deleting remote rule:", err));
     setRules(prev => {
       const updated = prev.filter(r => r.id !== id);
+      setCachedData(CACHE_KEYS.RULES, updated);
       saveJSON(RULES_STORAGE_KEY, updated);
       return updated;
+    });
+
+    deleteRuleRemote(id).catch(err => {
+      console.warn("[deleteRule] Offline/remote failure, enqueuing:", err);
+      enqueueGlobalSyncOp({
+        type: "delete_rule",
+        id,
+      });
+      setPendingGlobalSyncCount(getPendingGlobalSyncCount());
     });
   }, []);
 
@@ -1068,8 +1592,12 @@ export function useFinanceStore() {
     setRules(prev => {
       const target = prev.find(r => r.id === id);
       const nextActive = target ? !target.isActive : true;
-      updateRuleRemote(id, { isActive: nextActive }).catch(err => console.error("Error toggling remote rule:", err));
+      updateRuleRemote(id, { isActive: nextActive }).catch(err => {
+        enqueueGlobalSyncOp({ type: "update_rule", id, payload: { is_active: nextActive } });
+        setPendingGlobalSyncCount(getPendingGlobalSyncCount());
+      });
       const updated = prev.map(r => r.id === id ? { ...r, isActive: nextActive } : r);
+      setCachedData(CACHE_KEYS.RULES, updated);
       saveJSON(RULES_STORAGE_KEY, updated);
       return updated;
     });
@@ -1101,13 +1629,158 @@ export function useFinanceStore() {
     });
   }, [rules, categories]);
 
+  const provisionDefaultRules = useCallback(async () => {
+    if (categories.length === 0) return { created: [], deletedCount: 0 };
+
+    // 1. Limpieza de duplicados existentes en el estado actual
+    const seenNames = new Set<string>();
+    const duplicateIdsToDelete: string[] = [];
+    const dedupedCurrentRules: TransactionRule[] = [];
+
+    for (const rule of rules) {
+      const norm = rule.name.trim().toLowerCase();
+      if (seenNames.has(norm)) {
+        duplicateIdsToDelete.push(rule.id);
+      } else {
+        seenNames.add(norm);
+        dedupedCurrentRules.push(rule);
+      }
+    }
+
+    if (duplicateIdsToDelete.length > 0) {
+      await Promise.allSettled(duplicateIdsToDelete.map(id => deleteRuleRemote(id)));
+    }
+
+    // 2. Determinar cuáles de las plantillas base realmente faltan
+    const templates = createDefaultRulesTemplates(categories);
+    const missingTemplates = templates.filter(
+      (t) => !seenNames.has(t.name.trim().toLowerCase())
+    );
+
+    let created: TransactionRule[] = [];
+    if (missingTemplates.length > 0) {
+      try {
+        created = await insertRulesBatch(missingTemplates);
+      } catch (err) {
+        console.error("Error provisioning default rules remotely:", err);
+        created = missingTemplates.map((t, i) => ({
+          ...t,
+          id: `rule-local-${Date.now()}-${i}`,
+        }));
+      }
+    }
+
+    // 3. Consolidar estado local si hubo inserciones o eliminaciones de duplicados
+    if (created.length > 0 || duplicateIdsToDelete.length > 0) {
+      const updated = [...dedupedCurrentRules, ...created];
+      setRules(updated);
+      saveJSON(RULES_STORAGE_KEY, updated);
+    }
+
+    return { created, deletedCount: duplicateIdsToDelete.length };
+  }, [categories, rules]);
+
+  const syncGlobalQueue = useCallback(async () => {
+    setIsGlobalSyncing(true);
+    try {
+      const { processed, remaining } = await syncPendingGlobalQueue();
+      setPendingGlobalSyncCount(remaining);
+      if (processed > 0) {
+        toast.success(t("toast.syncProcessedSuccess").replace("{count}", String(processed)));
+      }
+      return { processed, remaining };
+    } catch (err) {
+      console.error("Manual sync failed:", err);
+      toast.error(t("toast.syncFailed"));
+      throw err;
+    } finally {
+      setIsGlobalSyncing(false);
+    }
+  }, [t]);
+
+  const purgeAllUserData = useCallback(async () => {
+    try {
+      await purgeUserDataService(user?.id);
+
+      // Limpiar estados locales en React
+      setTransactions([]);
+      setAccounts([]);
+      setCategories([]);
+      setBudgets([]);
+      setGoals([]);
+      setBills([]);
+      setRecurringTxs([]);
+      setTags([]);
+      setRules([]);
+      setPendingGlobalSyncCount(0);
+
+      // Limpiar caché local
+      Object.values(CACHE_KEYS).forEach((k) => localStorage.removeItem(k));
+
+      toast.success(t("toast.purgeSuccess"));
+    } catch (err) {
+      console.error("[finance-store] Error al purgar datos del usuario:", err);
+      toast.error(t("toast.purgeError"));
+      throw err;
+    }
+  }, [user?.id, t]);
+
+  const refetchData = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const [accs, cats, bds, gls, bls, remoteTags, remoteRules] = await Promise.all([
+        fetchAccounts(),
+        fetchCategories(),
+        fetchBudgets(),
+        fetchGoals(),
+        fetchBills(),
+        fetchTags().catch(() => loadJSON<Tag[]>("tags", [])),
+        fetchRules().catch(() => {
+          const modern = loadJSON<TransactionRule[] | null>(RULES_STORAGE_KEY, null);
+          if (modern !== null) return modern;
+          return loadJSON<TransactionRule[]>(LEGACY_RULES_STORAGE_KEY, []);
+        }),
+      ]);
+
+      setAccounts(accs);
+      setCategories(cats);
+      setBudgets(bds);
+      setGoals(gls);
+      setBills(bls);
+      setTags(remoteTags);
+      setRules(remoteRules);
+
+      setCachedData(CACHE_KEYS.ACCOUNTS, accs);
+      setCachedData(CACHE_KEYS.CATEGORIES, cats);
+      setCachedData(CACHE_KEYS.BUDGETS, bds);
+      setCachedData(CACHE_KEYS.GOALS, gls);
+      setCachedData(CACHE_KEYS.BILLS, bls);
+      setCachedData(CACHE_KEYS.TAGS, remoteTags);
+      setCachedData(CACHE_KEYS.RULES, remoteRules);
+
+      const [txs, recTxs] = await Promise.all([
+        fetchTransactions(cats),
+        fetchRecurringTransactions(cats),
+      ]);
+      setTransactions(txs);
+      setRecurringTxs(recTxs);
+      setCachedData(CACHE_KEYS.TRANSACTIONS, txs);
+      setCachedData(CACHE_KEYS.RECURRING, recTxs);
+
+      await syncPendingGlobalQueue().catch(() => ({ processed: 0, remaining: 0 }));
+    } catch (err) {
+      console.error("[finance-store] Error en refetchData:", err);
+    }
+  }, [user?.id]);
+
   return {
     loading,
     transactions, accounts, categories, budgets, goals, recurringTxs, bills, tags, rules,
+    pendingGlobalSyncCount, isGlobalSyncing, syncGlobalQueue, purgeAllUserData, refetchData,
     addTransaction, updateTransaction, deleteTransaction, deleteInstallmentGroup, duplicateTransaction, importTransactions,
     addCategory, updateCategory, archiveCategory, unarchiveCategory, deleteCategory, reassignTransactions, seedDefaultCategories,
     getTransactionCountByCategory, getRootCategories, getSubcategories, getArchivedCategories, getAllActiveCategories,
-    addAccount, updateAccount, archiveAccount, unarchiveAccount, adjustAccountBalance,
+    addAccount, updateAccount, archiveAccount, unarchiveAccount, deleteAccount, adjustAccountBalance,
     recalculateAccountBalance, syncAccountBalance, syncAllAccountBalances,
     payCard, transferBetweenAccounts, getStatementTransactions,
     getActiveAccounts, getArchivedAccounts, getCreditCards, getNonCardAccounts, getTransactionsByAccount,
@@ -1116,7 +1789,7 @@ export function useFinanceStore() {
     addRecurringTx, updateRecurringTx, deleteRecurringTx, toggleRecurringPause, processRecurring,
     addBill, updateBill, deleteBill, markBillPaid, getPendingBills,
     addTag, updateTag, deleteTag, getTransactionCountByTag,
-    addRule, updateRule, deleteRule, toggleRule, applyRulesRetroactively,
+    addRule, updateRule, deleteRule, toggleRule, applyRulesRetroactively, provisionDefaultRules,
     totalBalance, monthlyExpenses, monthlyIncome, todaySpent, weekSpent,
     getMonthlyTrend, getLastMonthExpenses,
   };

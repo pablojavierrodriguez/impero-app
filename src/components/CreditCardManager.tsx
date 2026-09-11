@@ -179,15 +179,25 @@ export function CreditCardManager({
       <div className="px-4 pb-3 flex items-center justify-between">
         {view === "list" ? (
           <>
-            <h1 className="text-[20px] font-display font-semibold text-foreground">Tarjetas de Crédito</h1>
-            <div className="flex gap-2">
+            <h1 className="text-[20px] font-display font-semibold text-foreground">{t("card.title")}</h1>
+            <div className="flex items-center gap-2">
               {archivedCards.length > 0 && (
-                <button onClick={() => setView("archived")} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+                <button
+                  onClick={() => setView("archived")}
+                  className="h-8 w-8 rounded-xl bg-secondary/80 border border-border/40 text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center justify-center active:scale-95 transition-all shrink-0"
+                  title={t("card.viewArchived")}
+                  aria-label={t("card.viewArchived")}
+                >
                   <Archive className="w-4 h-4" />
                 </button>
               )}
-              <button onClick={openCreate} className="p-2 text-primary hover:text-primary/80 transition-colors">
-                <Plus className="w-5 h-5" />
+              <button
+                onClick={openCreate}
+                className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 active:scale-95 transition-all shadow-xs shrink-0"
+                title={t("card.new")}
+                aria-label={t("card.new")}
+              >
+                <Plus className="w-4 h-4" />
               </button>
             </div>
           </>
@@ -203,11 +213,11 @@ export function CreditCardManager({
               <X className="w-5 h-5" />
             </button>
             <h2 className="text-[16px] font-display font-semibold text-foreground">
-              {view === "create" && "Nueva Tarjeta"}
-              {view === "edit" && "Editar Tarjeta"}
-              {view === "archived" && "Tarjetas Archivadas"}
+              {view === "create" && t("card.new")}
+              {view === "edit" && t("card.edit")}
+              {view === "archived" && t("card.archived")}
               {view === "detail" && detailCard?.name}
-              {view === "pay" && `Pagar ${detailCard?.name}`}
+              {view === "pay" && `${t("card.pay")} ${detailCard?.name}`}
             </h2>
           </div>
         )}
@@ -218,7 +228,7 @@ export function CreditCardManager({
         {view === "list" && (
           <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="px-4">
             {cards.length === 0 && (
-              <p className="text-muted-foreground text-[13px] text-center py-8">Aún no tenés tarjetas. Tocá + para agregar una.</p>
+              <p className="text-muted-foreground text-[13px] text-center py-8">{t("card.noCards")}</p>
             )}
             {cards.map((card, i) => {
               const cardCurrency = (card.currency as Currency) || "ARS";
@@ -287,10 +297,10 @@ export function CreditCardManager({
                         <div className="flex items-center gap-3 mb-3 text-[11px] text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <CalendarDays className="w-3 h-3" />
-                            Cierre: día {card.closingDay}
+                            {t("card.closing").replace("{day}", String(card.closingDay))}
                           </span>
                           <span>·</span>
-                          <span>Vto: día {card.paymentDay}</span>
+                          <span>{t("card.due").replace("{day}", String(card.paymentDay))}</span>
                         </div>
                       )}
 
@@ -299,7 +309,7 @@ export function CreditCardManager({
                           onClick={() => openPay(card)}
                           className="flex-1 h-9 rounded-[10px] bg-primary/10 text-primary text-[13px] font-medium flex items-center justify-center gap-1.5"
                         >
-                          <DollarSign className="w-3.5 h-3.5" /> Pagar
+                          <DollarSign className="w-3.5 h-3.5" /> {t("card.pay") || "Pagar"}
                         </button>
                         <button
                           onClick={() => openEdit(card)}
@@ -325,15 +335,15 @@ export function CreditCardManager({
         {/* CREATE / EDIT VIEW */}
         {(view === "create" || view === "edit") && (
           <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="px-4">
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Nombre de la tarjeta</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("card.name")}</label>
             <input
               value={formName}
               onChange={e => setFormName(e.target.value)}
-              placeholder="Ej: Visa Gold"
+              placeholder={t("card.namePlaceholder")}
               className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
             />
 
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Marca</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("card.brand")}</label>
             <div className="flex flex-wrap gap-2 mb-4">
               {CARD_BRANDS.map(b => (
                 <button
@@ -350,16 +360,16 @@ export function CreditCardManager({
 
             {formBrand === "custom" && (
               <>
-                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Nombre de marca</label>
+                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("card.brandName")}</label>
                 <input
                   value={formCustomBrand}
                   onChange={e => setFormCustomBrand(e.target.value)}
-                  placeholder="Nombre del banco / billetera"
+                  placeholder={t("card.customBrandPlaceholder")}
                   className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
                 />
               </>
             )}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Límite de crédito</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("card.limit")}</label>
             <div className="mb-4">
               <MoneyInput
                 value={formLimit}
@@ -370,7 +380,7 @@ export function CreditCardManager({
 
             {/* Selector de Modo de Visualización (Paramétrico) */}
             <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">
-              Modo de Visualización de la Tarjeta
+              {t("card.viewModeLabel")}
             </label>
             <div className="grid grid-cols-2 gap-2 mb-4">
               <button
@@ -384,10 +394,10 @@ export function CreditCardManager({
               >
                 <div className="flex items-center gap-1.5 mb-1">
                   <CalendarDays className="w-3.5 h-3.5 text-foreground" />
-                  <span className="text-[12px] font-medium text-foreground">Ciclos de Resumen</span>
+                  <span className="text-[12px] font-medium text-foreground">{t("card.statementCycles")}</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-tight">
-                  Agrupa compras por período de cierre y fecha límite de pago.
+                  {t("card.statementCyclesDesc")}
                 </p>
               </button>
 
@@ -402,10 +412,10 @@ export function CreditCardManager({
               >
                 <div className="flex items-center gap-1.5 mb-1">
                   <DollarSign className="w-3.5 h-3.5 text-destructive" />
-                  <span className="text-[12px] font-medium text-foreground">Saldo Continuo</span>
+                  <span className="text-[12px] font-medium text-foreground">{t("card.continuousBalance")}</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-tight">
-                  Muestra la deuda acumulada continua como saldo negativo directo.
+                  {t("card.continuousDesc")}
                 </p>
               </button>
             </div>
@@ -413,7 +423,7 @@ export function CreditCardManager({
             {/* Closing & Payment days */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div>
-                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Día de Cierre (1-28)</label>
+                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("card.closingDayLabel")}</label>
                 <input
                   value={formClosingDay}
                   onChange={e => setFormClosingDay(e.target.value)}
@@ -425,7 +435,7 @@ export function CreditCardManager({
                 />
               </div>
               <div>
-                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Día de Pago (1-28)</label>
+                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("card.paymentDayLabel")}</label>
                 <input
                   value={formPaymentDay}
                   onChange={e => setFormPaymentDay(e.target.value)}
@@ -440,7 +450,7 @@ export function CreditCardManager({
 
             {view === "create" ? (
               <>
-                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Saldo adeudado inicial</label>
+                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("card.initialBalanceOwed")}</label>
                 <div className="mb-4">
                   <MoneyInput
                     value={formBalance}
@@ -452,19 +462,19 @@ export function CreditCardManager({
             ) : (
               <div className="mb-4 p-3 rounded-[12px] bg-secondary/40 border border-border/40">
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-muted-foreground font-medium">Saldo adeudado registrado</span>
+                  <span className="text-[12px] text-muted-foreground font-medium">{t("card.recordedBalanceOwed")}</span>
                   <span className="font-mono-data text-[14px] font-semibold text-foreground">
                     {activeCurrencySymbol}{parseFloat(formBalance || "0").toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  El saldo se actualiza automáticamente con transacciones y pagos de tarjeta.
+                  {t("card.balanceAutoNote")}
                 </p>
               </div>
             )}
 
             {/* Currency */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Moneda de la Tarjeta</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("card.currencyLabel")}</label>
             <div className="flex flex-wrap gap-2 mb-4">
               {CURRENCIES.map(c => (
                 <button
@@ -481,7 +491,7 @@ export function CreditCardManager({
             </div>
 
             {/* Color */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Color</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("acct.color")}</label>
             <div className="flex flex-wrap gap-2 mb-4">
               {CATEGORY_COLORS.map(c => (
                 <button
@@ -495,7 +505,7 @@ export function CreditCardManager({
             </div>
 
             {/* Icon */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Ícono</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("common.icon")}</label>
             <div className="flex flex-wrap gap-2 mb-6">
               {ACCOUNT_ICONS.map(ic => (
                 <button
@@ -512,14 +522,14 @@ export function CreditCardManager({
 
             <div className="flex gap-3">
               <button onClick={() => setView("list")} className="flex-1 h-11 rounded-[12px] bg-secondary text-foreground font-medium text-[14px]">
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleSave}
                 disabled={!formName.trim()}
                 className="flex-[2] h-11 rounded-[12px] bg-primary text-primary-foreground font-medium text-[14px] disabled:opacity-40"
               >
-                {view === "edit" ? "Guardar Cambios" : "Crear Tarjeta"}
+                {view === "edit" ? t("card.saveChanges") : t("card.createCard")}
               </button>
             </div>
           </motion.div>
@@ -538,18 +548,18 @@ export function CreditCardManager({
                   <div className="flex-1">
                     <span className="text-[14px] text-foreground font-medium">{detailCard.name}</span>
                     <div className="text-[12px] text-muted-foreground">
-                      Deuda actual: <span className="font-mono-data text-destructive">{formatCurrency(detailCard.balance)}</span>
+                      {t("card.currentDebt")}: <span className="font-mono-data text-destructive">{formatCurrency(detailCard.balance)}</span>
                     </div>
                   </div>
                 </div>
                 {detailCard.creditLimit && detailCard.creditLimit > 0 && (
                   <div className="mt-2 pt-2 border-t border-border/50 grid grid-cols-2 gap-2 text-[11px]">
                     <div>
-                      <span className="text-muted-foreground block">Límite</span>
+                      <span className="text-muted-foreground block">{t("card.limit")}</span>
                       <span className="font-mono-data text-foreground">{formatCurrency(detailCard.creditLimit)}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground block">Disponible</span>
+                      <span className="text-muted-foreground block">{t("card.available")}</span>
                       <span className="font-mono-data text-foreground">{formatCurrency(Math.max((detailCard.creditLimit || 0) - Math.abs(detailCard.balance), 0))}</span>
                     </div>
                   </div>
@@ -571,7 +581,7 @@ export function CreditCardManager({
 
               return (
                 <>
-                  <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Modalidad de pago</label>
+                  <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("card.paymentMode")}</label>
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     <button
                       type="button"
@@ -582,7 +592,7 @@ export function CreditCardManager({
                           : "bg-secondary/40 border-border/60 text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <span className="text-[11px] block mb-0.5 opacity-80">Pago total</span>
+                      <span className="text-[11px] block mb-0.5 opacity-80">{t("card.fullPayment")}</span>
                       <span className="text-[12px] font-semibold block font-mono-data truncate">
                         {formatCurrency(owed)}
                       </span>
@@ -597,7 +607,7 @@ export function CreditCardManager({
                           : "bg-secondary/40 border-border/60 text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <span className="text-[11px] block mb-0.5 opacity-80">Pago mínimo</span>
+                      <span className="text-[11px] block mb-0.5 opacity-80">{t("card.minimumPayment")}</span>
                       <span className="text-[12px] font-semibold block font-mono-data truncate">
                         {formatCurrency(minimumPayment)}
                       </span>
@@ -612,8 +622,8 @@ export function CreditCardManager({
                           : "bg-secondary/40 border-border/60 text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <span className="text-[11px] font-medium block mb-0.5">Otro monto</span>
-                      <span className="text-[13px] font-semibold block">Personalizado</span>
+                      <span className="text-[11px] font-medium block mb-0.5">{t("card.otherAmount")}</span>
+                      <span className="text-[13px] font-semibold block">{t("card.custom")}</span>
                     </button>
                   </div>
                 </>
@@ -621,7 +631,7 @@ export function CreditCardManager({
             })()}
 
             {/* Amount input */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Monto a pagar</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("card.payAmount")}</label>
             <div className="mb-4">
               <MoneyInput
                 value={payAmount}
@@ -634,7 +644,7 @@ export function CreditCardManager({
             </div>
 
             {/* Source account selector */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Debitar desde</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("card.debitFrom")}</label>
             <div className="space-y-1.5 mb-4">
               {sourceAccounts.map(acc => (
                 <button
@@ -727,7 +737,7 @@ export function CreditCardManager({
                       </div>
                       {detailCard.creditLimit && (
                         <span className="text-[11px] text-muted-foreground">
-                          Limit: {formatCurrency(detailCard.creditLimit)} · Available: {formatCurrency(Math.max((detailCard.creditLimit || 0) - Math.abs(detailCard.balance), 0))}
+                          {t("card.limit")}: {formatCurrency(detailCard.creditLimit)} · {t("card.available")}: {formatCurrency(Math.max((detailCard.creditLimit || 0) - Math.abs(detailCard.balance), 0))}
                         </span>
                       )}
                     </div>
@@ -737,12 +747,12 @@ export function CreditCardManager({
                   {detailCard.closingDay && detailCard.paymentDay && (
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       <div className="p-2 rounded-[10px] bg-secondary/50">
-                        <span className="text-[10px] text-muted-foreground block">Closing</span>
-                        <span className="text-[13px] text-foreground font-medium">Day {detailCard.closingDay}</span>
+                        <span className="text-[10px] text-muted-foreground block">{t("card.closingDay")}</span>
+                        <span className="text-[13px] text-foreground font-medium">{t("common.day")} {detailCard.closingDay}</span>
                       </div>
                       <div className="p-2 rounded-[10px] bg-secondary/50">
-                        <span className="text-[10px] text-muted-foreground block">Payment Due</span>
-                        <span className="text-[13px] text-foreground font-medium">Day {detailCard.paymentDay}</span>
+                        <span className="text-[10px] text-muted-foreground block">{t("card.paymentDay")}</span>
+                        <span className="text-[13px] text-foreground font-medium">{t("common.day")} {detailCard.paymentDay}</span>
                       </div>
                     </div>
                   )}
@@ -752,13 +762,13 @@ export function CreditCardManager({
                       onClick={() => openPay(detailCard)}
                       className="flex-1 h-9 rounded-[10px] bg-primary/10 text-primary text-[13px] font-medium flex items-center justify-center gap-1.5"
                     >
-                      <DollarSign className="w-3.5 h-3.5" /> Pay
+                      <DollarSign className="w-3.5 h-3.5" /> {t("card.pay")}
                     </button>
                     <button
                       onClick={() => openEdit(detailCard)}
                       className="flex-1 h-9 rounded-[10px] bg-secondary text-foreground text-[13px] font-medium flex items-center justify-center gap-1.5"
                     >
-                      <Pencil className="w-3.5 h-3.5" /> Editar
+                      <Pencil className="w-3.5 h-3.5" /> {t("common.edit")}
                     </button>
                   </div>
                 </div>
@@ -903,26 +913,26 @@ export function CreditCardManager({
                       <button
                         onClick={() => setCycleOffset(prev => prev - 1)}
                         className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 transition-all"
-                        title="Resumen anterior"
+                        title={t("card.previousStatementTitle")}
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
                       <div className="flex flex-col items-center">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[13px] text-foreground font-semibold">
-                            {cycleOffset === 0 && "Resumen actual"}
-                            {cycleOffset === -1 && "Resumen anterior"}
-                            {cycleOffset < -1 && `Resumen anterior (${cycleOffset})`}
-                            {cycleOffset === 1 && "Próximo resumen (+1)"}
-                            {cycleOffset > 1 && `Resumen futuro (+${cycleOffset})`}
+                            {cycleOffset === 0 && t("card.currentStatement")}
+                            {cycleOffset === -1 && t("card.previousStatement")}
+                            {cycleOffset < -1 && t("card.previousStatementOffset").replace("{offset}", String(cycleOffset))}
+                            {cycleOffset === 1 && t("card.nextStatement")}
+                            {cycleOffset > 1 && t("card.futureStatementOffset").replace("{offset}", String(cycleOffset))}
                           </span>
                           {cycleOffset !== 0 && (
                             <button
                               onClick={() => setCycleOffset(0)}
                               className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 font-medium transition-colors"
-                              title="Volver al resumen actual"
+                              title={t("card.currentStatement")}
                             >
-                              Actual
+                              {t("card.currentStatement")}
                             </button>
                           )}
                         </div>
@@ -936,7 +946,7 @@ export function CreditCardManager({
                       <button
                         onClick={() => setCycleOffset(prev => prev + 1)}
                         className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 transition-all"
-                        title="Próximo resumen"
+                        title={t("card.nextStatement")}
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
@@ -948,8 +958,8 @@ export function CreditCardManager({
             <div className="px-4">
               <h3 className="text-[13px] text-muted-foreground font-medium mb-3">
                 {detailCard.closingDay && detailCard.creditCardViewMode !== "negative_balance"
-                  ? "Cargos del resumen"
-                  : "Todas las transacciones (Saldo continuo)"}
+                  ? t("card.statementCharges")
+                  : t("card.allTransactionsContinuous")}
               </h3>
               {(() => {
                 const txs = (detailCard.closingDay && detailCard.creditCardViewMode !== "negative_balance")
@@ -958,12 +968,12 @@ export function CreditCardManager({
 
                 const total = txs.reduce((sum, t) => sum + t.amount, 0);
 
-                if (txs.length === 0) return <p className="text-muted-foreground text-[13px] text-center py-6">Sin cargos en este período.</p>;
+                if (txs.length === 0) return <p className="text-muted-foreground text-[13px] text-center py-6">{t("card.noChargesInPeriod")}</p>;
 
                 return (
                   <>
                     <div className="mb-3 p-3 rounded-[12px] bg-secondary/50">
-                      <span className="text-[12px] text-muted-foreground">Total del resumen</span>
+                      <span className="text-[12px] text-muted-foreground">{t("card.statementTotal")}</span>
                       <span className="font-mono-data text-[18px] text-destructive ml-2">{formatCurrency(total)}</span>
                     </div>
                     {txs.map(tx => (
@@ -998,7 +1008,7 @@ export function CreditCardManager({
                 if (payments.length === 0) return null;
                 return (
                   <>
-                    <h3 className="text-[13px] text-muted-foreground font-medium mb-3 mt-6">Pagos realizados</h3>
+                    <h3 className="text-[13px] text-muted-foreground font-medium mb-3 mt-6">{t("card.paymentsMade")}</h3>
                     {payments.map(tx => (
                       <div key={tx.id} className="transaction-row">
                         <div className="flex items-center gap-3">
@@ -1028,7 +1038,7 @@ export function CreditCardManager({
         {view === "archived" && (
           <motion.div key="archived" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="px-4">
             {archivedCards.length === 0 && (
-              <p className="text-muted-foreground text-[13px] text-center py-8">No hay tarjetas archivadas.</p>
+              <p className="text-muted-foreground text-[13px] text-center py-8">{t("card.noArchived")}</p>
             )}
             {archivedCards.map(card => (
               <div key={card.id} className="flex items-center justify-between py-3 border-b border-border/50">

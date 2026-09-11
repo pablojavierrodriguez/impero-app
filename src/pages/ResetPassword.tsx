@@ -4,21 +4,49 @@ import { Button } from "@/components/ui/button";
 import { Lock, ArrowRight, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useSettings } from "@/lib/settings-store";
 
-import { getHumanAuthErrorMessage } from "@/lib/auth-errors";
+import { getHumanAuthErrorMessage, extractAuthUrlError } from "@/lib/auth-errors";
 
 export default function ResetPassword() {
+  const { t } = useSettings();
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for recovery token in URL hash
-    const hash = window.location.hash;
-    if (!hash.includes("type=recovery")) {
-      navigate("/");
+    // 1. Detectar si Supabase devolvió un error en la redirección (ej: otp_expired)
+    const urlError = extractAuthUrlError();
+    if (urlError) {
+      const parsed = getHumanAuthErrorMessage(urlError);
+      toast.error(parsed.title, {
+        description: parsed.description,
+      });
+      window.history.replaceState(null, "", window.location.pathname);
+      navigate("/auth", { replace: true });
+      return;
     }
-  }, [navigate]);
+
+    // 2. Verificar token o sesión de recuperación
+    const checkRecoverySession = async () => {
+      const hash = window.location.hash;
+      const hasRecoveryToken =
+        hash.includes("type=recovery") || hash.includes("access_token");
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session && !hasRecoveryToken) {
+        toast.error(t("auth.invalidLink"), {
+          description: t("auth.invalidLinkDesc"),
+        });
+        navigate("/auth", { replace: true });
+      }
+    };
+
+    checkRecoverySession();
+  }, [navigate, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +54,8 @@ export default function ResetPassword() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast.success("¡Contraseña actualizada!");
+      toast.success(t("auth.passwordUpdated"));
+      window.history.replaceState(null, "", "/");
       navigate("/");
     } catch (err: any) {
       const parsed = getHumanAuthErrorMessage(err);
@@ -45,7 +74,7 @@ export default function ResetPassword() {
           <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center mb-4">
             <Sparkles className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-xl font-bold font-display text-foreground">Nueva contraseña</h1>
+          <h1 className="text-xl font-bold font-display text-foreground">{t("auth.newPasswordTitle")}</h1>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
@@ -54,14 +83,20 @@ export default function ResetPassword() {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="Nueva contraseña"
+              placeholder={t("auth.newPasswordPlaceholder")}
               required
               minLength={6}
               className="w-full h-12 pl-10 pr-4 rounded-xl bg-input border border-border text-foreground text-sm placeholder:text-muted-foreground focus:border-primary/50 focus:ring-1 focus:ring-primary/20 outline-none transition-all"
             />
           </div>
           <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl gap-2">
-            {loading ? <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <>Guardar <ArrowRight className="w-4 h-4" /></>}
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+            ) : (
+              <>
+                {t("common.save")} <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </Button>
         </form>
       </div>

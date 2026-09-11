@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { Download, Smartphone, Share, PlusSquare, CheckCircle2, X } from "lucide-react";
+import { Download, Smartphone, Share, PlusSquare, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { useSettings } from "@/lib/settings-store";
 
 export function PwaInstallPrompt() {
+  const { t } = useSettings();
   const { isInstallable, isInstalled, isIOS, triggerInstall } = usePwaInstall();
   const [showIosGuide, setShowIosGuide] = useState(false);
 
@@ -13,7 +15,7 @@ export function PwaInstallPrompt() {
     return (
       <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-medium">
         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-        <span>Aplicación IMPERO instalada en este dispositivo.</span>
+        <span>{t("pwa.installedDevice") || "Aplicación IMPERO instalada en este dispositivo."}</span>
       </div>
     );
   }
@@ -36,9 +38,11 @@ export function PwaInstallPrompt() {
             <Smartphone className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-foreground">Instalar IMPERO en tu teléfono</h4>
+            <h4 className="text-sm font-semibold text-foreground">
+              {t("pwa.installTitle") || "Instalar IMPERO en tu teléfono"}
+            </h4>
             <p className="text-xs text-muted-foreground">
-              Tu dinero. Tu mente. Tu control. Acceso en 1 toque, pantalla completa y offline.
+              {t("pwa.installSubtitle") || "Tu dinero. Tu mente. Tu control. Acceso en 1 toque, pantalla completa y offline."}
             </p>
           </div>
         </div>
@@ -49,7 +53,7 @@ export function PwaInstallPrompt() {
           className="w-full sm:w-auto h-10 px-4 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium theme-pill-btn shadow transition-all active:scale-[0.98]"
         >
           <Download className="w-4 h-4" />
-          <span>Instalar App</span>
+          <span>{t("pwa.installButton") || "Instalar App"}</span>
         </Button>
       </div>
 
@@ -61,10 +65,10 @@ export function PwaInstallPrompt() {
               <Smartphone className="w-6 h-6 text-primary" />
             </div>
             <DialogTitle className="text-center text-lg font-bold">
-              Instalar IMPERO en tu Pantalla de Inicio
+              {t("pwa.iosModalTitle") || "Instalar IMPERO en tu Pantalla de Inicio"}
             </DialogTitle>
             <DialogDescription className="text-center text-xs text-muted-foreground">
-              Sigue estos 2 sencillos pasos en tu navegador móvil para tener la app como nativa:
+              {t("pwa.iosModalDesc") || "Sigue estos 2 sencillos pasos en tu navegador móvil para tener la app como nativa:"}
             </DialogDescription>
           </DialogHeader>
 
@@ -75,10 +79,10 @@ export function PwaInstallPrompt() {
               </div>
               <div className="text-xs text-foreground/90 space-y-1">
                 <p className="font-semibold flex items-center gap-1.5">
-                  Toca el botón Compartir <Share className="w-3.5 h-3.5 text-primary inline" />
+                  {t("pwa.iosStep1Title") || "Toca el botón Compartir"} <Share className="w-3.5 h-3.5 text-primary inline" />
                 </p>
                 <p className="text-muted-foreground">
-                  En la barra inferior de Safari o en el menú de tres puntos de tu navegador.
+                  {t("pwa.iosStep1Desc") || "En la barra inferior de Safari o en el menú de tres puntos de tu navegador."}
                 </p>
               </div>
             </div>
@@ -89,10 +93,10 @@ export function PwaInstallPrompt() {
               </div>
               <div className="text-xs text-foreground/90 space-y-1">
                 <p className="font-semibold flex items-center gap-1.5">
-                  Selecciona "Agregar a inicio" <PlusSquare className="w-3.5 h-3.5 text-primary inline" />
+                  {t("pwa.iosStep2Title") || "Selecciona 'Agregar a inicio'"} <PlusSquare className="w-3.5 h-3.5 text-primary inline" />
                 </p>
                 <p className="text-muted-foreground">
-                  Desliza hacia abajo en las opciones y confirma para crear el ícono en tu teléfono.
+                  {t("pwa.iosStep2Desc") || "Desliza hacia abajo en las opciones y confirma para crear el ícono en tu teléfono."}
                 </p>
               </div>
             </div>
@@ -103,7 +107,7 @@ export function PwaInstallPrompt() {
             variant="outline"
             className="w-full rounded-xl h-11 text-xs font-semibold"
           >
-            Entendido
+            {t("pwa.iosUnderstood") || "Entendido"}
           </Button>
         </DialogContent>
       </Dialog>

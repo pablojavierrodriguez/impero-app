@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Calendar, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { format, addMonths, subMonths, isSameMonth } from "date-fns";
-import { es } from "date-fns/locale";
+import { es, enUS } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSettings } from "@/lib/settings-store";
 
 interface MonthSelectorProps {
   currentDate: Date;
@@ -10,15 +11,12 @@ interface MonthSelectorProps {
   onCustomizeDashboard?: () => void;
 }
 
-const MONTH_NAMES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
-
 export function MonthSelector({ currentDate, onChangeDate, onCustomizeDashboard }: MonthSelectorProps) {
+  const { t, settings } = useSettings();
   const [pickerOpen, setPickerOpen] = useState(false);
   const now = useMemo(() => new Date(), []);
   const isCurrentMonth = isSameMonth(currentDate, now);
+  const activeLocale = settings.language === "en" ? enUS : es;
 
   const handlePrev = () => {
     onChangeDate(subMonths(currentDate, 1));
@@ -40,7 +38,7 @@ export function MonthSelector({ currentDate, onChangeDate, onCustomizeDashboard 
     setPickerOpen(false);
   };
 
-  const formattedMonth = format(currentDate, "MMMM yyyy", { locale: es });
+  const formattedMonth = format(currentDate, "MMMM yyyy", { locale: activeLocale });
   const displayLabel = formattedMonth.charAt(0).toUpperCase() + formattedMonth.slice(1);
 
   return (
@@ -50,7 +48,7 @@ export function MonthSelector({ currentDate, onChangeDate, onCustomizeDashboard 
         <button
           type="button"
           onClick={handlePrev}
-          aria-label="Mes anterior"
+          aria-label={t("nav.prevMonth")}
           className="w-8 h-8 theme-pill-btn flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 transition-all"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -73,11 +71,11 @@ export function MonthSelector({ currentDate, onChangeDate, onCustomizeDashboard 
             <button
               type="button"
               onClick={handleGoToday}
-              title="Volver al mes actual"
+              title={t("nav.backToCurrentMonth")}
               className="px-2.5 py-0.5 theme-pill-btn bg-primary/15 text-primary text-[10px] font-semibold hover:bg-primary/25 active:scale-95 transition-all flex items-center gap-1"
             >
               <RotateCcw className="w-2.5 h-2.5" />
-              Hoy
+              {t("nav.today")}
             </button>
           )}
         </div>
@@ -87,7 +85,7 @@ export function MonthSelector({ currentDate, onChangeDate, onCustomizeDashboard 
           <button
             type="button"
             onClick={handleNext}
-            aria-label="Mes siguiente"
+            aria-label={t("nav.nextMonth")}
             className="w-8 h-8 theme-pill-btn flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 transition-all"
           >
             <ChevronRight className="w-4 h-4" />
@@ -97,8 +95,8 @@ export function MonthSelector({ currentDate, onChangeDate, onCustomizeDashboard 
             <button
               type="button"
               onClick={onCustomizeDashboard}
-              title="Personalizar Dashboard"
-              aria-label="Personalizar Dashboard"
+              title={t("nav.customizeDashboard")}
+              aria-label={t("nav.customizeDashboard")}
               className="w-8 h-8 theme-pill-btn flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 active:scale-95 transition-all ml-0.5"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -124,7 +122,7 @@ export function MonthSelector({ currentDate, onChangeDate, onCustomizeDashboard 
             >
               <div className="flex items-center justify-between pb-2 border-b border-border/40 px-1">
                 <span className="text-xs font-semibold text-foreground font-display">
-                  Año {currentDate.getFullYear()}
+                  {t("common.year")} {currentDate.getFullYear()}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -153,15 +151,17 @@ export function MonthSelector({ currentDate, onChangeDate, onCustomizeDashboard 
               </div>
 
               <div className="grid grid-cols-3 gap-1.5">
-                {MONTH_NAMES.map((name, idx) => {
+                {Array.from({ length: 12 }).map((_, idx) => {
+                  const mDate = new Date(2024, idx, 1);
+                  const mName = format(mDate, "MMM", { locale: activeLocale });
                   const isSelected = currentDate.getMonth() === idx;
                   const isCurrent = now.getMonth() === idx && now.getFullYear() === currentDate.getFullYear();
                   return (
                     <button
-                      key={name}
+                      key={idx}
                       type="button"
                       onClick={() => handleSelectMonth(idx)}
-                      className={`py-2 px-1 rounded-xl text-xs font-medium transition-all ${
+                      className={`py-2 px-1 rounded-xl text-xs font-medium transition-all capitalize ${
                         isSelected
                           ? "bg-primary text-primary-foreground font-semibold shadow-xs"
                           : isCurrent
@@ -169,7 +169,7 @@ export function MonthSelector({ currentDate, onChangeDate, onCustomizeDashboard 
                           : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                       }`}
                     >
-                      {name.slice(0, 3)}
+                      {mName}
                     </button>
                   );
                 })}
@@ -181,7 +181,7 @@ export function MonthSelector({ currentDate, onChangeDate, onCustomizeDashboard 
                   onClick={handleGoToday}
                   className="text-[11px] text-primary hover:underline font-medium"
                 >
-                  Volver al mes actual
+                  {t("nav.backToCurrentMonth")}
                 </button>
               </div>
             </motion.div>

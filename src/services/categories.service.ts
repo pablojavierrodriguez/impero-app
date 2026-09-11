@@ -25,22 +25,25 @@ export async function fetchCategories(): Promise<Category[]> {
   }));
 }
 
-export async function insertCategory(cat: Omit<Category, "id">): Promise<Category> {
+export async function insertCategory(cat: Omit<Category, "id"> & { id?: string }): Promise<Category> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No authenticated user");
 
+  const insertPayload: any = {
+    user_id: user.id,
+    name: cat.name,
+    color: cat.color,
+    type: cat.type,
+    icon: cat.icon || null,
+    parent_id: cat.parentId || null,
+    archived: cat.archived || false,
+    sort_order: cat.order || 0,
+  };
+  if (cat.id) insertPayload.id = cat.id;
+
   const { data, error } = await supabase
     .from("categories")
-    .insert({
-      user_id: user.id,
-      name: cat.name,
-      color: cat.color,
-      type: cat.type,
-      icon: cat.icon || null,
-      parent_id: cat.parentId || null,
-      archived: cat.archived || false,
-      sort_order: cat.order || 0,
-    })
+    .upsert(insertPayload, { onConflict: "id" })
     .select()
     .single();
 

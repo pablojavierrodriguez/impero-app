@@ -21,7 +21,7 @@ export function PayStatementModal({
   sourceAccounts,
   onConfirmPay,
 }: PayStatementModalProps) {
-  const { formatAmount } = useSettings();
+  const { formatAmount, t } = useSettings();
   const [payMode, setPayMode] = useState<"total" | "minimum" | "custom">("total");
   const [amount, setAmount] = useState(suggestedAmount > 0 ? suggestedAmount.toString() : "");
   const [fromAccountId, setFromAccountId] = useState(sourceAccounts[0]?.id || "");
@@ -51,7 +51,7 @@ export function PayStatementModal({
   };
 
   return (
-    <ResponsiveSheet open={open} onClose={onClose} title={`Pagar Resumen: ${card.name}`}>
+    <ResponsiveSheet open={open} onClose={onClose} title={t("card.payStatementModalTitle").replace("{name}", card.name)}>
       <div className="p-4 space-y-4">
         {/* Resumen Card Header */}
         <div className="card-surface">
@@ -62,7 +62,7 @@ export function PayStatementModal({
               </div>
               <div>
                 <span className="text-sm font-medium text-foreground block">{card.name}</span>
-                <span className="text-xs text-muted-foreground">Total liquidado del resumen</span>
+                <span className="text-xs text-muted-foreground">{t("card.payStatementTotalLiquidated")}</span>
               </div>
             </div>
             <span className="font-mono-data text-lg font-semibold text-destructive">
@@ -74,7 +74,7 @@ export function PayStatementModal({
         {/* Modalidades de pago estilo Mobills (Total / Mínimo / Otro) */}
         <div>
           <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-            Modalidad de pago
+            {t("card.payStatementMode")}
           </label>
           <div className="grid grid-cols-3 gap-2">
             <button
@@ -86,7 +86,7 @@ export function PayStatementModal({
                   : "bg-secondary/40 text-foreground border-border/60 hover:bg-secondary/70"
               }`}
             >
-              Pago Total
+              {t("card.payStatementTotal")}
             </button>
             <button
               type="button"
@@ -97,7 +97,7 @@ export function PayStatementModal({
                   : "bg-secondary/40 text-foreground border-border/60 hover:bg-secondary/70"
               }`}
             >
-              Pago Mínimo
+              {t("card.payStatementMinimum")}
             </button>
             <button
               type="button"
@@ -108,14 +108,14 @@ export function PayStatementModal({
                   : "bg-secondary/40 text-foreground border-border/60 hover:bg-secondary/70"
               }`}
             >
-              Otro Monto
+              {t("card.payStatementCustom")}
             </button>
           </div>
         </div>
 
         <div>
           <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-            Monto a abonar
+            {t("card.payStatementAmount")}
           </label>
           <input
             type="number"
@@ -133,18 +133,18 @@ export function PayStatementModal({
         {remainingDebt > 0 && currentAmountNum > 0 && (
           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
             <div className="flex items-center justify-between font-medium text-amber-500">
-              <span>Arrastre al próximo resumen</span>
+              <span>{t("card.payStatementCarryOver")}</span>
               <span className="font-mono-data">{formatAmount(remainingDebt)}</span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              El saldo impago no cubierto pasará a formar parte del saldo adeudado del siguiente ciclo de facturación.
+              {t("card.payStatementCarryOverDesc")}
             </p>
           </div>
         )}
 
         <div>
           <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-            Debitar desde la cuenta
+            {t("card.payStatementDebitFrom")}
           </label>
           <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
             {sourceAccounts.map((acc) => (
@@ -176,7 +176,7 @@ export function PayStatementModal({
             onClick={onClose}
             className="flex-1 h-11 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-colors"
           >
-            Cancelar
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -185,7 +185,7 @@ export function PayStatementModal({
             className="flex-1 h-11 rounded-xl bg-primary text-primary-foreground text-sm font-medium inline-flex items-center justify-center gap-1.5 disabled:opacity-40 active:scale-[0.98] transition-all shadow-sm"
           >
             <DollarSign className="w-4 h-4" />
-            Confirmar Pago
+            {t("card.payStatementConfirm")}
           </button>
         </div>
       </div>

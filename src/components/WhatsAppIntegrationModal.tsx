@@ -18,8 +18,10 @@ import {
   WhatsAppIntegrationStatus,
 } from "@/services/whatsapp.service";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/lib/settings-store";
 
 export function WhatsAppIntegrationModal() {
+  const { t } = useSettings();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<WhatsAppIntegrationStatus>({
@@ -53,8 +55,8 @@ export function WhatsAppIntegrationModal() {
   const handleGenerateOtp = async () => {
     if (!phoneInput || phoneInput.trim().length < 8) {
       toast({
-        title: "Número inválido",
-        description: "Por favor ingresá tu número con código de país (ej. +54911...)",
+        title: t("whatsapp.invalidPhone"),
+        description: t("whatsapp.invalidPhoneDesc"),
         variant: "destructive",
       });
       return;
@@ -65,13 +67,13 @@ export function WhatsAppIntegrationModal() {
       const res = await generateWhatsAppOtp(phoneInput);
       setOtpInfo(res);
       toast({
-        title: "Código generado",
-        description: `Tu código de verificación es ${res.code}. Envialo al bot para activar.`,
+        title: t("whatsapp.codeGenerated"),
+        description: `${t("whatsapp.codeGeneratedDesc")} ${res.code}. ${t("whatsapp.codeGeneratedSuffix")}`,
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "No se pudo generar el código";
+      const msg = err instanceof Error ? err.message : "Error";
       toast({
-        title: "Error al generar código",
+        title: t("whatsapp.errorGenCode"),
         description: msg,
         variant: "destructive",
       });
@@ -88,13 +90,13 @@ export function WhatsAppIntegrationModal() {
       setOtpInfo(null);
       setPhoneInput("");
       toast({
-        title: "WhatsApp desvinculado",
-        description: "Ya no recibirás registros desde ese número.",
+        title: t("whatsapp.unlinkedSuccess"),
+        description: t("whatsapp.unlinkedDesc"),
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error al desvincular";
+      const msg = err instanceof Error ? err.message : "Error";
       toast({
-        title: "Error",
+        title: t("whatsapp.errorUnlink"),
         description: msg,
         variant: "destructive",
       });
@@ -115,19 +117,19 @@ export function WhatsAppIntegrationModal() {
           <div className="flex items-center gap-3">
             <MessageSquare className="w-4 h-4 text-emerald-500" />
             <div>
-              <span className="text-sm text-foreground block">Bot de WhatsApp (IMPERO IA)</span>
+              <span className="text-sm text-foreground block">{t("settings.whatsappBot")}</span>
               <span className="text-[11px] text-muted-foreground block">
-                {isConnected ? "Vinculado y activo" : "Carga de gastos por audio, texto o ticket"}
+                {isConnected ? t("settings.whatsappActive") : t("settings.whatsappInactive")}
               </span>
             </div>
           </div>
           {isConnected ? (
             <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-xs">
-              Conectado
+              {t("settings.whatsappConnected")}
             </Badge>
           ) : (
             <Badge variant="outline" className="text-xs text-muted-foreground">
-              Configurar
+              {t("settings.whatsappConfigure")}
             </Badge>
           )}
         </button>
@@ -137,10 +139,10 @@ export function WhatsAppIntegrationModal() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-emerald-500" />
-            Asistente Autónomo de WhatsApp
+            {t("whatsapp.title")}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Registrá compras al instante enviando un audio, una foto del ticket o un mensaje directo a IMPERO.
+            {t("whatsapp.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -149,10 +151,10 @@ export function WhatsAppIntegrationModal() {
             <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-3">
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-medium text-sm">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Cuenta vinculada: {status.phoneNumber}</span>
+                <span>{t("whatsapp.linked")}: {status.phoneNumber}</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Podés mandar audios, capturas o textos como <em>&ldquo;Gasté 4500 en súper con Galicia&rdquo;</em> para que se registre automáticamente.
+                {t("whatsapp.help")}
               </p>
               <Button
                 variant="destructive"
@@ -162,7 +164,7 @@ export function WhatsAppIntegrationModal() {
                 disabled={loading}
               >
                 {loading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
-                Desvincular WhatsApp
+                {t("whatsapp.unlink")}
               </Button>
             </div>
           ) : (
@@ -170,7 +172,7 @@ export function WhatsAppIntegrationModal() {
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                  Tu número de WhatsApp (con código de país)
+                  {t("whatsapp.phoneLabel")}
                 </label>
                 <Input
                   type="tel"
@@ -189,18 +191,18 @@ export function WhatsAppIntegrationModal() {
                   disabled={loading}
                 >
                   {loading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
-                  Generar código de vinculación
+                  {t("whatsapp.generateCode")}
                 </Button>
               ) : (
                 <div className="p-4 rounded-xl bg-secondary/50 border border-border space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Tu código de 6 dígitos:</span>
+                    <span className="text-xs text-muted-foreground">{t("whatsapp.yourCode")}</span>
                     <Badge className="font-mono text-base px-3 py-0.5 bg-emerald-500/20 text-emerald-500 border-none">
                       {otpInfo.code}
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Enviá este código al contacto del bot desde WhatsApp para confirmar tu número. Expira en 15 minutos.
+                    {t("whatsapp.codeExpire")}
                   </p>
                   <Button
                     variant="outline"
@@ -212,7 +214,7 @@ export function WhatsAppIntegrationModal() {
                     }}
                   >
                     <ExternalLink className="w-3.5 h-3.5 mr-2" />
-                    Enviar mensaje a WhatsApp
+                    {t("whatsapp.sendMessage")}
                   </Button>
                 </div>
               )}
@@ -220,7 +222,7 @@ export function WhatsAppIntegrationModal() {
               <div className="rounded-lg bg-muted/40 p-3 flex gap-2.5 text-xs text-muted-foreground items-start">
                 <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <span>
-                  Por seguridad, IMPERO solo procesará mensajes provenientes de tu número autenticado. Nunca compartas tu código.
+                  {t("whatsapp.securityNotice")}
                 </span>
               </div>
             </div>

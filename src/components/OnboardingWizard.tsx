@@ -1,17 +1,24 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Globe, DollarSign, Wallet, Sparkles } from "lucide-react";
+import { ChevronRight, Globe, DollarSign, Wallet, Sparkles, Zap } from "lucide-react";
 import { useSettings, CURRENCIES, type Currency } from "@/lib/settings-store";
 import type { Language } from "@/lib/i18n";
 
-const STEPS = ["welcome", "language", "currency", "ready"] as const;
+const STEPS = ["welcome", "language", "currency", "rules", "ready"] as const;
 type Step = typeof STEPS[number];
 
-export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
+export function OnboardingWizard({
+  onComplete,
+  onProvisionDefaultRules,
+}: {
+  onComplete: () => void;
+  onProvisionDefaultRules?: () => Promise<any>;
+}) {
   const { settings, updateSettings, t } = useSettings();
   const [step, setStep] = useState<Step>("welcome");
   const [selectedLang, setSelectedLang] = useState<Language>(settings.language);
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(settings.currency);
+  const [enableDefaultRules, setEnableDefaultRules] = useState(true);
 
   const stepIndex = STEPS.indexOf(step);
   const progress = ((stepIndex + 1) / STEPS.length) * 100;
@@ -23,9 +30,20 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
       if (step === "currency") updateSettings({ currency: selectedCurrency });
       setStep(STEPS[i + 1]);
     } else {
+      if (enableDefaultRules && onProvisionDefaultRules) {
+        onProvisionDefaultRules().catch(console.error);
+      }
       localStorage.setItem("onboarding-complete", "true");
       onComplete();
     }
+  };
+
+  const handleSkip = () => {
+    if (enableDefaultRules && onProvisionDefaultRules) {
+      onProvisionDefaultRules().catch(console.error);
+    }
+    localStorage.setItem("onboarding-complete", "true");
+    onComplete();
   };
 
   return (
@@ -140,6 +158,75 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
             </>
           )}
 
+          {step === "rules" && (
+            <>
+              <div className="empty-state-icon mb-2">
+                <Zap className="w-8 h-8 text-amber-400" />
+              </div>
+              <h2 className="text-xl font-semibold font-display text-foreground text-center mb-1">
+                {selectedLang === "es" ? "Reglas de Automatización" : "Automation Rules"}
+              </h2>
+              <p className="text-muted-foreground text-center text-sm mb-6">
+                {selectedLang === "es"
+                  ? "Auto-categorizá extractos bancarios y movimientos comunes con reglas configurables."
+                  : "Auto-categorize bank statements and common transactions with configurable rules."}
+              </p>
+              <div className="w-full space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setEnableDefaultRules(true)}
+                  className={`w-full flex items-start gap-3 p-4 rounded-2xl transition-all border text-left ${
+                    enableDefaultRules
+                      ? "bg-primary/10 border-primary ring-1 ring-primary"
+                      : "bg-secondary/40 border-border/50 hover:bg-secondary/70"
+                  }`}
+                >
+                  <div className="pt-0.5">
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${enableDefaultRules ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground"}`}>
+                      {enableDefaultRules && <div className="w-1.5 h-1.5 rounded-full bg-background" />}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">
+                      {selectedLang === "es" ? "Activar reglas recomendadas (Recomendado)" : "Enable recommended rules (Recommended)"}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {selectedLang === "es"
+                        ? "Sueldos, Supermercados, Combustible, Servicios y Pagos de Tarjeta. Podrás modificarlas o borrarlas cuando quieras."
+                        : "Salary, Groceries, Fuel, Utilities, and Card Payments. You can customize or delete them anytime."}
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setEnableDefaultRules(false)}
+                  className={`w-full flex items-start gap-3 p-4 rounded-2xl transition-all border text-left ${
+                    !enableDefaultRules
+                      ? "bg-primary/10 border-primary ring-1 ring-primary"
+                      : "bg-secondary/40 border-border/50 hover:bg-secondary/70"
+                  }`}
+                >
+                  <div className="pt-0.5">
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${!enableDefaultRules ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground"}`}>
+                      {!enableDefaultRules && <div className="w-1.5 h-1.5 rounded-full bg-background" />}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">
+                      {selectedLang === "es" ? "Empezar en blanco (Sin reglas)" : "Start blank (No rules)"}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {selectedLang === "es"
+                        ? "Configurarás tus propias reglas de automatización manualmente más adelante."
+                        : "Configure your own automation rules manually later."}
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </>
+          )}
+
           {step === "ready" && (
             <>
               <div className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center mb-6 fab-glow">
@@ -171,7 +258,7 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
       {/* Skip */}
       {step !== "ready" && (
         <button
-          onClick={() => { localStorage.setItem("onboarding-complete", "true"); onComplete(); }}
+          onClick={handleSkip}
           className="absolute bottom-8 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           {selectedLang === "es" ? "Omitir" : "Skip"}

@@ -1,7 +1,7 @@
 import { Category, TransactionType } from "./types";
 
 export type RuleField = "description" | "amount" | "accountId" | "type";
-export type RuleOperator = "contains" | "equals" | "starts_with" | "greater_than" | "less_than";
+export type RuleOperator = "contains" | "contains_any" | "equals" | "starts_with" | "greater_than" | "less_than";
 
 export interface RuleCondition {
   field: RuleField;
@@ -13,6 +13,9 @@ export interface RuleActions {
   setCategoryId?: string;
   addTags?: string[];
   cleanDescription?: string;
+  setType?: TransactionType;
+  setIsTransfer?: boolean;
+  setIsCardPayment?: boolean;
 }
 
 export interface TransactionRule {
@@ -21,6 +24,7 @@ export interface TransactionRule {
   isActive: boolean;
   priority: number;
   conditions: RuleCondition[];
+  matchMode?: "all" | "any";
   actions: RuleActions;
   createdAt: Date;
 }
@@ -33,6 +37,8 @@ export interface DraftTransactionInput {
   accountId: string;
   tags?: string[];
   note?: string;
+  isTransfer?: boolean;
+  isCardPayment?: boolean;
 }
 
 /**
@@ -44,6 +50,10 @@ export function evaluateCondition(tx: DraftTransactionInput, condition: RuleCond
       const desc = (tx.description || "").toLowerCase();
       const val = String(condition.value || "").toLowerCase();
       if (condition.operator === "contains") return desc.includes(val);
+      if (condition.operator === "contains_any") {
+        const tokens = val.split(/[,|]/).map((t) => t.trim()).filter(Boolean);
+        return tokens.some((token) => desc.includes(token));
+      }
       if (condition.operator === "starts_with") return desc.startsWith(val);
       if (condition.operator === "equals") return desc === val;
       return false;
@@ -89,8 +99,12 @@ export function applyRulesToTransaction(
   for (const rule of activeRules) {
     if (!rule.conditions || rule.conditions.length === 0) continue;
 
-    // Todas las condiciones de la regla deben cumplirse (AND)
-    const matches = rule.conditions.every((cond) => evaluateCondition(result, cond));
+    // Evaluar según matchMode (por defecto 'all' / AND)
+    const matchMode = rule.matchMode || "all";
+    const matches =
+      matchMode === "any"
+        ? rule.conditions.some((cond) => evaluateCondition(result, cond))
+        : rule.conditions.every((cond) => evaluateCondition(result, cond));
 
     if (matches) {
       // 1. Asignar categoría si está configurada
@@ -113,6 +127,19 @@ export function applyRulesToTransaction(
       // 3. Normalizar o limpiar descripción
       if (rule.actions.cleanDescription && rule.actions.cleanDescription.trim()) {
         result.description = rule.actions.cleanDescription.trim();
+      }
+
+      // 4. Asignar tipo (income / expense)
+      if (rule.actions.setType) {
+        result.type = rule.actions.setType;
+      }
+
+      // 5. Flags de transferencia o pago de tarjeta
+      if (rule.actions.setIsTransfer !== undefined) {
+        result.isTransfer = rule.actions.setIsTransfer;
+      }
+      if (rule.actions.setIsCardPayment !== undefined) {
+        result.isCardPayment = rule.actions.setIsCardPayment;
       }
     }
   }

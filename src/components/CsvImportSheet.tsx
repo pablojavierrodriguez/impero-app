@@ -14,8 +14,9 @@ import {
   Square,
   Sparkles,
   FileSpreadsheet,
+  Zap,
 } from "lucide-react";
-import { Account, Transaction, Category } from "@/lib/types";
+import { Account, Transaction, Category, TransactionRule } from "@/lib/types";
 import {
   parseCsvText,
   guessMapping,
@@ -34,6 +35,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
+import { useSettings } from "@/lib/settings-store";
 
 interface CsvImportSheetProps {
   open: boolean;
@@ -42,6 +44,8 @@ interface CsvImportSheetProps {
   accounts: Account[];
   categories?: Category[];
   existingTransactions?: Transaction[];
+  rules?: TransactionRule[];
+  onAddRule?: (rule: TransactionRule) => void;
 }
 
 type Step = "upload" | "mapping" | "preview";
@@ -60,7 +64,10 @@ export function CsvImportSheet({
   accounts,
   categories = [],
   existingTransactions = [],
+  rules = [],
+  onAddRule,
 }: CsvImportSheetProps) {
+  const { t } = useSettings();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("upload");
@@ -85,10 +92,15 @@ export function CsvImportSheet({
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [projectAllFuture, setProjectAllFuture] = useState(true);
 
-  // Sincronizar automáticamente con una cuenta válida cuando cargan las cuentas
+  // Sincronizar automáticamente con una cuenta válida cuando cargan las cuentas,
+  // priorizando cuentas bancarias (savings o checking) antes que efectivo
   useEffect(() => {
     if ((!accountId || !accounts.some((a) => a.id === accountId)) && accounts.length > 0) {
-      const defaultAcc = accounts.find((a) => a.type === "credit") || accounts[0];
+      const defaultAcc =
+        accounts.find((a) => a.type === "savings") ||
+        accounts.find((a) => a.type === "checking") ||
+        accounts.find((a) => a.type === "credit") ||
+        accounts[0];
       setAccountId(defaultAcc.id);
     }
   }, [accounts, accountId]);
@@ -217,12 +229,37 @@ export function CsvImportSheet({
         const guessed = guessMapping(activeSheet.headers);
         setMapping(guessed);
 
-        if (activeSheet.metadata?.detectedType === "santander") {
-          setDetectedProfile("Santander Río (Extracto Cuenta)");
+        if (activeSheet.metadata?.detectedType === "bbva") {
+          setDetectedProfile("BBVA (Extracto Cuenta)");
         } else if (activeSheet.metadata?.detectedType === "generic_card") {
           setDetectedProfile("Tarjeta de Crédito / Movimientos");
         } else {
           setDetectedProfile(null);
+        }
+
+        // Selección inteligente de cuenta de destino según metadatos del extracto
+        const accNum = activeSheet.metadata?.accountNumber;
+        const accType = activeSheet.metadata?.accountType;
+        let matchedAcc: Account | undefined;
+
+        if (accNum) {
+          matchedAcc = accounts.find(
+            (a) =>
+              a.name.toLowerCase().includes(accNum.toLowerCase()) ||
+              accNum.toLowerCase().includes(a.name.toLowerCase())
+          );
+        }
+
+        if (!matchedAcc && accType) {
+          matchedAcc = accounts.find((a) => a.type === accType);
+        }
+
+        if (!matchedAcc) {
+          matchedAcc = accounts.find((a) => a.type === "savings" || a.type === "checking");
+        }
+
+        if (matchedAcc) {
+          setAccountId(matchedAcc.id);
         }
 
         setStep("mapping");
@@ -278,7 +315,8 @@ export function CsvImportSheet({
       mapping,
       accountId,
       categories.length > 0 ? categories : undefined,
-      selectedAccount?.currency as any
+      selectedAccount?.currency as any,
+      rules
     );
 
     const items: PreviewItem[] = txs.map((tx) => {
@@ -315,6 +353,36 @@ export function CsvImportSheet({
     );
   };
 
+  const handleCreateRuleFromItem = (tx: Transaction) => {
+    if (!onAddRule) return;
+    const cleanWord = tx.description.split(/\s+/).slice(0, 3).join(" ").trim();
+    if (!cleanWord) return;
+
+    const newRule: TransactionRule = {
+      id: `rule-${Date.now()}`,
+      name: `Auto: ${cleanWord} → ${tx.category.name}`,
+      isActive: true,
+      priority: (rules.length || 0) + 1,
+      conditions: [
+        {
+          field: "description",
+          operator: "contains",
+          value: cleanWord,
+        },
+      ],
+      actions: {
+        setCategoryId: tx.category.id,
+      },
+      createdAt: new Date(),
+    };
+
+    onAddRule(newRule);
+    toast({
+      title: "Regla creada con éxito",
+      description: `Las futuras transacciones con "${cleanWord}" se clasificarán automáticamente como "${tx.category.name}".`,
+    });
+  };
+
   const updateItemCategory = (index: number, categoryId: string) => {
     const selectedCat = categories.find((c) => c.id === categoryId);
     if (!selectedCat) return;
@@ -324,10 +392,40 @@ export function CsvImportSheet({
         idx === index
           ? {
               ...item,
-              tx: { ...item.tx, category: selectedCat },
+              tx: {
+                ...item.tx,
+                category: selectedCat,
+                type: selectedCat.type, // Sincroniza automáticamente ingreso vs gasto
+              },
             }
           : item
       )
+    );
+  };
+
+  const toggleItemType = (index: number) => {
+    setPreviewItems((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== index) return item;
+        const nextType: "income" | "expense" = item.tx.type === "income" ? "expense" : "income";
+        let nextCat = item.tx.category;
+        if (nextCat.type !== nextType) {
+          const compatibleCat =
+            categories.find((c) => c.type === nextType && /otros?|general/i.test(c.name)) ??
+            categories.find((c) => c.type === nextType) ??
+            nextCat;
+          nextCat = compatibleCat;
+        }
+
+        return {
+          ...item,
+          tx: {
+            ...item.tx,
+            type: nextType,
+            category: nextCat,
+          },
+        };
+      })
     );
   };
 
@@ -463,19 +561,19 @@ export function CsvImportSheet({
             <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-border/40 flex-shrink-0">
               <button
                 onClick={handleClose}
-                aria-label="Cerrar modal"
+                aria-label={t("csv.closeModal")}
                 className="w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
               <div className="text-center">
                 <span className="text-[16px] font-display font-semibold text-foreground block">
-                  Importar Extracto Bancario
+                  {t("csv.title")}
                 </span>
                 <span className="text-[11px] text-muted-foreground font-mono">
-                  {step === "upload" && "Paso 1: Cargar extracto"}
-                  {step === "mapping" && "Paso 2: Mapeo de Columnas"}
-                  {step === "preview" && "Paso 3: Conciliación & Preview"}
+                  {step === "upload" && t("csv.step1")}
+                  {step === "mapping" && t("csv.step2")}
+                  {step === "preview" && t("csv.step3")}
                 </span>
               </div>
               <div className="w-10" />
@@ -534,7 +632,7 @@ export function CsvImportSheet({
                     )}
 
                     <div className="space-y-2">
-                      <p className="text-[12px] text-muted-foreground font-medium">Formatos y entidades compatibles automáticamente:</p>
+                      <p className="text-[12px] text-muted-foreground font-medium">{t("csv.compatibleFormats")}</p>
                       <div className="flex flex-wrap gap-2">
                         {[
                           "BBVA Visa/Master (PDF)",
@@ -544,7 +642,7 @@ export function CsvImportSheet({
                           "Banco Galicia",
                           "Brubank",
                           "Ualá",
-                          "Excel / CSV Genérico",
+                          t("csv.genericExcel"),
                         ].map((b) => (
                           <span
                             key={b}
@@ -613,13 +711,13 @@ export function CsvImportSheet({
                     {/* Column Selectors */}
                     <div className="space-y-3">
                       <span className="text-[13px] text-foreground font-medium block">
-                        Asignación de columnas del CSV
+                        {t("csv.columnMapping")}
                       </span>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
                         {/* Fecha */}
                         <div className="min-w-0">
-                          <label className="text-[12px] text-muted-foreground mb-1 block">Fecha</label>
+                          <label className="text-[12px] text-muted-foreground mb-1 block">{t("csv.colDate")}</label>
                           <div className="relative">
                             <select
                               value={mapping.date}
@@ -638,7 +736,7 @@ export function CsvImportSheet({
 
                         {/* Descripción */}
                         <div className="min-w-0">
-                          <label className="text-[12px] text-muted-foreground mb-1 block">Concepto / Descripción</label>
+                          <label className="text-[12px] text-muted-foreground mb-1 block">{t("csv.colDescription")}</label>
                           <div className="relative">
                             <select
                               value={mapping.description}
@@ -658,7 +756,7 @@ export function CsvImportSheet({
                         {/* Importe Único */}
                         <div className="min-w-0">
                           <label className="text-[12px] text-muted-foreground mb-1 block">
-                            Importe (con signo o columna única)
+                            {t("csv.colAmount")}
                           </label>
                           <div className="relative">
                             <select
@@ -666,7 +764,7 @@ export function CsvImportSheet({
                               onChange={(e) => setMapping((m) => ({ ...m, amount: e.target.value }))}
                               className="w-full h-11 px-3.5 pr-8 rounded-[12px] bg-secondary/40 border border-border text-foreground text-[13px] appearance-none outline-none focus:ring-2 focus:ring-primary/30 transition-colors truncate"
                             >
-                              <option key="amount-opt-none" value="">(No usar - usar Débito/Crédito)</option>
+                              <option key="amount-opt-none" value="">{t("csv.doNotUseDebitCredit")}</option>
                               {headers.map((h, hIdx) => (
                                 <option key={`amount-opt-${hIdx}-${h}`} value={h}>
                                   {h}
@@ -680,7 +778,7 @@ export function CsvImportSheet({
                         {/* Tipo opcional */}
                         <div className="min-w-0">
                           <label className="text-[12px] text-muted-foreground mb-1 block">
-                            Tipo de Movimiento (opcional)
+                            {t("csv.movementTypeOptional")}
                           </label>
                           <div className="relative">
                             <select
@@ -688,7 +786,7 @@ export function CsvImportSheet({
                               onChange={(e) => setMapping((m) => ({ ...m, type: e.target.value }))}
                               className="w-full h-11 px-3.5 pr-8 rounded-[12px] bg-secondary/40 border border-border text-foreground text-[13px] appearance-none outline-none focus:ring-2 focus:ring-primary/30 transition-colors truncate"
                             >
-                              <option key="type-opt-none" value="">Detectar por signo (+/-)</option>
+                              <option key="type-opt-none" value="">{t("csv.detectBySign")}</option>
                               {headers.map((h, hIdx) => (
                                 <option key={`type-opt-${hIdx}-${h}`} value={h}>
                                   {h}
@@ -702,7 +800,7 @@ export function CsvImportSheet({
                         {/* Débito separado */}
                         <div className="min-w-0">
                           <label className="text-[12px] text-muted-foreground mb-1 block">
-                            Columna Débito / Egreso (si existe)
+                            {t("csv.debitColumnOptional")}
                           </label>
                           <div className="relative">
                             <select
@@ -710,7 +808,7 @@ export function CsvImportSheet({
                               onChange={(e) => setMapping((m) => ({ ...m, debit: e.target.value }))}
                               className="w-full h-11 px-3.5 pr-8 rounded-[12px] bg-secondary/40 border border-border text-foreground text-[13px] appearance-none outline-none focus:ring-2 focus:ring-primary/30 transition-colors truncate"
                             >
-                              <option key="debit-opt-none" value="">Ninguna</option>
+                              <option key="debit-opt-none" value="">{t("common.none")}</option>
                               {headers.map((h, hIdx) => (
                                 <option key={`debit-opt-${hIdx}-${h}`} value={h}>
                                   {h}
@@ -724,7 +822,7 @@ export function CsvImportSheet({
                         {/* Crédito separado */}
                         <div className="min-w-0">
                           <label className="text-[12px] text-muted-foreground mb-1 block">
-                            Columna Crédito / Ingreso (si existe)
+                            {t("csv.creditColumnOptional")}
                           </label>
                           <div className="relative">
                             <select
@@ -732,7 +830,7 @@ export function CsvImportSheet({
                               onChange={(e) => setMapping((m) => ({ ...m, credit: e.target.value }))}
                               className="w-full h-11 px-3.5 pr-8 rounded-[12px] bg-secondary/40 border border-border text-foreground text-[13px] appearance-none outline-none focus:ring-2 focus:ring-primary/30 transition-colors truncate"
                             >
-                              <option key="credit-opt-none" value="">Ninguna</option>
+                              <option key="credit-opt-none" value="">{t("common.none")}</option>
                               {headers.map((h, hIdx) => (
                                 <option key={`credit-opt-${hIdx}-${h}`} value={h}>
                                   {h}
@@ -830,30 +928,30 @@ export function CsvImportSheet({
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       <div className="p-3 rounded-[16px] bg-secondary/50 border border-border/40 text-center">
                         <p className="text-[20px] font-mono-data font-semibold text-foreground">{summary.total}</p>
-                        <p className="text-[11px] text-muted-foreground">Seleccionadas</p>
+                        <p className="text-[11px] text-muted-foreground">{t("csv.selected")}</p>
                       </div>
                       <div className="p-3 rounded-[16px] bg-secondary/50 border border-border/40 text-center">
                         <p className="text-[20px] font-mono-data font-semibold text-primary">{summary.incomeCount}</p>
-                        <p className="text-[11px] text-muted-foreground">Ingresos</p>
+                        <p className="text-[11px] text-muted-foreground">{t("tx.incomes")}</p>
                       </div>
                       <div className="p-3 rounded-[16px] bg-secondary/50 border border-border/40 text-center">
                         <p className="text-[20px] font-mono-data font-semibold text-destructive">
                           {summary.expenseCount}
                         </p>
-                        <p className="text-[11px] text-muted-foreground">Gastos</p>
+                        <p className="text-[11px] text-muted-foreground">{t("tx.expenses")}</p>
                       </div>
                       <div className="p-3 rounded-[16px] bg-secondary/50 border border-border/40 text-center">
                         <p className="text-[20px] font-mono-data font-semibold text-sky-500">
                           {summary.transferCount}
                         </p>
-                        <p className="text-[11px] text-muted-foreground">Transferencias</p>
+                        <p className="text-[11px] text-muted-foreground">{t("tx.transfers")}</p>
                       </div>
                     </div>
 
                     {/* Impacto neto */}
                     <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-[16px] bg-card border border-border/70 min-w-0">
                       <div className="min-w-0">
-                        <span className="text-[12px] text-muted-foreground block truncate">Impacto Neto en Cuenta</span>
+                        <span className="text-[12px] text-muted-foreground block truncate">{t("csv.netImpact")}</span>
                         <span
                           className={`font-mono-data text-[20px] font-semibold truncate block ${
                             summary.net >= 0 ? "text-primary" : "text-destructive"
@@ -969,6 +1067,20 @@ export function CsvImportSheet({
                                     })}
                                   </span>
 
+                                  {/* Toggle de Tipo Ingreso / Gasto */}
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleItemType(idx)}
+                                    title={tx.type === "income" ? "Movimiento clasificado como Ingreso (clic para cambiar a Gasto)" : "Movimiento clasificado como Gasto (clic para cambiar a Ingreso)"}
+                                    className={`inline-flex items-center text-[10px] py-0 px-2 h-5 rounded-full font-medium transition-all flex-shrink-0 border ${
+                                      tx.type === "income"
+                                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25"
+                                        : "bg-secondary/40 text-muted-foreground border-border/60 hover:text-foreground hover:bg-secondary/70"
+                                    }`}
+                                  >
+                                    <span>{tx.type === "income" ? "+ Ingreso" : "- Gasto"}</span>
+                                  </button>
+
                                   {/* Badges especiales y toggle de transferencia */}
                                   <button
                                     type="button"
@@ -1011,29 +1123,93 @@ export function CsvImportSheet({
                                     </Badge>
                                   )}
 
-                                  {/* Selector rápido de categoría por fila */}
-                                  <div className="relative inline-flex items-center ml-auto max-w-[160px] sm:max-w-[200px]">
-                                    <select
-                                      value={tx.category.id}
-                                      onChange={(e) => updateItemCategory(idx, e.target.value)}
-                                      className="h-6 pl-2 pr-6 rounded-[8px] bg-background border border-border/80 text-[11px] text-foreground appearance-none outline-none focus:ring-1 focus:ring-primary truncate w-full"
+                                  {/* Selector rápido de categoría por fila con optgroups ordenados */}
+                                  {(() => {
+                                    const incomeCats = categories.filter((c) => c.type === "income");
+                                    const expenseCats = categories.filter((c) => c.type === "expense");
+                                    const isIncome = tx.type === "income";
+
+                                    return (
+                                      <div className="relative inline-flex items-center ml-auto max-w-[170px] sm:max-w-[210px]">
+                                        <select
+                                          value={tx.category.id}
+                                          onChange={(e) => updateItemCategory(idx, e.target.value)}
+                                          className="h-6 pl-2 pr-6 rounded-[8px] bg-background border border-border/80 text-[11px] text-foreground appearance-none outline-none focus:ring-1 focus:ring-primary truncate w-full"
+                                        >
+                                          {!categories.some((c) => c.id === tx.category.id) && (
+                                            <option value={tx.category.id}>
+                                              {tx.category.name} ({tx.category.type === "income" ? t("cat.income") : t("cat.expense")})
+                                            </option>
+                                          )}
+
+                                          {isIncome ? (
+                                            <>
+                                              {incomeCats.length > 0 && (
+                                                <optgroup label={`── ${t("csv.incomeCategories")} ──`}>
+                                                  {incomeCats.map((c) => (
+                                                    <option key={c.id} value={c.id}>
+                                                      {c.name}
+                                                    </option>
+                                                  ))}
+                                                </optgroup>
+                                              )}
+                                              {expenseCats.length > 0 && (
+                                                <optgroup label={`── ${t("csv.expenseCategories")} ──`}>
+                                                  {expenseCats.map((c) => (
+                                                    <option key={c.id} value={c.id}>
+                                                      {c.name}
+                                                    </option>
+                                                  ))}
+                                                </optgroup>
+                                              )}
+                                            </>
+                                          ) : (
+                                            <>
+                                              {expenseCats.length > 0 && (
+                                                <optgroup label={`── ${t("csv.expenseCategories")} ──`}>
+                                                  {expenseCats.map((c) => (
+                                                    <option key={c.id} value={c.id}>
+                                                      {c.name}
+                                                    </option>
+                                                  ))}
+                                                </optgroup>
+                                              )}
+                                              {incomeCats.length > 0 && (
+                                                <optgroup label={`── ${t("csv.incomeCategories")} ──`}>
+                                                  {incomeCats.map((c) => (
+                                                    <option key={c.id} value={c.id}>
+                                                      {c.name}
+                                                    </option>
+                                                  ))}
+                                                </optgroup>
+                                              )}
+                                            </>
+                                          )}
+                                        </select>
+                                        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+                                      </div>
+                                    );
+                                  })()}
+
+                                  {onAddRule && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCreateRuleFromItem(tx)}
+                                      title={t("csv.createRule")}
+                                      className="p-1 rounded-md text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 transition-colors flex-shrink-0"
                                     >
-                                      {categories.map((c) => (
-                                        <option key={c.id} value={c.id}>
-                                          {c.name}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
-                                  </div>
+                                      <Zap className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
                                 </div>
 
                                 {/* Opción de proyectar cuotas restantes de esta compra */}
                                 {hasRemainingInstallments && selected && (
                                   <div className="mt-2 pt-1.5 border-t border-border/30 flex flex-wrap items-center justify-between gap-1 text-[11px] min-w-0">
                                     <span className="text-muted-foreground truncate">
-                                      Restan {tx.installmentInfo!.total - tx.installmentInfo!.current} cuotas de $
-                                      {tx.amount.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+                                      {t("csv.installmentsRemaining")
+                                        .replace("{count}", String(tx.installmentInfo!.total - tx.installmentInfo!.current))
+                                        .replace("{amount}", tx.amount.toLocaleString("es-AR", { minimumFractionDigits: 2 }))}
                                     </span>
                                     <label className="flex items-center gap-1.5 cursor-pointer text-primary flex-shrink-0">
                                       <input
@@ -1042,7 +1218,7 @@ export function CsvImportSheet({
                                         onChange={() => toggleProjectFuture(idx)}
                                         className="rounded border-border w-3.5 h-3.5"
                                       />
-                                      <span>Proyectar meses futuros</span>
+                                      <span>{t("csv.projectFutureMonths")}</span>
                                     </label>
                                   </div>
                                 )}

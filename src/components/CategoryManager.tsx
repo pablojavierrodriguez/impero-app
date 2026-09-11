@@ -4,6 +4,7 @@ import { Plus, Archive, ChevronRight, Pencil, Trash2, ArchiveRestore, X, Chevron
 import { Category, CATEGORY_COLORS, CATEGORY_ICONS, TransactionType } from "@/lib/types";
 import { CategoryIcon } from "./CategoryIcon";
 import { Button } from "@/components/ui/button";
+import { useSettings } from "@/lib/settings-store";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +36,7 @@ export function CategoryManager({
   getTransactionCountByCategory, getAllActiveCategories,
   onAdd, onUpdate, onArchive, onUnarchive, onDelete, onReassign, onSeedDefaults,
 }: CategoryManagerProps) {
+  const { t } = useSettings();
   const [typeFilter, setTypeFilter] = useState<TransactionType>("expense");
   const [view, setView] = useState<ViewMode>("list");
   const [editingCat, setEditingCat] = useState<Category | null>(null);
@@ -161,7 +163,7 @@ export function CategoryManager({
     <div className="pt-4 pb-28">
       {/* Header */}
       <div className="px-4 pb-3 flex items-center justify-between">
-        <h1 className="text-[20px] font-display font-semibold text-foreground">Categories</h1>
+        <h1 className="text-[20px] font-display font-semibold text-foreground">{t("cat.title")}</h1>
         <div className="flex items-center gap-1.5">
           {onSeedDefaults && categories.length === 0 && (
             <Button
@@ -172,20 +174,26 @@ export function CategoryManager({
               className="h-8 text-xs gap-1.5 border-primary/20 text-primary hover:bg-primary/10"
             >
               {isSeeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              Cargar por defecto
+              {t("cat.loadDefaults")}
             </Button>
           )}
           {archivedCats.length > 0 && (
             <button
               onClick={() => setView("archived")}
-              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-              title="Ver categorías archivadas"
+              className="h-8 w-8 rounded-xl bg-secondary/80 border border-border/40 text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center justify-center active:scale-95 transition-all shrink-0"
+              title={t("cat.viewArchived")}
+              aria-label={t("cat.viewArchived")}
             >
               <Archive className="w-4 h-4" />
             </button>
           )}
-          <button onClick={() => openCreate()} className="p-2 text-primary hover:text-primary/80 transition-colors">
-            <Plus className="w-5 h-5" />
+          <button
+            onClick={() => openCreate()}
+            className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 active:scale-95 transition-all shadow-xs shrink-0"
+            title={t("cat.new")}
+            aria-label={t("cat.new")}
+          >
+            <Plus className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -193,15 +201,15 @@ export function CategoryManager({
       {/* Type toggle */}
       <div className="px-4 mb-4">
         <div className="flex bg-secondary rounded-full p-0.5 w-fit">
-          {(["expense", "income"] as TransactionType[]).map(t => (
+          {(["expense", "income"] as TransactionType[]).map(type => (
             <button
-              key={t}
-              onClick={() => setTypeFilter(t)}
+              key={type}
+              onClick={() => setTypeFilter(type)}
               className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${
-                typeFilter === t ? "bg-card text-foreground" : "text-muted-foreground"
+                typeFilter === type ? "bg-card text-foreground" : "text-muted-foreground"
               }`}
             >
-              {t === "expense" ? "Expenses" : "Income"}
+              {type === "expense" ? t("cat.expenses") : t("cat.income")}
             </button>
           ))}
         </div>
@@ -217,12 +225,12 @@ export function CategoryManager({
                   <Sparkles className="w-7 h-7" />
                 </div>
                 <h3 className="text-base font-medium text-foreground mb-1">
-                  No hay categorías {typeFilter === "expense" ? "de gastos" : "de ingresos"}
+                  {typeFilter === "expense" ? t("cat.emptyExpense") : t("cat.emptyIncome")}
                 </h3>
                 <p className="text-xs text-muted-foreground max-w-xs mb-6 leading-relaxed">
                   {categories.length === 0
-                    ? "Podés cargar las categorías recomendadas listas para usar o crear tus propias categorías personalizadas."
-                    : "No tenés categorías registradas en esta sección. Creá una nueva para empezar a organizar tus movimientos."}
+                    ? t("cat.emptyHintFirst")
+                    : t("cat.emptyHint")}
                 </p>
                 <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full max-w-xs">
                   {onSeedDefaults && categories.length === 0 && (
@@ -232,7 +240,7 @@ export function CategoryManager({
                       className="w-full gap-2 font-medium"
                     >
                       {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      Cargar categorías recomendadas
+                      {t("cat.loadRecommended")}
                     </Button>
                   )}
                   <Button
@@ -241,7 +249,7 @@ export function CategoryManager({
                     className="w-full gap-2"
                   >
                     <Plus className="w-4 h-4" />
-                    Crear categoría
+                    {t("cat.createCategory")}
                   </Button>
                 </div>
               </div>
@@ -271,7 +279,7 @@ export function CategoryManager({
                       <button
                         onClick={() => openCreate(cat.id)}
                         className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 transition-all"
-                        title="Nueva subcategoría"
+                        title={t("cat.newSub")}
                       >
                         <Plus className="w-4 h-4" />
                       </button>
@@ -279,7 +287,7 @@ export function CategoryManager({
                         <DropdownMenuTrigger asChild>
                           <button
                             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 transition-all"
-                            title="Opciones de categoría"
+                            title={t("cat.optionsCategory")}
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
@@ -287,11 +295,11 @@ export function CategoryManager({
                         <DropdownMenuContent align="end" className="w-44">
                           <DropdownMenuItem onClick={() => openEdit(cat)} className="cursor-pointer gap-2">
                             <Pencil className="w-3.5 h-3.5" />
-                            <span>Editar</span>
+                            <span>{t("common.edit")}</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDeleteOrArchive(cat, "archive")} className="cursor-pointer gap-2">
                             <Archive className="w-3.5 h-3.5" />
-                            <span>Archivar</span>
+                            <span>{t("common.archive")}</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -299,7 +307,7 @@ export function CategoryManager({
                             className="cursor-pointer gap-2 text-destructive focus:text-destructive"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                            <span>Eliminar</span>
+                            <span>{t("common.delete")}</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -332,7 +340,7 @@ export function CategoryManager({
                                 <DropdownMenuTrigger asChild>
                                   <button
                                     className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all"
-                                    title="Opciones de subcategoría"
+                                    title={t("cat.optionsSubcategory")}
                                   >
                                     <MoreVertical className="w-3.5 h-3.5" />
                                   </button>
@@ -340,11 +348,11 @@ export function CategoryManager({
                                 <DropdownMenuContent align="end" className="w-40">
                                   <DropdownMenuItem onClick={() => openEdit(sub)} className="cursor-pointer gap-2">
                                     <Pencil className="w-3.5 h-3.5" />
-                                    <span>Editar</span>
+                                    <span>{t("common.edit")}</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleDeleteOrArchive(sub, "archive")} className="cursor-pointer gap-2">
                                     <Archive className="w-3.5 h-3.5" />
-                                    <span>Archivar</span>
+                                    <span>{t("common.archive")}</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
@@ -352,7 +360,7 @@ export function CategoryManager({
                                     className="cursor-pointer gap-2 text-destructive focus:text-destructive"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
-                                    <span>Eliminar</span>
+                                    <span>{t("common.delete")}</span>
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -376,31 +384,31 @@ export function CategoryManager({
                 <X className="w-5 h-5" />
               </button>
               <h2 className="text-[16px] font-display font-semibold text-foreground">
-                {view === "edit" ? "Edit Category" : "New Category"}
+                {view === "edit" ? t("cat.edit") : t("cat.new")}
               </h2>
             </div>
 
             {/* Name */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Name</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("cat.name")}</label>
             <input
               value={formName}
               onChange={e => setFormName(e.target.value)}
-              placeholder="Category name"
+              placeholder={t("cat.namePlaceholder")}
               className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
             />
 
             {/* Type */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Type</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("cat.typeLabel")}</label>
             <div className="flex bg-secondary rounded-full p-0.5 w-fit mb-4">
-              {(["expense", "income"] as TransactionType[]).map(t => (
+              {(["expense", "income"] as TransactionType[]).map(type => (
                 <button
-                  key={t}
-                  onClick={() => setFormType(t)}
+                  key={type}
+                  onClick={() => setFormType(type)}
                   className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${
-                    formType === t ? "bg-card text-foreground" : "text-muted-foreground"
+                    formType === type ? "bg-card text-foreground" : "text-muted-foreground"
                   }`}
                 >
-                  {t === "expense" ? "Expense" : "Income"}
+                  {type === "expense" ? t("cat.expense") : t("cat.incomeType")}
                 </button>
               ))}
             </div>
@@ -408,7 +416,7 @@ export function CategoryManager({
             {/* Parent */}
             <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">
               <FolderInput className="w-3 h-3 inline mr-1" />
-              Parent Category (optional)
+              {t("cat.parent")}
             </label>
             <div className="flex flex-wrap gap-2 mb-4">
               <button
@@ -419,7 +427,7 @@ export function CategoryManager({
                     : "bg-secondary/50 text-muted-foreground"
                 }`}
               >
-                None (root)
+                {t("cat.noneRoot")}
               </button>
               {availableParents.map(p => (
                 <button
@@ -438,7 +446,7 @@ export function CategoryManager({
             </div>
 
             {/* Color */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Color</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("cat.color")}</label>
             <div className="flex flex-wrap gap-2 mb-4">
               {CATEGORY_COLORS.map(c => (
                 <button
@@ -452,7 +460,7 @@ export function CategoryManager({
             </div>
 
             {/* Icon */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Icon</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("cat.icon")}</label>
             <div className="flex flex-wrap gap-2 mb-6">
               {CATEGORY_ICONS.map(ic => (
                 <button
@@ -474,19 +482,19 @@ export function CategoryManager({
               <div className={`w-10 h-10 rounded-[12px] ${formColor} flex items-center justify-center`}>
                 <CategoryIcon name={formIcon} className="w-5 h-5 text-white" />
               </div>
-              <span className="text-[14px] text-foreground font-medium">{formName || "Preview"}</span>
+              <span className="text-[14px] text-foreground font-medium">{formName || t("common.preview")}</span>
             </div>
 
             <div className="flex gap-3">
               <button onClick={() => setView("list")} className="flex-1 h-11 rounded-[12px] bg-secondary text-foreground font-medium text-[14px]">
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleSave}
                 disabled={!formName.trim()}
                 className="flex-[2] h-11 rounded-[12px] bg-primary text-primary-foreground font-medium text-[14px] disabled:opacity-40"
               >
-                {view === "edit" ? "Save Changes" : "Create"}
+                {view === "edit" ? t("common.saveChanges") : t("common.create")}
               </button>
             </div>
           </motion.div>
@@ -499,10 +507,10 @@ export function CategoryManager({
               <button onClick={() => setView("list")} className="p-1 text-muted-foreground">
                 <X className="w-5 h-5" />
               </button>
-              <h2 className="text-[16px] font-display font-semibold text-foreground">Archived Categories</h2>
+              <h2 className="text-[16px] font-display font-semibold text-foreground">{t("cat.archived")}</h2>
             </div>
             {archivedCats.length === 0 && (
-              <p className="text-muted-foreground text-[13px] text-center py-8">No archived categories.</p>
+              <p className="text-muted-foreground text-[13px] text-center py-8">{t("cat.noArchived")}</p>
             )}
             {archivedCats.map(cat => (
               <div key={cat.id} className="flex items-center gap-3 py-3 border-b border-border/50">
@@ -518,7 +526,7 @@ export function CategoryManager({
                   className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-secondary text-[12px] text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ArchiveRestore className="w-3 h-3" />
-                  Restore
+                  {t("cat.unarchive")}
                 </button>
               </div>
             ))}
@@ -533,16 +541,16 @@ export function CategoryManager({
                 <X className="w-5 h-5" />
               </button>
               <h2 className="text-[16px] font-display font-semibold text-foreground">
-                {reassignAction === "delete" ? "Delete" : "Archive"} "{reassignCat.name}"
+                {reassignAction === "delete" ? t("common.delete") : t("common.archive")} "{reassignCat.name}"
               </h2>
             </div>
 
             <div className="p-4 rounded-[12px] bg-secondary/50 mb-4">
               <p className="text-[13px] text-foreground mb-1">
-                This category has <span className="font-mono-data text-primary">{getTransactionCountByCategory(reassignCat.id)}</span> transactions.
+                {t("cat.hasTxns").replace("{count}", String(getTransactionCountByCategory(reassignCat.id)))}
               </p>
               <p className="text-[12px] text-muted-foreground">
-                Do you want to move them to another category first?
+                {t("cat.moveTxnsPrompt")}
               </p>
             </div>
 
@@ -553,7 +561,7 @@ export function CategoryManager({
                   !skipReassign ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
                 }`}
               >
-                Move transactions
+                {t("cat.moveTxns")}
               </button>
               <button
                 onClick={() => { setSkipReassign(true); setReassignTargetId(""); }}
@@ -561,13 +569,13 @@ export function CategoryManager({
                   skipReassign ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
                 }`}
               >
-                Keep as-is
+                {t("cat.keepAsIs")}
               </button>
             </div>
 
             {!skipReassign && (
               <>
-                <label className="text-[12px] text-muted-foreground font-medium mb-2 block">Move to:</label>
+                <label className="text-[12px] text-muted-foreground font-medium mb-2 block">{t("cat.moveTo")}</label>
                 <div className="flex flex-wrap gap-2 mb-4 max-h-[200px] overflow-auto">
                   {reassignOptions.map(cat => (
                     <button
@@ -589,7 +597,7 @@ export function CategoryManager({
 
             <div className="flex gap-3 mt-4">
               <button onClick={() => setView("list")} className="flex-1 h-11 rounded-[12px] bg-secondary text-foreground font-medium text-[14px]">
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleReassignConfirm}
@@ -600,7 +608,7 @@ export function CategoryManager({
                     : "bg-amber-500 text-background"
                 }`}
               >
-                {reassignAction === "delete" ? "Delete" : "Archive"}
+                {reassignAction === "delete" ? t("common.delete") : t("common.archive")}
               </button>
             </div>
           </motion.div>

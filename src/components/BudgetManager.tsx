@@ -84,9 +84,13 @@ export function BudgetManager({
           <h1 className="text-[20px] font-display font-semibold text-foreground">{t("budget.title")}</h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">{t("budget.subtitle")}</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
-          className="h-8 w-8 rounded-full bg-primary flex items-center justify-center transition-transform active:scale-95 shadow-sm">
-          <Plus className="w-4 h-4 text-primary-foreground" />
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 active:scale-95 transition-all shadow-xs shrink-0"
+          title={t("budget.newBudget")}
+          aria-label={t("budget.newBudget")}
+        >
+          <Plus className="w-4 h-4" />
         </button>
       </div>
 
@@ -129,8 +133,8 @@ export function BudgetManager({
           {/* Rollover Dinámico Switch */}
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-secondary/40 border border-border/40 mb-3">
             <div>
-              <span className="text-[13px] font-medium text-foreground block">Rollover Dinámico</span>
-              <span className="text-[11px] text-muted-foreground">Trasladar saldo sobrante del mes anterior automáticamente</span>
+              <span className="text-[13px] font-medium text-foreground block">{t("budget.rolloverTitle")}</span>
+              <span className="text-[11px] text-muted-foreground">{t("budget.rolloverDesc")}</span>
             </div>
             <Switch checked={enableRollover} onCheckedChange={setEnableRollover} />
           </div>
@@ -203,7 +207,7 @@ export function BudgetManager({
                 <button
                   onClick={() => onDelete(budget.id)}
                   className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0 active:scale-95"
-                  title="Eliminar presupuesto"
+                  title={t("budget.delete")}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

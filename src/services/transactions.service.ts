@@ -73,6 +73,7 @@ export async function insertTransaction(
   const { data, error } = await supabase
     .from("transactions")
     .insert({
+      ...(tx.id && isValidUuid(tx.id) ? { id: tx.id } : {}),
       user_id: user.id,
       amount: tx.amount,
       description: tx.description,
@@ -104,7 +105,7 @@ export async function insertTransaction(
 }
 
 export async function insertTransactionsBatch(
-  txs: Omit<Transaction, "id">[]
+  txs: (Omit<Transaction, "id"> & { id?: string })[]
 ): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No authenticated user");
@@ -117,6 +118,7 @@ export async function insertTransactionsBatch(
     const isValidCat = tx.category?.id && isValidUuid(tx.category.id) && tx.category.id !== "uncategorized";
 
     return {
+      ...(tx.id && isValidUuid(tx.id) ? { id: tx.id } : {}),
       user_id: user.id,
       amount: tx.amount,
       description: tx.description,

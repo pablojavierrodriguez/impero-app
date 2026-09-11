@@ -56,7 +56,17 @@ export function getHumanAuthErrorMessage(error: any): {
     };
   }
 
-  const rawMsg = error.message || error.error_description || error.toString() || "";
+  const rawMsg = [
+    error.message,
+    error.error_description,
+    error.errorDescription,
+    error.error_code,
+    error.errorCode,
+    error.error,
+    typeof error === "string" ? error : "",
+  ]
+    .filter(Boolean)
+    .join(" ") || (typeof error?.toString === "function" ? error.toString() : "");
   const lower = rawMsg.toLowerCase();
 
   // Caso 1: Error de conexión o servidor caído
@@ -121,11 +131,36 @@ export function getHumanAuthErrorMessage(error: any): {
   if (
     lower.includes("rate limit") ||
     lower.includes("over_request_rate_limit") ||
-    lower.includes("too many requests")
+    lower.includes("too many requests") ||
+    lower.includes("429")
   ) {
     return {
       title: "Demasiados intentos",
       description: "Por seguridad se bloquearon temporalmente los intentos. Aguardá unos instantes antes de volver a probar.",
+      isConnectionError: false,
+    };
+  }
+
+  // Caso 7: Enlace de email inválido o expirado
+  if (
+    lower.includes("otp_expired") ||
+    lower.includes("email link is invalid") ||
+    lower.includes("link is invalid") ||
+    lower.includes("has expired") ||
+    lower.includes("token has expired")
+  ) {
+    return {
+      title: "Enlace expirado o inválido",
+      description: "El enlace de verificación o recuperación ya fue utilizado o venció. Por favor solicitá uno nuevo.",
+      isConnectionError: false,
+    };
+  }
+
+  // Caso 8: Acceso denegado en callback
+  if (lower.includes("access_denied") || lower.includes("access denied")) {
+    return {
+      title: "Acceso denegado",
+      description: "No se pudo validar el enlace de autenticación. Por favor solicitá un nuevo acceso.",
       isConnectionError: false,
     };
   }
@@ -137,3 +172,51 @@ export function getHumanAuthErrorMessage(error: any): {
     isConnectionError: false,
   };
 }
+
+export interface AuthUrlError {
+  errorCode?: string;
+  errorDescription?: string;
+}
+
+/**
+ * Extrae posibles errores de autenticación devueltos en el hash (#error=...) o querystring (?error=...)
+ * por Supabase Auth al redirigir al frontend.
+ */
+export function extractAuthUrlError(): AuthUrlError | null {
+  if (typeof window === "undefined") return null;
+
+  const rawHash = window.location.hash.startsWith("#")
+    ? window.location.hash.slice(1)
+    : window.location.hash;
+  const rawSearch = window.location.search.startsWith("?")
+    ? window.location.search.slice(1)
+    : window.location.search;
+
+  // Priorizar hash (formato típico de Supabase implicit flow), luego search (PKCE / SSR)
+  const targetStr = rawHash.includes("error")
+    ? rawHash
+    : rawSearch.includes("error")
+    ? rawSearch
+    : "";
+
+  if (!targetStr) return null;
+
+  try {
+    const params = new URLSearchParams(targetStr);
+    const error = params.get("error");
+    const errorCode = params.get("error_code") || error || undefined;
+    const rawDesc = params.get("error_description");
+    const errorDescription = rawDesc
+      ? decodeURIComponent(rawDesc.replace(/\+/g, " "))
+      : undefined;
+
+    if (error || errorCode || errorDescription) {
+      return { errorCode, errorDescription };
+    }
+  } catch {
+    // Si la cadena no es parseable como URLSearchParams, ignorar de forma segura
+  }
+
+  return null;
+}
+

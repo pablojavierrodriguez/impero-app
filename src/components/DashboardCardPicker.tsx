@@ -416,7 +416,7 @@ export function DashboardCardPicker({ open, onClose }: DashboardCardPickerProps)
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div
                         className="cursor-grab active:cursor-grabbing p-2 -ml-1 text-muted-foreground/60 hover:text-foreground transition-colors touch-none"
-                        title="Arrastrar para mover"
+                        title={t("picker.dragToMove")}
                       >
                         <GripVertical className="w-4 h-4" />
                       </div>

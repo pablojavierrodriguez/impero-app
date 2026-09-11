@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, User, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { getHumanAuthErrorMessage, isLocalEnvironment } from "@/lib/auth-errors";
+import { useSettings } from "@/lib/settings-store";
+import { getHumanAuthErrorMessage, extractAuthUrlError, isLocalEnvironment } from "@/lib/auth-errors";
 
 type Mode = "login" | "signup" | "forgot";
 
 const isSignupEnabled = import.meta.env.VITE_ENABLE_SIGNUP === "true";
 
 export default function AuthPage() {
+  const { t } = useSettings();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,6 +20,17 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [connError, setConnError] = useState<{ title: string; description: string } | null>(null);
+
+  useEffect(() => {
+    const urlError = extractAuthUrlError();
+    if (urlError) {
+      const parsed = getHumanAuthErrorMessage(urlError);
+      toast.error(parsed.title, {
+        description: parsed.description,
+      });
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +41,10 @@ export default function AuthPage() {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast.success("¡Bienvenido de vuelta!");
+        toast.success(t("auth.welcomeBack"));
       } else if (mode === "signup") {
         if (!isSignupEnabled) {
-          throw new Error("El registro de nuevos usuarios está deshabilitado en esta instancia privada.");
+          throw new Error(t("auth.signupDisabled"));
         }
         const { error } = await supabase.auth.signUp({
           email,
@@ -42,13 +55,13 @@ export default function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("¡Cuenta creada! Revisá tu email para confirmar.");
+        toast.success(t("auth.accountCreated"));
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
-        toast.success("Te enviamos un email para restablecer tu contraseña.");
+        toast.success(t("auth.passwordResetSent"));
         setMode("login");
       }
     } catch (err: any) {
@@ -78,11 +91,11 @@ export default function AuthPage() {
             <img src="/icons/icon.svg" alt="IMPERO logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-bold font-display text-foreground">IMPERO</h1>
-          <p className="text-xs font-medium text-primary tracking-wider uppercase mb-1">Autogobierno • Claridad • Soberanía</p>
+          <p className="text-xs font-medium text-primary tracking-wider uppercase mb-1">{t("auth.tagline")}</p>
           <p className="text-sm text-muted-foreground mt-1">
-            {mode === "login" && "Iniciá sesión para continuar"}
-            {mode === "signup" && "Creá tu cuenta gratuita"}
-            {mode === "forgot" && "Recuperá tu contraseña"}
+            {mode === "login" && t("auth.loginSubtitle")}
+            {mode === "signup" && t("auth.signupSubtitle")}
+            {mode === "forgot" && t("auth.forgotSubtitle")}
           </p>
         </div>
 
@@ -116,7 +129,7 @@ export default function AuthPage() {
                   onClick={() => setConnError(null)}
                   className="h-7 text-xs px-3 border-amber-500/40 hover:bg-amber-500/20 text-amber-200 bg-amber-950/40"
                 >
-                  Entendido
+                  {t("auth.understood")}
                 </Button>
               </div>
             </motion.div>
@@ -140,7 +153,7 @@ export default function AuthPage() {
                   type="text"
                   value={fullName}
                   onChange={e => setFullName(e.target.value)}
-                  placeholder="Nombre completo"
+                  placeholder={t("auth.fullNamePlaceholder")}
                   required
                   className="w-full h-12 pl-10 pr-4 rounded-xl bg-input border border-border text-foreground text-sm placeholder:text-muted-foreground focus:border-primary/50 focus:ring-1 focus:ring-primary/20 outline-none transition-all"
                 />
@@ -153,7 +166,7 @@ export default function AuthPage() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="Email"
+                placeholder={t("auth.emailPlaceholder")}
                 autoComplete="email"
                 required
                 className="w-full h-12 pl-10 pr-4 rounded-xl bg-input border border-border text-foreground text-sm placeholder:text-muted-foreground focus:border-primary/50 focus:ring-1 focus:ring-primary/20 outline-none transition-all"
@@ -167,7 +180,7 @@ export default function AuthPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Contraseña"
+                  placeholder={t("auth.passwordPlaceholder")}
                   autoComplete={mode === "login" ? "current-password" : "new-password"}
                   required
                   minLength={6}
@@ -189,7 +202,7 @@ export default function AuthPage() {
                 onClick={() => setMode("forgot")}
                 className="text-xs text-primary hover:underline"
               >
-                ¿Olvidaste tu contraseña?
+                {t("auth.forgotPassword")}
               </button>
             )}
 
@@ -202,9 +215,9 @@ export default function AuthPage() {
                 <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               ) : (
                 <>
-                  {mode === "login" && "Iniciar sesión"}
-                  {mode === "signup" && "Crear cuenta"}
-                  {mode === "forgot" && "Enviar email"}
+                  {mode === "login" && t("auth.loginButton")}
+                  {mode === "signup" && t("auth.signupButton")}
+                  {mode === "forgot" && t("auth.forgotButton")}
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -216,16 +229,16 @@ export default function AuthPage() {
           <div className="mt-6 text-center text-sm text-muted-foreground">
             {mode === "login" ? (
               <>
-                ¿No tenés cuenta?{" "}
+                {t("auth.noAccount")}{" "}
                 <button onClick={() => setMode("signup")} className="text-primary font-medium hover:underline">
-                  Registrate
+                  {t("auth.register")}
                 </button>
               </>
             ) : (
               <>
-                ¿Ya tenés cuenta?{" "}
+                {t("auth.hasAccount")}{" "}
                 <button onClick={() => setMode("login")} className="text-primary font-medium hover:underline">
-                  Iniciá sesión
+                  {t("auth.goToLogin")}
                 </button>
               </>
             )}
@@ -234,7 +247,7 @@ export default function AuthPage() {
         {!isSignupEnabled && mode !== "login" && (
           <div className="mt-6 text-center text-sm text-muted-foreground">
             <button onClick={() => setMode("login")} className="text-primary font-medium hover:underline">
-              Volver al inicio de sesión
+              {t("auth.backToLogin")}
             </button>
           </div>
         )}

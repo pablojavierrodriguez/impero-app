@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Trash2, Zap, Play, CheckCircle2 } from "lucide-react";
+import { Plus, X, Trash2, Zap, Play, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { Category, TransactionRule, RuleCondition, RuleField, RuleOperator } from "@/lib/types";
+import { Category, TransactionRule, RuleField, RuleOperator } from "@/lib/types";
+import { createTranslator } from "@/lib/i18n";
+import { useSettings } from "@/lib/settings-store";
 
 interface RulesManagerProps {
   rules: TransactionRule[];
@@ -12,6 +14,7 @@ interface RulesManagerProps {
   onDeleteRule: (id: string) => void;
   onToggleRule: (id: string) => void;
   onApplyRetroactively: () => void;
+  onProvisionDefaults?: () => Promise<any>;
 }
 
 export function RulesManager({
@@ -21,7 +24,11 @@ export function RulesManager({
   onDeleteRule,
   onToggleRule,
   onApplyRetroactively,
+  onProvisionDefaults,
 }: RulesManagerProps) {
+  const { language } = useSettings();
+  const t = createTranslator(language);
+
   const [openCreate, setOpenCreate] = useState(false);
   const [ruleName, setRuleName] = useState("");
   const [conditionField, setConditionField] = useState<RuleField>("description");
@@ -30,10 +37,11 @@ export function RulesManager({
   const [actionCategory, setActionCategory] = useState("");
   const [actionTags, setActionTags] = useState("");
   const [actionCleanDesc, setActionCleanDesc] = useState("");
+  const [isProvisioning, setIsProvisioning] = useState(false);
 
   const handleCreate = () => {
     if (!ruleName.trim() || !conditionValue.trim()) {
-      toast.error("Por favor completa el nombre y valor de la condición.");
+      toast.error(t("rules.toastValidation"));
       return;
     }
 
@@ -60,7 +68,7 @@ export function RulesManager({
     };
 
     onAddRule(newRule);
-    toast.success("Regla creada con éxito");
+    toast.success(t("rules.toastCreated"));
     setRuleName("");
     setConditionValue("");
     setActionCategory("");
@@ -71,7 +79,39 @@ export function RulesManager({
 
   const handleRunRetroactive = () => {
     onApplyRetroactively();
-    toast.success("Reglas aplicadas a todo el historial existente.");
+    toast.success(t("rules.toastApplied"));
+  };
+
+  const hasDuplicates = rules.some(
+    (rule, idx) =>
+      rules.findIndex(
+        (r) => r.name.trim().toLowerCase() === rule.name.trim().toLowerCase()
+      ) !== idx
+  );
+
+  const handleProvisionDefaults = async () => {
+    if (!onProvisionDefaults) return;
+    try {
+      setIsProvisioning(true);
+      const res = await onProvisionDefaults();
+      const createdCount = Array.isArray(res) ? res.length : (res?.created?.length ?? 0);
+      const deletedCount = res?.deletedCount ?? 0;
+
+      if (deletedCount > 0 && createdCount > 0) {
+        toast.success(t("rules.toastAddedCleaned").replace("{created}", String(createdCount)).replace("{deleted}", String(deletedCount)));
+      } else if (deletedCount > 0) {
+        toast.success(t("rules.toastCleaned").replace("{count}", String(deletedCount)));
+      } else if (createdCount > 0) {
+        toast.success(t("rules.toastLoaded").replace("{count}", String(createdCount)));
+      } else {
+        toast.info(t("rules.toastAllConfigured"));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(t("rules.toastLoadError"));
+    } finally {
+      setIsProvisioning(false);
+    }
   };
 
   return (
@@ -81,28 +121,54 @@ export function RulesManager({
         <div>
           <h1 className="text-[20px] font-display font-semibold text-foreground flex items-center gap-2">
             <Zap className="w-5 h-5 text-amber-400" />
-            Automatizaciones & Reglas
+            {t("rules.title")}
           </h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">
-            Auto-categoriza y etiqueta transacciones según su concepto o monto.
+            {t("rules.subtitle")}
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {rules.length > 0 && (
             <button
               onClick={handleRunRetroactive}
               className="px-3 py-1.5 rounded-xl bg-secondary text-[12px] font-medium text-foreground hover:bg-secondary/80 transition-colors flex items-center gap-1.5"
-              title="Aplicar reglas al historial de transacciones pasadas"
+              title={t("rules.runHistoryTitle")}
             >
               <Play className="w-3.5 h-3.5 text-primary fill-primary" />
-              Ejecutar en Historial
+              {t("rules.runHistory")}
+            </button>
+          )}
+
+          {hasDuplicates && onProvisionDefaults && (
+            <button
+              onClick={handleProvisionDefaults}
+              disabled={isProvisioning}
+              className="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-[12px] font-medium text-amber-400 hover:bg-amber-500/25 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              title={t("rules.cleanDuplicatesTitle")}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              {t("rules.cleanDuplicates")}
+            </button>
+          )}
+
+          {onProvisionDefaults && rules.length > 0 && !hasDuplicates && (
+            <button
+              onClick={handleProvisionDefaults}
+              disabled={isProvisioning}
+              className="px-3 py-1.5 rounded-xl bg-secondary text-[12px] font-medium text-foreground hover:bg-secondary/80 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              title={t("rules.defaultRulesTitle")}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              {t("rules.defaultRules")}
             </button>
           )}
 
           <button
             onClick={() => setOpenCreate(true)}
-            className="p-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 active:scale-95 transition-all shadow-xs shrink-0"
+            title={t("rules.newRuleTitle")}
+            aria-label={t("rules.newRuleAriaLabel")}
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -112,12 +178,23 @@ export function RulesManager({
       {/* Rules List */}
       <div className="space-y-2 mt-2">
         {rules.length === 0 && (
-          <div className="p-8 text-center bg-secondary/30 rounded-2xl border border-dashed border-border/60">
-            <Zap className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-[13px] font-medium text-foreground">No tienes reglas creadas todavía</p>
-            <p className="text-[12px] text-muted-foreground mt-1 max-w-sm mx-auto">
-              Crea reglas como: *"Si el concepto contiene 'Coto' → Asignar categoría Supermercado y tag 'comida'"*.
+          <div className="p-8 text-center bg-secondary/30 rounded-2xl border border-dashed border-border/60 flex flex-col items-center">
+            <Zap className="w-8 h-8 text-amber-400 mb-2" />
+            <p className="text-[14px] font-medium text-foreground">{t("rules.noRules")}</p>
+            <p className="text-[12px] text-muted-foreground mt-1 max-w-sm mx-auto mb-4">
+              {t("rules.noRulesHint")}
             </p>
+            {onProvisionDefaults && (
+              <button
+                type="button"
+                onClick={handleProvisionDefaults}
+                disabled={isProvisioning}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-xs disabled:opacity-50"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{isProvisioning ? t("rules.loading") : t("rules.loadRecommended")}</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -141,13 +218,13 @@ export function RulesManager({
                         rule.isActive ? "bg-emerald-500/15 text-emerald-400" : "bg-secondary text-muted-foreground"
                       }`}
                     >
-                      {rule.isActive ? "Activa" : "Pausada"}
+                      {rule.isActive ? t("rules.statusActive") : t("rules.statusPaused")}
                     </span>
                   </div>
 
                   {rule.conditions.map((cond, i) => (
                     <div key={i} className="text-[12px] text-muted-foreground flex items-center gap-1">
-                      <span className="font-semibold text-foreground">SI</span>
+                      <span className="font-semibold text-foreground">{t("rules.conditionIf")}</span>
                       <span>{cond.field}</span>
                       <span className="font-mono-data text-primary">{cond.operator}</span>
                       <span className="font-medium text-foreground">"{cond.value}"</span>
@@ -155,10 +232,10 @@ export function RulesManager({
                   ))}
 
                   <div className="text-[12px] text-muted-foreground flex flex-wrap items-center gap-2 pt-1">
-                    <span className="font-semibold text-foreground">ENTONCES:</span>
+                    <span className="font-semibold text-foreground">{t("rules.conditionThen")}</span>
                     {cat && (
                       <span className="px-2 py-0.5 rounded-md bg-secondary text-foreground text-[11px]">
-                        Categoría: {cat.name}
+                        {t("rules.categoryOf").replace("{name}", cat.name)}
                       </span>
                     )}
                     {rule.actions.addTags?.map((tag) => (
@@ -168,7 +245,7 @@ export function RulesManager({
                     ))}
                     {rule.actions.cleanDescription && (
                       <span className="text-[11px] text-muted-foreground">
-                        → Nombre: "{rule.actions.cleanDescription}"
+                        {t("rules.cleanedTo").replace("{name}", rule.actions.cleanDescription)}
                       </span>
                     )}
                   </div>
@@ -178,9 +255,9 @@ export function RulesManager({
                   <button
                     onClick={() => onToggleRule(rule.id)}
                     className="p-1.5 text-muted-foreground hover:text-foreground text-xs"
-                    title={rule.isActive ? "Pausar regla" : "Activar regla"}
+                    title={rule.isActive ? t("rules.actionPauseTitle") : t("rules.actionActivateTitle")}
                   >
-                    {rule.isActive ? "Pausar" : "Activar"}
+                    {rule.isActive ? t("rules.actionPause") : t("rules.actionActivate")}
                   </button>
                   <button
                     onClick={() => onDeleteRule(rule.id)}
@@ -208,7 +285,7 @@ export function RulesManager({
               <div className="flex items-center justify-between pb-2 border-b border-border/50">
                 <h2 className="text-[16px] font-display font-semibold text-foreground flex items-center gap-2">
                   <Zap className="w-4 h-4 text-amber-400" />
-                  Nueva Regla Automática
+                  {t("rules.newTitle")}
                 </h2>
                 <button onClick={() => setOpenCreate(false)} className="p-1 text-muted-foreground hover:text-foreground">
                   <X className="w-5 h-5" />
@@ -217,11 +294,11 @@ export function RulesManager({
 
               <div>
                 <label className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">
-                  Nombre descriptivo de la regla
+                  {t("rules.nameLabel")}
                 </label>
                 <input
                   type="text"
-                  placeholder="Ej: Clasificar Coto como Supermercado"
+                  placeholder={t("rules.namePlaceholder")}
                   value={ruleName}
                   onChange={(e) => setRuleName(e.target.value)}
                   className="w-full h-10 px-3 bg-secondary rounded-xl text-[14px] text-foreground border border-border/50 outline-none focus:border-primary"
@@ -231,7 +308,7 @@ export function RulesManager({
               {/* Condition Builder */}
               <div className="p-3 bg-secondary/40 rounded-xl space-y-2 border border-border/40">
                 <label className="text-[11px] uppercase tracking-wider text-primary font-bold block">
-                  Condición (Disparador)
+                  {t("rules.conditionSection")}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <select
@@ -239,9 +316,9 @@ export function RulesManager({
                     onChange={(e) => setConditionField(e.target.value as RuleField)}
                     className="bg-secondary rounded-lg px-2.5 py-2 text-[13px] text-foreground border border-border outline-none"
                   >
-                    <option value="description">Descripción</option>
-                    <option value="amount">Monto</option>
-                    <option value="type">Tipo</option>
+                    <option value="description">{t("rules.fieldDescription")}</option>
+                    <option value="amount">{t("rules.fieldAmount")}</option>
+                    <option value="type">{t("rules.fieldType")}</option>
                   </select>
 
                   <select
@@ -249,16 +326,17 @@ export function RulesManager({
                     onChange={(e) => setConditionOperator(e.target.value as RuleOperator)}
                     className="bg-secondary rounded-lg px-2.5 py-2 text-[13px] text-foreground border border-border outline-none"
                   >
-                    <option value="contains">Contiene</option>
-                    <option value="starts_with">Comienza con</option>
-                    <option value="equals">Es igual a</option>
-                    {conditionField === "amount" && <option value="greater_than">Mayor a</option>}
-                    {conditionField === "amount" && <option value="less_than">Menor a</option>}
+                    <option value="contains">{t("rules.opContains")}</option>
+                    <option value="contains_any">{t("rules.opContainsAny")}</option>
+                    <option value="starts_with">{t("rules.opStartsWith")}</option>
+                    <option value="equals">{t("rules.opEquals")}</option>
+                    {conditionField === "amount" && <option value="greater_than">{t("rules.opGreaterThan")}</option>}
+                    {conditionField === "amount" && <option value="less_than">{t("rules.opLessThan")}</option>}
                   </select>
 
                   <input
                     type="text"
-                    placeholder="Texto o número..."
+                    placeholder={conditionOperator === "contains_any" ? t("rules.conditionPlaceholderMulti") : t("rules.conditionPlaceholder")}
                     value={conditionValue}
                     onChange={(e) => setConditionValue(e.target.value)}
                     className="bg-secondary rounded-lg px-2.5 py-2 text-[13px] text-foreground border border-border outline-none focus:border-primary"
@@ -269,17 +347,17 @@ export function RulesManager({
               {/* Action Builder */}
               <div className="p-3 bg-secondary/40 rounded-xl space-y-2.5 border border-border/40">
                 <label className="text-[11px] uppercase tracking-wider text-emerald-400 font-bold block">
-                  Acción a Ejecutar Automáticamente
+                  {t("rules.actionSection")}
                 </label>
 
                 <div>
-                  <label className="text-[11px] text-muted-foreground block mb-1">Asignar Categoría:</label>
+                  <label className="text-[11px] text-muted-foreground block mb-1">{t("rules.assignCategory")}</label>
                   <select
                     value={actionCategory}
                     onChange={(e) => setActionCategory(e.target.value)}
                     className="w-full bg-secondary rounded-lg px-2.5 py-2 text-[13px] text-foreground border border-border outline-none"
                   >
-                    <option value="">-- Sin cambio de categoría --</option>
+                    <option value="">{t("rules.noCategoryChange")}</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name} ({c.type})
@@ -290,11 +368,11 @@ export function RulesManager({
 
                 <div>
                   <label className="text-[11px] text-muted-foreground block mb-1">
-                    Agregar Etiquetas (separadas por coma):
+                    {t("rules.addTags")}
                   </label>
                   <input
                     type="text"
-                    placeholder="Ej: comida, deducible, super"
+                    placeholder={t("rules.tagsPlaceholder")}
                     value={actionTags}
                     onChange={(e) => setActionTags(e.target.value)}
                     className="w-full bg-secondary rounded-lg px-2.5 py-2 text-[13px] text-foreground border border-border outline-none"
@@ -303,11 +381,11 @@ export function RulesManager({
 
                 <div>
                   <label className="text-[11px] text-muted-foreground block mb-1">
-                    Limpiar o Normalizar Nombre (opcional):
+                    {t("rules.cleanName")}
                   </label>
                   <input
                     type="text"
-                    placeholder="Ej: Reemplazar por 'Coto'"
+                    placeholder={t("rules.cleanNamePlaceholder")}
                     value={actionCleanDesc}
                     onChange={(e) => setActionCleanDesc(e.target.value)}
                     className="w-full bg-secondary rounded-lg px-2.5 py-2 text-[13px] text-foreground border border-border outline-none"
@@ -321,14 +399,14 @@ export function RulesManager({
                   onClick={() => setOpenCreate(false)}
                   className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-[13px] font-medium"
                 >
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"
                   onClick={handleCreate}
                   className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold"
                 >
-                  Crear Regla
+                  {t("rules.createRule")}
                 </button>
               </div>
             </motion.div>

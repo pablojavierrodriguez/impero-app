@@ -31,31 +31,34 @@ export async function fetchAccounts(): Promise<Account[]> {
   }));
 }
 
-export async function insertAccount(acc: Omit<Account, "id">): Promise<Account> {
+export async function insertAccount(acc: Omit<Account, "id"> & { id?: string }): Promise<Account> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No authenticated user");
 
   // Para tarjetas de crédito, garantizar balance <= 0 (la deuda es negativa)
   const safeBalance = acc.type === "credit" ? -Math.abs(acc.balance) : acc.balance;
 
+  const insertPayload: any = {
+    user_id: user.id,
+    name: acc.name,
+    balance: safeBalance,
+    type: acc.type,
+    color: acc.color,
+    icon: acc.icon || null,
+    archived: acc.archived || false,
+    credit_limit: acc.creditLimit || null,
+    closing_day: acc.closingDay || null,
+    payment_day: acc.paymentDay || null,
+    brand: acc.brand || null,
+    custom_brand_name: acc.customBrandName || null,
+    currency: acc.currency || "ARS",
+    credit_card_view_mode: acc.creditCardViewMode || "statement_cycles",
+  };
+  if (acc.id) insertPayload.id = acc.id;
+
   const { data, error } = await supabase
     .from("accounts")
-    .insert({
-      user_id: user.id,
-      name: acc.name,
-      balance: safeBalance,
-      type: acc.type,
-      color: acc.color,
-      icon: acc.icon || null,
-      archived: acc.archived || false,
-      credit_limit: acc.creditLimit || null,
-      closing_day: acc.closingDay || null,
-      payment_day: acc.paymentDay || null,
-      brand: acc.brand || null,
-      custom_brand_name: acc.customBrandName || null,
-      currency: acc.currency || "ARS",
-      credit_card_view_mode: acc.creditCardViewMode || "statement_cycles",
-    })
+    .upsert(insertPayload, { onConflict: "id" })
     .select()
     .single();
 

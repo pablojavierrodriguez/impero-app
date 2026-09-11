@@ -75,12 +75,12 @@ export function HealthScore({ monthlyIncome, monthlyExpenses, budgetsUsedPct, go
               {monthlyIncome > monthlyExpenses ? (
                 <div className="flex items-center gap-1 text-xs text-primary">
                   <TrendingUp className="w-3 h-3" />
-                  <span>{Math.round(((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100)}% savings rate</span>
+                  <span>{t("health.savingsRate").replace("{rate}", String(Math.round(((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100)))}</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1 text-xs text-destructive">
                   <TrendingDown className="w-3 h-3" />
-                  <span>Spending more than earning</span>
+                  <span>{t("health.spendingMore")}</span>
                 </div>
               )}
             </div>

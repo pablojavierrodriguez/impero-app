@@ -65,6 +65,11 @@ A diferencia de aplicaciones comerciales cerradas (**Mobills**, **Wallet by Budg
    - Cada usuario coloca sus propias credenciales en los **Secrets de su proyecto Supabase** (`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `GEMINI_API_KEY`). No hay servidores compartidos ni intermediarios.
    - En la app, vas a **Ajustes ➔ Integración con WhatsApp**, vinculás tu número telefónico personal y validás con el código OTP de 6 dígitos.
 
+5. **Personalización de Correos Electrónicos (Opcional):**
+   - Por defecto, Supabase Cloud envía correos genéricos en inglés.
+   - Para que los correos de confirmación y reseteo de contraseña lleven el diseño oficial de IMPERO, Supabase Cloud requiere habilitar un servidor SMTP propio (podés usar tu propia cuenta de Gmail gratuita con una *Contraseña de aplicación* o Resend).
+   - La guía paso a paso y los códigos HTML están detallados en [docs/EMAIL_TEMPLATES.md](docs/EMAIL_TEMPLATES.md).
+
 ---
 
 ### Opción B: Ejecución 100% Local (Docker + Vite)
@@ -90,7 +95,19 @@ cp .env.example .env.local
 npm run dev
 ```
 
-La app estará disponible en `http://localhost:5173` y la base en `postgresql://postgres:postgres@127.0.0.1:54422/postgres`.
+- La app estará disponible en `http://localhost:5173`.
+- La base de datos en `postgresql://postgres:postgres@127.0.0.1:54422/postgres`.
+- El buzón de correos de desarrollo (Inbucket) en `http://127.0.0.1:54324`, donde las plantillas en español de IMPERO ya vienen **preconfiguradas y listas para usar** desde `supabase/templates/`.
+
+---
+
+## 📬 Plantillas de Correo Electrónico (Transaccionales)
+
+IMPERO incluye plantillas HTML responsive con identidad visual sobria (*Obsidian + Verde Esmeralda*):
+
+- **En Desarrollo Local (Supabase CLI):** Las plantillas en [`supabase/templates/`](supabase/templates/) ya están vinculadas en [`supabase/config.toml`](supabase/config.toml) y se visualizan automáticamente en Inbucket sin configuración adicional.
+- **En Producción Self-Hosted (Docker Compose):** Se monta el volumen `./supabase/templates:/etc/gotrue/templates:ro` en el contenedor `auth` y se definen las variables de entorno `GOTRUE_SMTP_*` de tu propio servidor de correo (Postfix, Mailcow, Stalwart, Gmail, etc.).
+- **En Supabase Cloud (Managed):** Dado que Supabase Cloud bloquea la edición de templates con su remitente compartido `@supabase.co`, solo tenés que conectar tu SMTP (Gmail App Password o Resend) en *Project Settings ➔ Authentication ➔ SMTP Settings* para desbloquear el editor y pegar los diseños de [docs/EMAIL_TEMPLATES.md](docs/EMAIL_TEMPLATES.md).
 
 ---
 

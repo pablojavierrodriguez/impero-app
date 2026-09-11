@@ -137,19 +137,25 @@ export function AccountManager({
       <div className="px-4 pb-3 flex items-center justify-between">
         {view === "list" ? (
           <>
-            <h1 className="text-[20px] font-display font-semibold text-foreground">Accounts</h1>
-            <div className="flex gap-2">
+            <h1 className="text-[20px] font-display font-semibold text-foreground">{t("acct.title")}</h1>
+            <div className="flex items-center gap-2">
               {archivedAccounts.length > 0 && (
                 <button
                   onClick={() => setView("archived")}
-                  className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                  title="Ver cuentas archivadas"
+                  className="h-8 w-8 rounded-xl bg-secondary/80 border border-border/40 text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center justify-center active:scale-95 transition-all shrink-0"
+                  title={t("acct.viewArchived")}
+                  aria-label={t("acct.viewArchived")}
                 >
                   <Archive className="w-4 h-4" />
                 </button>
               )}
-              <button onClick={openCreate} className="p-2 text-primary hover:text-primary/80 transition-colors">
-                <Plus className="w-5 h-5" />
+              <button
+                onClick={openCreate}
+                className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 active:scale-95 transition-all shadow-xs shrink-0"
+                title={t("acct.new")}
+                aria-label={t("acct.new")}
+              >
+                <Plus className="w-4 h-4" />
               </button>
             </div>
           </>
@@ -165,11 +171,11 @@ export function AccountManager({
               <X className="w-5 h-5" />
             </button>
             <h2 className="text-[16px] font-display font-semibold text-foreground">
-              {view === "create" && "New Account"}
-              {view === "edit" && "Edit Account"}
-              {view === "archived" && "Archived Accounts"}
+              {view === "create" && t("acct.new")}
+              {view === "edit" && t("acct.edit")}
+              {view === "archived" && t("acct.archived")}
               {view === "detail" && detailAccount?.name}
-              {view === "adjust" && "Adjust Balance"}
+              {view === "adjust" && t("acct.adjustBalance")}
             </h2>
           </div>
         )}
@@ -180,7 +186,7 @@ export function AccountManager({
         {view === "list" && (
           <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="px-4">
             {activeAccounts.length === 0 && (
-              <p className="text-muted-foreground text-[13px] text-center py-8">No accounts yet. Tap + to create one.</p>
+              <p className="text-muted-foreground text-[13px] text-center py-8">{t("acct.noAccounts")}</p>
             )}
             {activeAccounts.map((acc, i) => {
               const txCount = getTransactionsByAccount(acc.id).length;
@@ -216,7 +222,7 @@ export function AccountManager({
                             <DropdownMenuTrigger asChild>
                               <button
                                 className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 transition-all"
-                                title="Opciones de cuenta"
+                                title={t("acct.options")}
                               >
                                 <MoreVertical className="w-4 h-4" />
                               </button>
@@ -224,16 +230,16 @@ export function AccountManager({
                             <DropdownMenuContent align="end" className="w-44">
                               <DropdownMenuItem onClick={() => openAdjust(acc)} className="cursor-pointer gap-2">
                                 <ArrowUpDown className="w-3.5 h-3.5" />
-                                <span>Ajustar saldo</span>
+                                <span>{t("acct.adjustBalance")}</span>
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openEdit(acc)} className="cursor-pointer gap-2">
                                 <Pencil className="w-3.5 h-3.5" />
-                                <span>Editar</span>
+                                <span>{t("common.edit")}</span>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => onArchive(acc.id)} className="cursor-pointer gap-2 text-amber-500 focus:text-amber-500">
                                 <Archive className="w-3.5 h-3.5" />
-                                <span>Archivar</span>
+                                <span>{t("common.archive")}</span>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -251,32 +257,36 @@ export function AccountManager({
         {(view === "create" || view === "edit") && (
           <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="px-4">
             {/* Name */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Name</label>
+            {/* Name */}
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("acct.name")}</label>
             <input
               value={formName}
               onChange={e => setFormName(e.target.value)}
-              placeholder="Account name"
+              placeholder={t("acct.namePlaceholder")}
               className="w-full h-11 px-4 rounded-[12px] bg-input border border-border text-foreground text-[14px] placeholder:text-muted-foreground focus:border-muted-foreground outline-none transition-colors mb-4"
             />
 
             {/* Type */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Type</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("acct.type")}</label>
             <div className="flex flex-wrap gap-2 mb-4">
-              {ACCOUNT_TYPES.map(t => (
+              {ACCOUNT_TYPES.map(typeItem => (
                 <button
-                  key={t.value}
-                  onClick={() => setFormType(t.value)}
+                  key={typeItem.value}
+                  onClick={() => setFormType(typeItem.value)}
                   className={`px-3 py-2 rounded-full text-[13px] font-medium transition-colors ${
-                    formType === t.value ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30" : "bg-secondary/50 text-muted-foreground"
+                    formType === typeItem.value ? "bg-secondary text-foreground ring-1 ring-muted-foreground/30" : "bg-secondary/50 text-muted-foreground"
                   }`}
                 >
-                  {t.label}
+                  {typeItem.value === "checking" ? t("acct.checking") :
+                   typeItem.value === "savings" ? t("acct.savings") :
+                   typeItem.value === "credit" ? t("acct.credit") :
+                   typeItem.value === "cash" ? t("acct.cash") : typeItem.label}
                 </button>
               ))}
             </div>
 
             {/* Currency */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Moneda (Currency)</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("acct.currency")}</label>
             <div className="flex flex-wrap gap-2 mb-4">
               {CURRENCIES.map(c => (
                 <button
@@ -295,7 +305,7 @@ export function AccountManager({
             {/* Initial Balance (only on create) */}
             {view === "create" && (
               <>
-                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Initial Balance</label>
+                <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("acct.initialBalance")}</label>
                 <input
                   value={formBalance}
                   onChange={e => setFormBalance(formatThousandsInput(e.target.value))}
@@ -308,7 +318,7 @@ export function AccountManager({
             )}
 
             {/* Color */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Color</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("acct.color")}</label>
             <div className="flex flex-wrap gap-2 mb-4">
               {CATEGORY_COLORS.map(c => (
                 <button
@@ -322,7 +332,7 @@ export function AccountManager({
             </div>
 
             {/* Icon */}
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">Icon</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("acct.icon")}</label>
             <div className="flex flex-wrap gap-2 mb-6">
               {ACCOUNT_ICONS.map(ic => (
                 <button
@@ -344,19 +354,19 @@ export function AccountManager({
               <div className={`w-10 h-10 rounded-[12px] ${formColor} flex items-center justify-center`}>
                 <CategoryIcon name={formIcon} className="w-5 h-5 text-white" />
               </div>
-              <span className="text-[14px] text-foreground font-medium">{formName || "Preview"}</span>
+              <span className="text-[14px] text-foreground font-medium">{formName || t("acct.preview")}</span>
             </div>
 
             <div className="flex gap-3">
               <button onClick={() => setView("list")} className="flex-1 h-11 rounded-[12px] bg-secondary text-foreground font-medium text-[14px]">
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleSave}
                 disabled={!formName.trim()}
                 className="flex-[2] h-11 rounded-[12px] bg-primary text-primary-foreground font-medium text-[14px] disabled:opacity-40"
               >
-                {view === "edit" ? "Save Changes" : "Create"}
+                {view === "edit" ? t("common.saveChanges") : t("acct.create")}
               </button>
             </div>
           </motion.div>
@@ -374,14 +384,14 @@ export function AccountManager({
                   <div>
                     <span className="text-[14px] text-foreground font-medium">{detailAccount.name}</span>
                     <div className="text-[12px] text-muted-foreground">
-                      Current: <span className="font-mono-data">{formatCurrency(detailAccount.balance)}</span>
+                      {t("acct.current")}: <span className="font-mono-data">{formatCurrency(detailAccount.balance)}</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">New actual balance</label>
+            <label className="text-[12px] text-muted-foreground font-medium mb-1.5 block">{t("acct.newBalance")}</label>
             <input
               value={adjustBalance}
               onChange={e => setAdjustBalance(formatThousandsInput(e.target.value))}
@@ -393,23 +403,24 @@ export function AccountManager({
             {(() => {
               const diff = (parseThousandsInput(adjustBalance) || 0) - detailAccount.balance;
               if (diff === 0) return null;
+              const msgKey = diff > 0 ? "acct.adjustDiffIncome" : "acct.adjustDiffExpense";
               return (
                 <div className={`text-[13px] mb-4 p-3 rounded-[12px] ${diff > 0 ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
-                  An {diff > 0 ? "income" : "expense"} transaction of <span className="font-mono-data font-medium">{formatCurrency(Math.abs(diff))}</span> will be created automatically.
+                  {t(msgKey).replace("{amount}", formatCurrency(Math.abs(diff)))}
                 </div>
               );
             })()}
 
             <div className="flex gap-3">
               <button onClick={() => setView("list")} className="flex-1 h-11 rounded-[12px] bg-secondary text-foreground font-medium text-[14px]">
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleAdjust}
                 disabled={isNaN(parseFloat(adjustBalance)) || parseFloat(adjustBalance) === detailAccount.balance}
                 className="flex-[2] h-11 rounded-[12px] bg-primary text-primary-foreground font-medium text-[14px] disabled:opacity-40"
               >
-                Adjust Balance
+                {t("acct.adjust")}
               </button>
             </div>
           </motion.div>
@@ -448,11 +459,11 @@ export function AccountManager({
                       <div className="mb-3 p-2.5 rounded-[10px] bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[12px] text-amber-500 font-medium">Inconsistencia detectada</p>
+                          <p className="text-[12px] text-amber-500 font-medium">{t("acct.inconsistencyDetected")}</p>
                           <p className="text-[11px] text-muted-foreground">
-                            Balance guardado: <span className="font-mono-data">{formatInCurrency(detailAccount.balance, accCur)}</span>
+                            {t("acct.savedBalance")} <span className="font-mono-data">{formatInCurrency(detailAccount.balance, accCur)}</span>
                             {" · "}
-                            Derivado de transacciones: <span className="font-mono-data">{formatInCurrency(computed, accCur)}</span>
+                            {t("acct.derivedFromTx")} <span className="font-mono-data">{formatInCurrency(computed, accCur)}</span>
                           </p>
                         </div>
                         {onSyncBalance && (
@@ -461,7 +472,7 @@ export function AccountManager({
                             className="flex-shrink-0 px-2 py-1 rounded-lg bg-amber-500/20 text-amber-500 text-[11px] font-medium hover:bg-amber-500/30 transition-colors flex items-center gap-1"
                           >
                             <RefreshCw className="w-3 h-3" />
-                            Sincronizar
+                            {t("acct.sync")}
                           </button>
                         )}
                       </div>
@@ -473,13 +484,13 @@ export function AccountManager({
                       onClick={() => openAdjust(detailAccount)}
                       className="flex-1 h-9 rounded-[10px] bg-primary/10 text-primary text-[13px] font-medium flex items-center justify-center gap-1.5"
                     >
-                      <ArrowUpDown className="w-3.5 h-3.5" /> Ajustar
+                      <ArrowUpDown className="w-3.5 h-3.5" /> {t("acct.adjust")}
                     </button>
                     <button
                       onClick={() => openEdit(detailAccount)}
                       className="flex-1 h-9 rounded-[10px] bg-secondary text-foreground text-[13px] font-medium flex items-center justify-center gap-1.5"
                     >
-                      <Pencil className="w-3.5 h-3.5" /> Editar
+                      <Pencil className="w-3.5 h-3.5" /> {t("common.edit")}
                     </button>
                   </div>
                 </div>
@@ -488,10 +499,10 @@ export function AccountManager({
 
             {/* Transactions */}
             <div className="px-4">
-              <h3 className="text-[13px] text-muted-foreground font-medium mb-3">Transactions</h3>
+              <h3 className="text-[13px] text-muted-foreground font-medium mb-3">{t("acct.transactions")}</h3>
               {(() => {
                 const txs = getTransactionsByAccount(detailAccount.id);
-                if (txs.length === 0) return <p className="text-muted-foreground text-[13px] text-center py-6">No transactions for this account.</p>;
+                if (txs.length === 0) return <p className="text-muted-foreground text-[13px] text-center py-6">{t("acct.noTx")}</p>;
                 
                 const grouped = txs.reduce<Record<string, Transaction[]>>((acc, tx) => {
                   const key = format(tx.date, "MMM d, yyyy");
@@ -538,7 +549,7 @@ export function AccountManager({
         {view === "archived" && (
           <motion.div key="archived" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="px-4">
             {archivedAccounts.length === 0 && (
-              <p className="text-muted-foreground text-[13px] text-center py-8">No archived accounts.</p>
+              <p className="text-muted-foreground text-[13px] text-center py-8">{t("acct.noArchived")}</p>
             )}
             {archivedAccounts.map(acc => (
               <div key={acc.id} className="flex items-center gap-3 py-3 border-b border-border/50">

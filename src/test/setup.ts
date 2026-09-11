@@ -22,6 +22,11 @@ class MockResizeObserver {
 }
 (globalThis as unknown as { ResizeObserver: typeof MockResizeObserver }).ResizeObserver = MockResizeObserver;
 
+// Polyfill scrollIntoView for cmdk / Radix dialog
+if (typeof window !== "undefined" && window.HTMLElement) {
+  window.HTMLElement.prototype.scrollIntoView = function () {};
+}
+
 // Polyfill localStorage
 const storageStore: Record<string, string> = {};
 const storageMock: Storage = {
