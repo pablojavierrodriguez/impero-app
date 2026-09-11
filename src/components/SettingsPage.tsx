@@ -21,6 +21,7 @@ import { usePrivacy } from "@/contexts/PrivacyContext";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import type { Language } from "@/lib/i18n";
+import { APP_VERSION } from "@/lib/version";
 
 const LANGUAGES: { value: Language; label: string }[] = [
   { value: "es", label: "Español" },
@@ -123,8 +124,17 @@ export function SettingsPage({ onImportCsv, onOpenReleaseNotes, onOpenShortcuts,
   const [purgeConfirmationText, setPurgeConfirmationText] = useState("");
   const [isPurging, setIsPurging] = useState(false);
 
-  const handleConfirmPurge = async () => {
-    if (!purgeConfirmedCheck || purgeConfirmationText.trim().toUpperCase() !== "BORRAR" || isPurging) {
+  const isPurgeKeywordValid = (text: string) => {
+    const clean = text.trim().toUpperCase();
+    const keyword = (t("settings.purgeKeyword") || "BORRAR").toUpperCase();
+    return clean === keyword || clean === "BORRAR" || clean === "DELETE";
+  };
+
+  const handleConfirmPurge = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    if (!purgeConfirmedCheck || !isPurgeKeywordValid(purgeConfirmationText) || isPurging) {
       return;
     }
     setIsPurging(true);
@@ -135,9 +145,11 @@ export function SettingsPage({ onImportCsv, onOpenReleaseNotes, onOpenShortcuts,
         await purgeAllUserData(user?.id);
       }
       setIsPurgeModalOpen(false);
-      // Recargar para reiniciar de forma completamente limpia con el OnboardingWizard
-      window.location.reload();
-    } catch (err) {
+      // Redirigir directamente al inicio "/" para entrar al estadio inicial (OnboardingWizard o Dashboard limpio en cero)
+      window.location.href = "/";
+    } catch (err: any) {
+      console.error("[SettingsPage] Error durante la purga de datos:", err);
+      toast.error(err?.message || t("toast.purgeError") || "Error al purgar los datos");
       setIsPurging(false);
     }
   };
@@ -595,7 +607,7 @@ export function SettingsPage({ onImportCsv, onOpenReleaseNotes, onOpenShortcuts,
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-semibold font-mono">
-                  v0.2.0
+                  v{APP_VERSION}
                 </span>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </div>
@@ -683,9 +695,7 @@ export function SettingsPage({ onImportCsv, onOpenReleaseNotes, onOpenShortcuts,
             <AlertDialogAction
               disabled={
                 !purgeConfirmedCheck ||
-                (purgeConfirmationText.trim().toUpperCase() !== t("settings.purgeKeyword").toUpperCase() &&
-                 purgeConfirmationText.trim().toUpperCase() !== "BORRAR" &&
-                 purgeConfirmationText.trim().toUpperCase() !== "DELETE") ||
+                !isPurgeKeywordValid(purgeConfirmationText) ||
                 isPurging
               }
               onClick={handleConfirmPurge}

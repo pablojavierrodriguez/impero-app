@@ -92,6 +92,10 @@ describe("User Data Purge Suite", () => {
     fireEvent.change(textInput, { target: { value: "BORRAR" } });
     expect(confirmBtn?.hasAttribute("disabled")).toBe(false);
 
+    // 5b. Also accepts "DELETE" (multilingual support)
+    fireEvent.change(textInput, { target: { value: "DELETE" } });
+    expect(confirmBtn?.hasAttribute("disabled")).toBe(false);
+
     // 6. Uncheck checkbox -> disabled again
     fireEvent.click(checkbox);
     expect(confirmBtn?.hasAttribute("disabled")).toBe(true);
@@ -99,5 +103,70 @@ describe("User Data Purge Suite", () => {
     // 7. Check again -> enabled again
     fireEvent.click(checkbox);
     expect(confirmBtn?.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("purgeRemoteUserData invokes atomic RPC purge_user_data with p_reseed: true", async () => {
+    const { supabase } = await import("../integrations/supabase/client");
+    const rpcSpy = vi.spyOn(supabase, "rpc").mockResolvedValue({ data: { success: true }, error: null } as any);
+
+    const { purgeRemoteUserData } = await import("../services/user-data.service");
+    await purgeRemoteUserData("user-uuid-123");
+
+    expect(rpcSpy).toHaveBeenCalledWith("purge_user_data", { p_reseed: true });
+    rpcSpy.mockRestore();
+  });
+
+  it("SettingsPage enables confirm button when typing 'DELETE' as well", async () => {
+    const onPurgeData = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <AuthProvider>
+        <SettingsProvider>
+          <PrivacyProvider>
+            <SettingsPage onImportCsv={vi.fn()} onPurgeData={onPurgeData} />
+          </PrivacyProvider>
+        </SettingsProvider>
+      </AuthProvider>
+    );
+
+    const triggerBtn = screen.getByText("Borrar todos los datos y reiniciar");
+    fireEvent.click(triggerBtn);
+
+    const checkbox = screen.getByRole("checkbox");
+    fireEvent.click(checkbox);
+
+    const textInput = screen.getByPlaceholderText("BORRAR");
+    fireEvent.change(textInput, { target: { value: "DELETE" } });
+
+    const confirmBtn = screen.getByText("Eliminar definitivamente y reiniciar").closest("button");
+    expect(confirmBtn?.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("SettingsPage redirects to '/' upon successful purge confirmation", async () => {
+    const onPurgeData = vi.fn().mockResolvedValue(undefined);
+    delete (window as any).location;
+    (window as any).location = { href: "/settings" };
+
+    render(
+      <AuthProvider>
+        <SettingsProvider>
+          <PrivacyProvider>
+            <SettingsPage onImportCsv={vi.fn()} onPurgeData={onPurgeData} />
+          </PrivacyProvider>
+        </SettingsProvider>
+      </AuthProvider>
+    );
+
+    fireEvent.click(screen.getByText("Borrar todos los datos y reiniciar"));
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.change(screen.getByPlaceholderText("BORRAR"), { target: { value: "BORRAR" } });
+
+    const confirmBtn = screen.getByText("Eliminar definitivamente y reiniciar");
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(onPurgeData).toHaveBeenCalled();
+      expect(window.location.href).toBe("/");
+    });
   });
 });

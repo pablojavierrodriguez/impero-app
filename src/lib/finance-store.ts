@@ -25,6 +25,7 @@ import { purgeAllUserData as purgeUserDataService } from "@/services/user-data.s
 
 import {
   CACHE_KEYS,
+  GLOBAL_QUEUE_KEY,
   getCachedData,
   setCachedData,
   enqueueGlobalSyncOp,
@@ -1702,7 +1703,7 @@ export function useFinanceStore() {
     try {
       await purgeUserDataService(user?.id);
 
-      // Limpiar estados locales en React
+      // Limpiar estados locales en React a cero absoluto
       setTransactions([]);
       setAccounts([]);
       setCategories([]);
@@ -1713,9 +1714,12 @@ export function useFinanceStore() {
       setTags([]);
       setRules([]);
       setPendingGlobalSyncCount(0);
+      setIsGlobalSyncing(false);
 
-      // Limpiar caché local
+      // Limpiar caché local y colas offline
       Object.values(CACHE_KEYS).forEach((k) => localStorage.removeItem(k));
+      localStorage.removeItem(GLOBAL_QUEUE_KEY);
+      localStorage.removeItem("onboarding-complete");
 
       toast.success(t("toast.purgeSuccess"));
     } catch (err) {

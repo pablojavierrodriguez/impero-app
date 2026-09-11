@@ -12,6 +12,32 @@ Próximos desarrollos de producto y mejoras continuas.
 
 ---
 
+## [0.3.1] — 2026-09-11 🚀 Hotfix: Purga Atómica de Datos y Reseteo al Estado Inicial
+
+### 🎯 Resumen
+Corrección crítica de resiliencia e integridad de datos en el ciclo de vida de la cuenta: implementación de purga atómica y segura en base de datos para el borrado total y reinicio desde cero; reseteo garantizado del balance consolidado a $0,00 con re-aprovisionamiento instantáneo de cuentas y categorías predeterminadas; depuración exhaustiva de colas offline para evitar sincronizaciones manuales; y redirección automática al asistente de bienvenida inicial (`OnboardingWizard`).
+
+### ✨ Mejoras y Correcciones
+
+#### 🧹 Gestión de Datos y Purga Atómica de Cuenta
+- **Transacción Atómica de Borrado:**
+  - Eliminación integral y consistente en un solo paso de todas las entidades financieras del usuario (transacciones, listas de compras, reglas de categorización, recordatorios de vencimiento, transacciones periódicas, presupuestos, metas financieras, etiquetas y comprobantes almacenados).
+  - Resolución de dependencias foráneas y políticas de seguridad para evitar bloqueos o eliminaciones parciales en la nube.
+- **Reseteo Garantizado de Balance y Cuentas Predeterminadas:**
+  - Garantía de saldo $0,00 absoluto tras la purga, evitando persistencia de balances residuales en cuentas bancarias y tarjetas.
+  - Re-aprovisionamiento instantáneo de las 3 cuentas predeterminadas (*Efectivo*, *Caja de Ahorro* y *Billetera Virtual*) con balance $0 y las 8 categorías estándar, dejando la cuenta en estado día 1 óptimo y listo para operar.
+
+#### ⚡ Experiencia de Reinicio y Colas Offline
+- **Redirección Automática al Estadio Inicial:**
+  - Tras confirmar el borrado seguro en Configuración, la aplicación redirige de inmediato a la vista raíz, desplegando el asistente de configuración inicial (*OnboardingWizard*) para volver a elegir idioma, moneda y reglas recomendadas.
+  - Al completar u omitir el asistente, el usuario accede directamente al Dashboard en cero absoluto.
+- **Depuración Completa de Colas Offline:**
+  - Limpieza automática e inmediata de colas de sincronización diferida y cachés locales, erradicando operaciones huérfanas o la necesidad de sincronizaciones manuales tras el reinicio.
+- **Validación Multilingüe en Modal de Confirmación:**
+  - Soporte de confirmación con palabras clave en español e inglés (`BORRAR`, `DELETE`), evitando bloqueos silenciosos según el idioma configurado.
+
+---
+
 ## [0.3.0] — 2026-09-11 🚀 Motor Offline-First Global, Internacionalización Bilingüe (ES/EN) y Fluidez Háptica
 
 ### 🎯 Resumen

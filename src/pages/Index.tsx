@@ -124,7 +124,7 @@ const Index = ({ initialTab }: IndexProps = {}) => {
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
 
-  // Notificar novedades v0.2.0 tras completar el onboarding si aún no fueron vistas
+  // Notificar novedades de versión tras completar el onboarding si aún no fueron vistas
   useEffect(() => {
     if (shouldShowReleaseNotes()) {
       const onboardingComplete = localStorage.getItem("onboarding-complete");

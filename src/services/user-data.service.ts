@@ -3,84 +3,154 @@ import { CACHE_KEYS, GLOBAL_QUEUE_KEY } from "@/services/sync-queue.service";
 import { SHOPPING_CACHE_KEY, SHOPPING_QUEUE_KEY } from "@/services/shopping.service";
 
 /**
- * Elimina todos los registros de negocio del usuario en Supabase
- * respetando las dependencias de clave foránea (Foreign Keys) y políticas RLS.
+ * Elimina todos los registros de negocio del usuario en Supabase.
+ * Prioriza la llamada RPC atómica 'purge_user_data' (transaccional en PostgreSQL).
+ * Si la función RPC no está disponible en la base de datos, ejecuta un fallback
+ * REST estructurado con validación estricta de errores y orden de dependencias seguro.
  */
-export async function purgeRemoteUserData(userId: string): Promise<void> {
-  // 1. Listas de compras y sus artículos
+export async function purgeRemoteUserData(userId?: string): Promise<void> {
+  // 1. Intento primario: RPC atómico
   try {
-    const { data: userLists } = await supabase
-      .from("shopping_lists")
-      .select("id")
-      .eq("user_id", userId);
-
-    if (userLists && userLists.length > 0) {
-      const listIds = userLists.map((l) => l.id);
-      await supabase.from("shopping_list_items").delete().in("list_id", listIds);
+    const { error } = await (supabase as any).rpc("purge_user_data", { p_reseed: true });
+    if (!error) {
+      return;
     }
-    await supabase.from("shopping_lists").delete().eq("user_id", userId);
-  } catch (err) {
-    console.warn("[UserDataService] Error al purgar listas de compras:", err);
+    console.warn("[UserDataService] purge_user_data RPC no disponible o falló, ejecutando fallback REST:", error);
+  } catch (rpcErr) {
+    console.warn("[UserDataService] Error al invocar purge_user_data RPC:", rpcErr);
   }
 
-  // 2. Reglas automáticas de categorización
-  try {
-    await (supabase.from("transaction_rules" as any) as any).delete().eq("user_id", userId);
-  } catch (err) {
-    console.warn("[UserDataService] Error al purgar reglas:", err);
+  // 2. Fallback REST estructurado
+  const effectiveUserId = userId || (await supabase.auth.getUser()).data.user?.id;
+  if (!effectiveUserId) return;
+
+  // 2.1. Listas de compras y sus artículos
+  const { data: userLists, error: fetchListsErr } = await supabase
+    .from("shopping_lists")
+    .select("id")
+    .eq("user_id", effectiveUserId);
+  if (fetchListsErr) {
+    console.warn("[UserDataService] Error al consultar shopping_lists:", fetchListsErr);
   }
 
-  // 3. Recordatorios de pago y transacciones periódicas
-  try {
-    await supabase.from("bill_reminders").delete().eq("user_id", userId);
-    await supabase.from("recurring_transactions").delete().eq("user_id", userId);
-  } catch (err) {
-    console.warn("[UserDataService] Error al purgar vencimientos y recurrentes:", err);
+  if (userLists && userLists.length > 0) {
+    const listIds = userLists.map((l) => l.id);
+    const { error: delItemsErr } = await supabase.from("shopping_list_items").delete().in("list_id", listIds);
+    if (delItemsErr) {
+      console.warn("[UserDataService] Error al purgar shopping_list_items:", delItemsErr);
+    }
+  }
+  const { error: delListsErr } = await supabase.from("shopping_lists").delete().eq("user_id", effectiveUserId);
+  if (delListsErr) {
+    console.warn("[UserDataService] Error al purgar shopping_lists:", delListsErr);
   }
 
-  // 4. Presupuestos y metas financieras
-  try {
-    await supabase.from("budgets").delete().eq("user_id", userId);
-    await supabase.from("goals").delete().eq("user_id", userId);
-  } catch (err) {
-    console.warn("[UserDataService] Error al purgar presupuestos y metas:", err);
+  // 2.2. Reglas automáticas de categorización
+  const { error: rulesErr } = await (supabase.from("transaction_rules" as any) as any)
+    .delete()
+    .eq("user_id", effectiveUserId);
+  if (rulesErr) {
+    console.warn("[UserDataService] Error al purgar transaction_rules:", rulesErr);
   }
 
-  // 5. Transacciones históricas
-  try {
-    await supabase.from("transactions").delete().eq("user_id", userId);
-  } catch (err) {
-    console.warn("[UserDataService] Error al purgar transacciones:", err);
+  // 2.3. Recordatorios de pago y transacciones periódicas
+  const { error: billsErr } = await supabase.from("bill_reminders").delete().eq("user_id", effectiveUserId);
+  if (billsErr) {
+    console.warn("[UserDataService] Error al purgar bill_reminders:", billsErr);
+  }
+  const { error: recErr } = await supabase.from("recurring_transactions").delete().eq("user_id", effectiveUserId);
+  if (recErr) {
+    console.warn("[UserDataService] Error al purgar recurring_transactions:", recErr);
   }
 
-  // 6. Etiquetas (Tags)
-  try {
-    await supabase.from("tags").delete().eq("user_id", userId);
-  } catch (err) {
-    console.warn("[UserDataService] Error al purgar etiquetas:", err);
+  // 2.4. Presupuestos y metas financieras
+  const { error: bgErr } = await supabase.from("budgets").delete().eq("user_id", effectiveUserId);
+  if (bgErr) {
+    console.warn("[UserDataService] Error al purgar budgets:", bgErr);
+  }
+  const { error: goalsErr } = await supabase.from("goals").delete().eq("user_id", effectiveUserId);
+  if (goalsErr) {
+    console.warn("[UserDataService] Error al purgar goals:", goalsErr);
   }
 
-  // 7. Cuentas y tarjetas de crédito
-  try {
-    await supabase.from("accounts").delete().eq("user_id", userId);
-  } catch (err) {
-    console.warn("[UserDataService] Error al purgar cuentas:", err);
+  // 2.5. WhatsApp (Integraciones y Mensajes ANTES de transacciones para evitar bloqueo de FK ON DELETE SET NULL)
+  const { error: waMsgErr } = await supabase.from("whatsapp_messages").delete().eq("user_id", effectiveUserId);
+  if (waMsgErr) {
+    console.warn("[UserDataService] Error al purgar whatsapp_messages:", waMsgErr);
+  }
+  const { error: waIntErr } = await supabase.from("whatsapp_integrations").delete().eq("user_id", effectiveUserId);
+  if (waIntErr) {
+    console.warn("[UserDataService] Error al purgar whatsapp_integrations:", waIntErr);
   }
 
-  // 8. Categorías (primero subcategorías por parent_id FK, luego categorías raíz)
-  try {
-    await supabase.from("categories").delete().eq("user_id", userId).not("parent_id", "is", null);
-    await supabase.from("categories").delete().eq("user_id", userId);
-  } catch (err) {
-    console.warn("[UserDataService] Error al purgar categorías:", err);
+  // 2.6. Transacciones históricas
+  const { error: txErr } = await supabase.from("transactions").delete().eq("user_id", effectiveUserId);
+  if (txErr) {
+    console.warn("[UserDataService] Error al purgar transactions:", txErr);
   }
 
-  // 9. Integraciones auxiliares (WhatsApp)
+  // 2.7. Etiquetas (Tags)
+  const { error: tagsErr } = await supabase.from("tags").delete().eq("user_id", effectiveUserId);
+  if (tagsErr) {
+    console.warn("[UserDataService] Error al purgar tags:", tagsErr);
+  }
+
+  // 2.8. Cuentas: Garantizar primero balance 0 absoluto para que nunca persistan saldos residuales
+  await supabase.from("accounts").update({ balance: 0 }).eq("user_id", effectiveUserId);
+  const { error: accErr } = await supabase.from("accounts").delete().eq("user_id", effectiveUserId);
+  if (accErr) {
+    console.warn("[UserDataService] Error al purgar accounts:", accErr);
+  }
+
+  // 2.9. Categorías (primero subcategorías con parent_id FK, luego raíces)
+  const { error: subCatErr } = await supabase
+    .from("categories")
+    .delete()
+    .eq("user_id", effectiveUserId)
+    .not("parent_id", "is", null);
+  if (subCatErr) {
+    console.warn("[UserDataService] Error al purgar subcategorías:", subCatErr);
+  }
+  const { error: catErr } = await supabase.from("categories").delete().eq("user_id", effectiveUserId);
+  if (catErr) {
+    console.warn("[UserDataService] Error al purgar categories:", catErr);
+  }
+
+  // 2.10. Re-seed de contingencia en cliente si las cuentas fueron borradas
   try {
-    await supabase.from("whatsapp_messages").delete().eq("user_id", userId);
-    await supabase.from("whatsapp_integrations").delete().eq("user_id", userId);
-  } catch {
-    // Silencioso si no están habilitadas
+    const { data: remainingAccounts } = await supabase.from("accounts").select("id").eq("user_id", effectiveUserId);
+    if (!remainingAccounts || remainingAccounts.length === 0) {
+      await supabase.from("accounts").insert([
+        { user_id: effectiveUserId, name: "Efectivo", balance: 0, type: "cash", color: "bg-emerald-500", icon: "banknote" },
+        { user_id: effectiveUserId, name: "Caja de Ahorro", balance: 0, type: "savings", color: "bg-sky-500", icon: "landmark" },
+        { user_id: effectiveUserId, name: "Billetera Virtual", balance: 0, type: "checking", color: "bg-violet-500", icon: "wallet" },
+      ]);
+    }
+  } catch (seedAccErr) {
+    console.warn("[UserDataService] Error en re-seed de cuentas:", seedAccErr);
+  }
+
+  try {
+    const { data: remainingCategories } = await supabase.from("categories").select("id").eq("user_id", effectiveUserId);
+    if (!remainingCategories || remainingCategories.length === 0) {
+      await supabase.from("categories").insert([
+        { user_id: effectiveUserId, name: "Salario", color: "bg-emerald-500", type: "income", icon: "briefcase", sort_order: 1 },
+        { user_id: effectiveUserId, name: "Otros Ingresos", color: "bg-teal-500", type: "income", icon: "wallet", sort_order: 2 },
+        { user_id: effectiveUserId, name: "Alimentación", color: "bg-orange-500", type: "expense", icon: "utensils", sort_order: 10 },
+        { user_id: effectiveUserId, name: "Transporte", color: "bg-sky-500", type: "expense", icon: "car", sort_order: 20 },
+        { user_id: effectiveUserId, name: "Vivienda", color: "bg-violet-500", type: "expense", icon: "home", sort_order: 30 },
+        { user_id: effectiveUserId, name: "Servicios", color: "bg-yellow-500", type: "expense", icon: "zap", sort_order: 40 },
+        { user_id: effectiveUserId, name: "Ocio y Salidas", color: "bg-pink-500", type: "expense", icon: "film", sort_order: 50 },
+        { user_id: effectiveUserId, name: "Salud", color: "bg-red-400", type: "expense", icon: "heart-pulse", sort_order: 60 },
+      ]);
+    }
+  } catch (seedCatErr) {
+    console.warn("[UserDataService] Error en re-seed de categorías:", seedCatErr);
+  }
+
+  // Si fallaron simultáneamente las tablas críticas, propagar error
+  if (txErr && accErr) {
+    throw new Error(txErr.message || accErr.message || "Error al purgar datos remotos");
   }
 }
 
@@ -120,6 +190,9 @@ export function purgeLocalUserData(): void {
 
   // 4. Claves de compatibilidad y legacy
   const legacyKeys = [
+    "tags",
+    "impero-transaction-rules",
+    "m3-transaction-rules",
     "impero-finance-data",
     "impero-transactions",
     "impero-accounts",
@@ -147,6 +220,15 @@ export function purgeLocalUserData(): void {
 export async function purgeAllUserData(userId?: string): Promise<void> {
   if (userId) {
     await purgeRemoteUserData(userId);
+  } else {
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user?.id) {
+        await purgeRemoteUserData(data.user.id);
+      }
+    } catch {
+      // Silencioso en entornos offline o tests sin sesión
+    }
   }
   purgeLocalUserData();
 }

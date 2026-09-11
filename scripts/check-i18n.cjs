@@ -35,6 +35,32 @@ if (missingEn.length > 0 || missingEs.length > 0) {
   console.log('✅ [i18n-audit] 100% de paridad entre ES y EN.');
 }
 
+// 1b. Verify that English values do not contain untranslated Spanish action keywords
+const enSection = i18nContent.split(/^\s*en:\s*\{/m)[1] || '';
+const untranslatedSpanishRegex = /\b(BORRAR|GUARDAR|CANCELAR|ELIMINAR|ACEPTAR|CONFIGURACIÓN|CONFIGURACION)\b/;
+const enLines = enSection.split('\n');
+const enSpanishLeaks = [];
+
+for (let i = 0; i < enLines.length; i++) {
+  const line = enLines[i];
+  if (/^\s*\}/.test(line) && !line.includes(':')) break;
+  const match = line.match(/^\s*"([^"]+)":\s*"([^"]+)"/);
+  if (match) {
+    const [, key, value] = match;
+    if (untranslatedSpanishRegex.test(value)) {
+      enSpanishLeaks.push({ key, value });
+    }
+  }
+}
+
+if (enSpanishLeaks.length > 0) {
+  console.error('❌ [i18n-audit] Términos en español detectados dentro del diccionario EN:');
+  enSpanishLeaks.forEach(item => console.error(`   ${item.key}: "${item.value}"`));
+  hasErrors = true;
+} else {
+  console.log('✅ [i18n-audit] Sin residuos de términos en español en diccionario EN.');
+}
+
 // 2. Scan TSX files for hardcoded strings
 function getTsxFiles(dir) {
   let res = [];

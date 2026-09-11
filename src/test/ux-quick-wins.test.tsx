@@ -115,15 +115,15 @@ describe("UX Quick Wins: Sparklines, Keyboard Shortcuts, Command Menu & Release 
       );
 
       expect(screen.getByText("¿Qué hay de nuevo en IMPERO?")).toBeDefined();
-      expect(screen.getByText("Versión 0.2.0")).toBeDefined();
-      expect(screen.getByText("Sincronización Cloud & Resiliencia Offline")).toBeDefined();
-      expect(screen.getByText("Bloqueo Biométrico WebAuthn")).toBeDefined();
+      expect(screen.getByText("Versión 0.3.1")).toBeDefined();
+      expect(screen.getByText("Motor Offline-First Global")).toBeDefined();
+      expect(screen.getByText("Internacionalización Total (ES / EN)")).toBeDefined();
 
       // Click dismiss
       const dismissBtn = screen.getByRole("button", { name: /¡Entendido!/i });
       fireEvent.click(dismissBtn);
 
-      expect(localStorage.getItem("impero_last_seen_release")).toBe("0.2.0");
+      expect(localStorage.getItem("impero_last_seen_release")).toBe("0.3.1");
       expect(shouldShowReleaseNotes()).toBe(false);
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });

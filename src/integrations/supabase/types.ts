@@ -714,7 +714,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      purge_user_data: {
+        Args: {
+          p_reseed?: boolean
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

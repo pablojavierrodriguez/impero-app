@@ -10,14 +10,15 @@ import {
   Sparkles,
   CloudLightning,
   Fingerprint,
-  FileSpreadsheet,
-  Zap,
+  Globe,
+  RotateCcw,
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/lib/settings-store";
+import { APP_VERSION } from "@/lib/version";
 
-const CURRENT_VERSION = "0.2.0";
+export const CURRENT_VERSION = APP_VERSION;
 const STORAGE_KEY = "impero_last_seen_release";
 
 interface ReleaseNotesModalProps {
@@ -63,7 +64,7 @@ export function ReleaseNotesModal({ open, onOpenChange }: ReleaseNotesModalProps
 
         {/* Feature Cards */}
         <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-          {/* Feature 1: Resiliencia Offline */}
+          {/* Feature 1: Motor Offline-First Global */}
           <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-colors">
             <div className="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400 shrink-0">
               <CloudLightning className="w-4 h-4" />
@@ -78,10 +79,10 @@ export function ReleaseNotesModal({ open, onOpenChange }: ReleaseNotesModalProps
             </div>
           </div>
 
-          {/* Feature 2: Seguridad Biométrica */}
+          {/* Feature 2: Internacionalización Total (ES / EN) */}
           <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-colors">
             <div className="w-9 h-9 rounded-lg bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-blue-400 shrink-0">
-              <Fingerprint className="w-4 h-4" />
+              <Globe className="w-4 h-4" />
             </div>
             <div className="space-y-0.5">
               <h4 className="text-xs sm:text-sm font-semibold text-foreground">
@@ -93,10 +94,10 @@ export function ReleaseNotesModal({ open, onOpenChange }: ReleaseNotesModalProps
             </div>
           </div>
 
-          {/* Feature 3: Atajos y Buscador Omnicanal */}
+          {/* Feature 3: Purga Atómica & Reinicio Seguro */}
           <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-colors">
             <div className="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-400 shrink-0">
-              <Zap className="w-4 h-4" />
+              <RotateCcw className="w-4 h-4" />
             </div>
             <div className="space-y-0.5">
               <h4 className="text-xs sm:text-sm font-semibold text-foreground">
@@ -108,10 +109,10 @@ export function ReleaseNotesModal({ open, onOpenChange }: ReleaseNotesModalProps
             </div>
           </div>
 
-          {/* Feature 4: Sparklines y Gráficos Sensoriales */}
+          {/* Feature 4: Seguridad Biométrica & Atajos (⌘K) */}
           <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-colors">
             <div className="w-9 h-9 rounded-lg bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400 shrink-0">
-              <Sparkles className="w-4 h-4" />
+              <Fingerprint className="w-4 h-4" />
             </div>
             <div className="space-y-0.5">
               <h4 className="text-xs sm:text-sm font-semibold text-foreground">

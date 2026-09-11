@@ -7,8 +7,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Keyboard, Navigation, Zap } from "lucide-react";
-import { createTranslator } from "@/lib/i18n";
 import { useSettings } from "@/lib/settings-store";
+import { APP_VERSION } from "@/lib/version";
 
 interface KeyboardShortcutsModalProps {
   open: boolean;
@@ -21,8 +21,7 @@ interface ShortcutItem {
 }
 
 export function KeyboardShortcutsModal({ open, onOpenChange }: KeyboardShortcutsModalProps) {
-  const { language } = useSettings();
-  const t = createTranslator(language);
+  const { t } = useSettings();
 
   const NAVIGATION_SHORTCUTS: ShortcutItem[] = [
     { keys: ["G", "D"], descKey: "shortcuts.navDashboard" },
@@ -132,7 +131,7 @@ export function KeyboardShortcutsModal({ open, onOpenChange }: KeyboardShortcuts
             {t("shortcuts.footerHint")}{" "}
             <kbd className="px-1 py-0.5 rounded bg-background border border-border/60 text-[10px] font-mono">?</kbd>
           </span>
-          <span>IMPERO v0.2.0</span>
+          <span>IMPERO v{APP_VERSION}</span>
         </div>
       </DialogContent>
     </Dialog>
