@@ -2,11 +2,10 @@
 
 ---
 
-## v0.1.2 - Sincronización Cloud, Deep Linking y Robustez Operativa
-**Fecha:** Septiembre 2026
+## [0.2.0] — 2026-09-10 🚀 Sincronización Cloud, Ingestión Masiva de Extractos y Navegación PWA
 
 ### 🎯 Resumen
-Consolidación de persistencia remota en Supabase para listas de compras, presupuestos y modalidades de tarjeta. Implementación de rutas directas para shortcuts PWA, sincronización bidireccional de historial con la URL, enmascaramiento total en modo privacidad, endurecimiento de seguridad en webhooks y suite de testing E2E inicial.
+Gran actualización de capacidades funcionales, arquitectura de datos y experiencia móvil: sincronización remota de listas de compras y presupuestos en Supabase con updates optimistas y rollover; ingestión universal de extractos bancarios en formatos Excel (XLSX/XLS), PDF y CSV; gestor unificado de compromisos con respiro visual y widget de dashboard; navegación PWA directa con historial completo; enmascaramiento total en modo privacidad y testing E2E automatizado.
 
 ### ✨ Nuevas Funcionalidades y Mejoras
 
@@ -21,13 +20,38 @@ Consolidación de persistencia remota en Supabase para listas de compras, presup
 - **Asistente de Bienvenida (`OnboardingWizard`):**
   - Activación automática en primer ingreso con registro en `localStorage`.
 
-#### 🧭 Navegación PWA y UX de Carga
+#### 🧭 Navegación PWA, Deep Linking y UX de Carga
 - **Deep Linking y Rutas Directas (`App.tsx` & `Index.tsx`):**
   - Rutas directas para todas las vistas principales (`/dashboard`, `/transactions`, `/reports`, `/budgets`, `/obligations`, `/cards`, etc.).
   - Resolución definitiva del error 404 al abrir la PWA desde accesos directos del sistema operativo (shortcut a `/reports`).
   - Sincronización bidireccional entre la URL y la pestaña activa, habilitando el uso natural del historial (`atrás` y `adelante` del navegador).
 - **Esqueleto de Carga Inicial (`DashboardSkeleton`):**
   - Pantalla de carga suave con placeholders animados (`Skeleton`), erradicando el flash de métricas y saldos en cero mientras se inicializa el almacén financiero.
+
+#### 📱 Experiencia Móvil, Densidad y Ergonomía Táctil
+- **Gestor Unificado de Compromisos (`ObligationsManager`):**
+  - Reemplazo y consolidación definitiva de `BillReminders.tsx` y `RecurringManager.tsx`.
+  - Tarjetas en dos niveles con respiro garantizado para montos, nombres largos sin colapso vertical y chips contextuales de workflow (`Débito auto` vs `Pago manual`) y vencimiento.
+  - Widget de vencimientos para dashboard (`BillsSummaryWidget.tsx`).
+- **Saneamiento de Acciones y Densidad Móvil:**
+  - **Categorías (`CategoryManager`):** Eliminación de botones pegados por fila; integración de botón directo para subcategoría y menú desplegable accesible (`DropdownMenu`) para Editar, Archivar y Eliminar, liberando el 85% del ancho de pantalla.
+  - **Cuentas (`AccountManager`):** Reemplazo de columna vertical de botones por menú contextual accesible (`Ajustar saldo`, `Editar`, `Archivar`).
+  - **Presupuestos (`BudgetManager`):** Distribución fluida del header de tarjeta para acomodar insignias de *Rollover* sin desplazar el botón de eliminación.
+- **Teclado y Registro Rápido (`QuickAddSheet` & `finance-store`):**
+  - Soporte de fecha explícita para transacciones pasadas y futuras.
+  - Mayor contraste y visibilidad en la selección rápida de categorías.
+- **Acceso a Cuenta & Sesión en Mobile (`BottomNav`, `SettingsPage`):**
+  - Acceso directo a Mi Perfil y botón táctil de Cerrar Sesión en el menú lateral móvil y en Ajustes.
+  - Mensajería de errores de autenticación 100% traducida al español.
+- **Pulido Visual y Ergonómico en Mobile:**
+  - `ResponsiveSheet` y `DashboardCardPicker`: Header unificado, botón de cierre táctil circular y eliminación de desbordes en el badge de widgets activos.
+  - `ObligationsManager` y `ReportsPage`: Scroll horizontal con salida suave (`w-6`) y padding inferior seguro (`pb-28`) para evitar solapamientos con la barra de navegación fija.
+  - `CashFlowForecast`: Eje Y con ticks dinámicos y formateo de unidades escalonado ($0, $1.5k, $10k, $1.2M), erradicando valores repetidos.
+
+#### 📥 Ingestión Masiva de Extractos
+- **Carga Masiva (`CsvImportSheet`, `excel-parser`, `pdf-statement-parser`):**
+  - Soporte universal de importación para extractos bancarios en formatos CSV, XLSX/XLS y PDF.
+  - Inserción y sincronización por lotes (batches) en segundo plano para optimizar rendimiento en bases de datos locales y cloud.
 
 #### 🛡️ Seguridad, Privacidad y Testing
 - **Endurecimiento de Edge Functions (`whatsapp-webhook`):**
@@ -41,37 +65,6 @@ Consolidación de persistencia remota en Supabase para listas de compras, presup
 #### 🏷️ Identidad de Marca y Pulido
 - **Caché y Almacenamiento:** Service Worker actualizado a `impero-shell-v1` y migración de claves de almacenamiento local a `impero-*` con retrocompatibilidad automática.
 - **Internacionalización:** Ajuste de etiquetas en `i18n.ts` diferenciando `"Compromisos"` (`nav.obligations`) de recurrentes.
-
----
-
-## v0.1.1 - Refactor Integral de UX Móvil y Unificación de Compromisos
-**Fecha:** Septiembre 2026
-
-### 🎯 Resumen
-Refactor integral de diseño y arquitectura de interfaz para desktop y mobile. Se unificaron los gastos recurrentes y recordatorios de vencimiento bajo el nuevo módulo de Compromisos (`ObligationsManager`), se erradicó el hacinamiento visual en pantallas compactas (<390px) y se optimizó la ergonomía táctil en Categorías, Cuentas y Presupuestos.
-
-### ✨ Mejoras de Experiencia y Arquitectura
-- **Gestor Unificado de Compromisos (`ObligationsManager`):**
-  - Reemplazo y consolidación definitiva de `BillReminders.tsx` y `RecurringManager.tsx`.
-  - Tarjetas en dos niveles con respiro garantizado para montos, nombres largos sin colapso vertical y chips contextuales de workflow (`Débito auto` vs `Pago manual`) y vencimiento.
-  - Widget de vencimientos para dashboard (`BillsSummaryWidget.tsx`).
-- **Saneamiento de Acciones y Densidad Móvil:**
-  - **Categorías (`CategoryManager`):** Eliminación de los 4 botones pegados por fila; integración de botón directo para subcategoría y menú desplegable accesible (`DropdownMenu`) para Editar, Archivar y Eliminar, liberando el 85% del ancho de pantalla.
-  - **Cuentas (`AccountManager`):** Reemplazo de la columna vertical de 3 botones por menú contextual accesible (`Ajustar saldo`, `Editar`, `Archivar`).
-  - **Presupuestos (`BudgetManager`):** Distribución fluida del header de tarjeta para acomodar insignias de *Rollover* sin desplazar el botón de eliminación.
-- **Teclado y Registro Rápido (`QuickAddSheet` & `finance-store`):**
-  - Soporte de fecha explícita para transacciones pasadas y futuras.
-  - Mayor contraste y visibilidad en la selección rápida de categorías.
-- **Carga Masiva de Extractos (`CsvImportSheet`, `excel-parser`, `pdf-statement-parser`):**
-  - Soporte universal de importación para extractos bancarios en formatos CSV, XLSX/XLS y PDF.
-  - Inserción y sincronización por lotes (batches) en segundo plano para optimizar rendimiento en bases de datos locales y cloud.
-- **Acceso a Cuenta & Sesión en Mobile (`BottomNav`, `SettingsPage`):**
-  - Acceso directo a Mi Perfil y botón táctil de Cerrar Sesión en el menú lateral móvil y en Ajustes.
-  - Mensajería de errores de autenticación 100% traducida al español.
-- **Pulido Visual y Ergonómico en Mobile:**
-  - `ResponsiveSheet` y `DashboardCardPicker`: Header unificado, botón de cierre táctil circular y eliminación de desbordes en el badge de widgets activos.
-  - `ObligationsManager` y `ReportsPage`: Scroll horizontal con salida suave (`w-6`) y padding inferior seguro (`pb-28`) para evitar solapamientos con la barra de navegación fija.
-  - `CashFlowForecast`: Eje Y con ticks dinámicos y formateo de unidades escalonado ($0, $1.5k, $10k, $1.2M), erradicando valores repetidos.
 
 ---
 

@@ -20,19 +20,25 @@ console.log('=====================================================\n');
 
 const checks = [
   {
-    name: '1. Tipado TypeScript (tsc --noEmit)',
+    name: '1. Integridad de Releases y Versiones',
+    command: 'node',
+    args: ['scripts/check-release-integrity.cjs'],
+    critical: true,
+  },
+  {
+    name: '2. Tipado TypeScript (tsc --noEmit)',
     command: 'npx',
     args: ['tsc', '--noEmit'],
     critical: true,
   },
   {
-    name: '2. Tests Unitarios (vitest)',
+    name: '3. Tests Unitarios (vitest)',
     command: 'npm',
     args: ['run', 'test'],
     critical: true,
   },
   {
-    name: '3. Build de Producción (vite build)',
+    name: '4. Build de Producción (vite build)',
     command: 'npm',
     args: ['run', 'build'],
     critical: true,

@@ -70,7 +70,7 @@ export function CreditCardManager({
   const { formatAmount: baseFormatCurrency, t } = useSettings();
   const formatCurrency = (n: number | null | undefined, opts?: any) => maskAmount(baseFormatCurrency(n ?? 0, opts));
   const { convert, formatInCurrency: baseFormatInCurrency } = useCurrencyConversion();
-  const formatInCurrency = (amount: number, curr?: string, opts?: any) => maskAmount(baseFormatInCurrency(amount, curr, opts));
+  const formatInCurrency = (amount: number, curr: Currency = "ARS", opts?: { sign?: string; abs?: boolean }) => maskAmount(baseFormatInCurrency(amount, curr, opts));
   const activeCurrencySymbol = CURRENCIES.find(c => c.value === formCurrency)?.symbol || "$";
 
   const openCreate = () => {

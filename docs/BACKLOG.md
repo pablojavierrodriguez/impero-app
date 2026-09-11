@@ -23,11 +23,12 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
 | **P12** 🛡️ | **Modo Privacidad & Bloqueo Biométrico Web** | **Tranquilidad en público:** ofuscación de saldos de un toque (`$ ••••••`) y reanudación segura con FaceID / TouchID. | Bajo | **Medio** | [SPEC-014](specs/SPEC-014-privacy-mode-and-biometrics.md) | Parcial (Privacidad ✅, Biometría pendiente) |
 | **P13** 💎 | **Unificación de Identidad de Marca, Nomenclatura y Microcopia de Alta Gama** | **Coherencia y artesanía:** eliminar discrepancias (`FinTrack` vs `m3`), traducir 100% la microcopia al español financiero y armonizar términos. | Bajo | **Alto** | [SPEC-015](specs/SPEC-015-brand-and-microcopy.md) | Completado |
 | **P14** ⚡ | **QuickAdd 2.0: Fricción Mínima, Smart Chips y Feedback Sensorial (Háptica)** | **Velocidad de registro de clase mundial:** chips rápidos de categorías frecuentes, vibración física nativa en teclado y cálculo en 1-tap. | Bajo | **Altísimo** | [SPEC-016](specs/SPEC-016-quickadd-frictionless.md) | Completado |
-| **P19** 🏛️ | **Consolidación de Identidad IMPERO & Dominio Propio** | **Alineación filosófica y técnica:** formalización de SPEC-021, ajuste de microcopia (asignación de recursos, serenidad) y metadatos globales. | Bajo | **Altísimo** | [SPEC-021](specs/SPEC-021-brand-identity-impero.md) | En progreso |
+| **P19** 🏛️ | **Consolidación de Identidad IMPERO & Dominio Propio** | **Alineación filosófica y técnica:** formalización de SPEC-021, ajuste de microcopia (asignación de recursos, serenidad) y metadatos globales. | Bajo | **Altísimo** | [SPEC-021](specs/SPEC-021-brand-identity-impero.md) | Completado |
 | **P15** 💳 | **Flujo Unificado de Conciliación y Pago de Tarjeta de Crédito** | **Resolución contable en 1-tap:** pagar resumen adeudado debitando de cuenta y cancelando el ciclo sin transferencias manuales. | Medio | **Alto** | [SPEC-017](specs/SPEC-017-credit-card-settlement.md) | Completado |
 | **P16** 🎨 | **Refinamiento del Design System: Contraste WCAG AA, Modo Claro y Safe Areas Móviles** | **Accesibilidad y confort visual:** paleta `.light` con contraste > 4.5:1, targets táctiles de 44px y control de teclado virtual móvil. | Bajo | **Alto** | [SPEC-018](specs/SPEC-018-design-system-and-a11y.md) | Completado |
 | **P17** 📊 | **Curva de Evolución Patrimonial (Net Worth Chart) y Empty States Dinámicos** | **Visión histórica clara y onboarding continuo:** gráfico minimalista de saldo neto en el tiempo y guías interactivas en estados vacíos. | Medio | **Medio** | [SPEC-019](specs/SPEC-019-net-worth-and-empty-states.md) | Completado |
 | **P18** 🚀 | **Convergencia IMPERO: Excelencia Mobills (Tarjetas/Ciclos) + Potencia Wallet (Shopping List/Filtros) + Factor Wow** | **Superioridad definitiva:** Liquidación con pago parcial y arrastre de deuda de tarjeta, Shopping List con checkout directo a gasto, y buscador/filtros multi-criterio rápidos. | Medio | **Altísimo (Core Value)** | [SPEC-020](specs/SPEC-020-mobills-wallet-m3-convergence.md) | Completado |
+| **P20** 🛒 | **Resiliencia Offline-First: Fallback Local en Shopping List** | **Tolerancia a desconexión y latencia:** ante micro-cortes o migraciones de base de datos, permitir operar listas de compras 100% en local con sincronización diferida. | Bajo | **Medio** | [SPEC-022](specs/SPEC-022-offline-shopping-resilience.md) | Pendiente |
 
 ---
 
@@ -269,7 +270,19 @@ Documento vivo de priorización de producto basado en valor para el usuario fina
   - Pago parcial de tarjeta traslada el saldo remanente al ciclo siguiente.
   - Búsqueda y filtrado instantáneo sin lags ni recargas.
   - Creación de listas de compras y conversión a transacción contable automática.
-  - [ ] Cero errores de compilación (`tsc --noEmit && npm run build`).
+  - [x] Cero errores de compilación (`tsc --noEmit && npm run build`).
+
+---
+
+### P20 — Resiliencia Offline-First: Fallback Local en Shopping List
+- **Problema:** Si el usuario abre la lista de compras en un supermercado con baja cobertura o durante ventanas de sincronización en Supabase, la vista no debe bloquearse ni mostrar mensajes de error intrusivos.
+- **Alcance:**
+  - Agregar fallback automático a `localStorage` en `shopping.service.ts` y `ShoppingListManager.tsx` (siguiendo el patrón de tolerancia a fallos ya implementado en `finance-store.ts` para reglas y tags).
+  - Estado offline transparente: ante caídas de red o demoras de respuesta remota, cargar y permitir editar listas localmente, sincronizando con Supabase en cuanto se restablezca la conexión.
+  - Notificación no invasiva (indicador de sincronización sutil) en reemplazo del toast de error repetitivo.
+- **Criterios de Aceptación:**
+  - Las listas de compras pueden crearse, editarse, chequearse y completarse aun sin conexión con Supabase.
+  - La reconexión propaga los cambios remotos sin pisar datos del usuario.
 
 ---
 

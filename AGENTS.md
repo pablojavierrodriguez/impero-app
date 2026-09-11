@@ -63,7 +63,33 @@
   - Prohibido usar mensajes vagos, genéricos o basados en jerga de sesión/sprints (ej: *"fix bugs"*, *"sprint 1-4"*, *"update files"*).
   - El título debe resumir claramente el impacto principal del cambio.
   - Cuando el commit englobe múltiples cambios, es obligatorio incluir un cuerpo descriptivo estructurado (macro-resumen y viñetas por módulo: Core, UI, DB, etc.) que explique con precisión **qué** se modificó para que cualquier persona externa entienda el contenido del commit sin haber estado presente.
+- **PROHIBIDO COMMITS A ESCONDIDAS O ENCADENADOS EN SILENCIO:** Todo commit debe ser visible y acordado. Prohibido ejecutar commits o pushes encubiertos o improvisar commits adicionales como parte de una "cadena de tareas".
+- **ATOMICIDAD Y AMEND OBLIGATORIO EN CORTES DE RELEASE:** Ante cualquier ajuste menor, corrección tipográfica o cambio de última hora durante un corte de release (ej: retocar notas de versión, eliminar encabezados vacíos o ajustar un delta SQL), está **TERMINANTEMENTE PROHIBIDO crear commits parche por encima** (`docs: fix...`). Debe incorporarse obligatoriamente al commit del release mediante `git commit --amend` para que el release en el historial de Git sea siempre un único commit atómico, limpio y profesional.
 - Ante la duda, terminar el turno mostrando lo que se modificó y esperar la orden de commit del usuario.
+
+---
+
+### 🚀 Política de releases y versionado (Release Management)
+
+- **PROHIBIDO INCREMENTAR VERSIONES EN TAREAS COTIDIANAS:** Durante el desarrollo diario de features o bugfixes, **NUNCA** se debe modificar `version` en `package.json`, ni crear cabeceras de nuevas versiones cerradas en `docs/RELEASE_NOTES.md`. Todo trabajo nuevo o parcial reside obligatoriamente bajo `## [Unreleased] — En Desarrollo (Próxima Versión)`.
+- **Corte de Release Exclusivo:** El proceso de release se ejecuta **única y exclusivamente cuando el usuario lo solicite de forma explícita** (ej: *"preparemos el release v0.2.0 para producción"* o *"hagamos el corte de versión"*).
+- **Flujo al ejecutar un Corte de Release (solicitado por el usuario):**
+  1. **Compilación previa obligatoria:** Validar con `npm run check:all` (`check-release-integrity`, `tsc --noEmit`, `vitest`, `npm run build`).
+  2. **Incrementar `version` en `package.json`:**
+     - Paquete con nuevas features $\rightarrow$ **MINOR** (`0.1.0` $\rightarrow$ `0.2.0`).
+     - Paquete exclusivo de hotfixes $\rightarrow$ **PATCH** (`0.1.0` $\rightarrow$ `0.1.1`).
+  3. **Consolidar en `docs/RELEASE_NOTES.md` (Enfoque 100% User-Facing):**
+     - Mover los puntos de `## [Unreleased]` a la nueva versión cerrada formal: `## [X.Y.Z] — YYYY-MM-DD 🚀 <Título>`.
+     - **Prohibido incluir identificadores internos:** ni números de SPEC (`SPEC-020`), ni nombres de branches, ni nombres de scripts SQL/deltas temporales. Describir capacidades arquitectónicas y valor funcional para el usuario.
+     - Restablecer una nueva cabecera vacía `## [Unreleased] — En Desarrollo (Próxima Versión)` arriba de todo.
+  4. **Base de Datos para Producción (Delta Único):**
+     - Consolidar todos los cambios DDL/RPC en un único delta idempotente en `supabase/migrations/delta/YYYYMMDD_<nombre>.sql` listo para aplicar en Supabase Cloud.
+  5. **Purgado de Backlog:**
+     - Mover y actualizar ítems completados en `docs/BACKLOG.md`. El historial detallado de lo entregado vive en `docs/RELEASE_NOTES.md`.
+  6. **Solicitud de Git interactiva (OBLIGATORIO):**
+     - Presentar la propuesta de commit (`release(vX.Y.Z): ...`) y de tagging (`git tag -a vX.Y.Z -m "Release vX.Y.Z"`).
+     - **Esperar confirmación verbal explícita antes de ejecutar `git commit`, `git tag` o `git push`.**
+  - Consultar siempre la skill [.agents/skills/release-management/SKILL.md](file:///Users/adrisol/Pablo/code/m3/.agents/skills/release-management/SKILL.md).
 
 ---
 
